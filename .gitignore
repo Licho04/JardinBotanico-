@@ -1,5 +1,11 @@
 # Archivos de configuración sensibles
 configuracion/conexion.php
+api/.env
+
+# Node.js
+api/node_modules/
+node_modules/
+package-lock.json
 
 # Archivos de sistema
 .DS_Store
