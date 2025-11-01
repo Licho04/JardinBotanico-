@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link rel="stylesheet" href="../recursos/estilos/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="body-inicio-sesion">
+    
+    <header class="encabezado">
+        <div class="encabezado-izquierda">
+            <img src="../recursos/imagenes/logo_transparente.png" alt="Logo Plantas Medicinales" class="logo">
+            <div>
+                <h1 class="titulo">Plantas Medicinales</h1>
+            </div>
+        </div>
+        <nav class="navegacion">
+            <a href="../index.php">Inicio</a>
+            <a href="../usuario/historia.php">Historia</a>
+            <a href="inicio_sesion.html" class="btn-sesion">Iniciar Sesión</a>
+        </nav>
+    </header>
+
+    <div class="contenedor-inicio">
+        <h1>Iniciar Sesión</h1>
+        <form action="verificarus.php" method="post" style="margin-bottom: 20px;">
+            <ul>
+                <li>
+                    <label for="identificador">Usuario o Correo electrónico:</label>
+                    <input type="text" id="identificador" name="identificador" required placeholder="Ingresa tu usuario o correo">
+                </li>
+                <li>
+                    <label for="contrasena">Contraseña:</label>
+                    <input type="password" id="contraseña" name="password" required placeholder="Ingresa tu contraseña">
+                </li>
+            </ul>
+            <button type="submit" name="enviar" value="Enviar">Entrar</button>
+        </form>
+        <a href="registro.html" class="boton-nuevo-usuario">Crear nueva cuenta</a>
+    </div>
+</body>
+</html>
