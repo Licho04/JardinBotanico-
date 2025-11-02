@@ -7,6 +7,10 @@ api/node_modules/
 node_modules/
 package-lock.json
 
+# Base de datos SQLite
+api/database.sqlite
+*.sqlite
+
 # Archivos de sistema
 .DS_Store
 Thumbs.db

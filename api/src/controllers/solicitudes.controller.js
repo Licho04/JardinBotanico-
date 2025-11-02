@@ -1,18 +1,25 @@
-import db from '../config/database.js';
+import Solicitud from '../models/Solicitud.js';
+import Usuario from '../models/Usuario.js';
+import { Op } from 'sequelize';
 
 // Obtener todas las solicitudes (admin) o las del usuario
 export const obtenerSolicitudes = async (req, res) => {
     try {
-        let query = 'SELECT * FROM solicitudes_donacion ORDER BY fecha_solicitud DESC';
-        let params = [];
+        let whereClause = {};
 
         // Si no es admin, solo ver sus propias solicitudes
         if (req.usuario.tipo !== 1) {
-            query = 'SELECT * FROM solicitudes_donacion WHERE usuario = ? ORDER BY fecha_solicitud DESC';
-            params = [req.usuario.id];
+            whereClause.usuario = req.usuario.id;
         }
 
-        const [solicitudes] = await db.query(query, params);
+        const solicitudes = await Solicitud.findAll({
+            where: whereClause,
+            order: [['fecha_solicitud', 'DESC']],
+            include: [{
+                model: Usuario,
+                attributes: ['usuario', 'nombre', 'mail']
+            }]
+        });
 
         res.json({
             total: solicitudes.length,
@@ -31,18 +38,19 @@ export const obtenerSolicitudes = async (req, res) => {
 export const obtenerSolicitudPorId = async (req, res) => {
     try {
         const { id } = req.params;
-        const [solicitudes] = await db.query(
-            'SELECT * FROM solicitudes_donacion WHERE id = ?',
-            [id]
-        );
 
-        if (solicitudes.length === 0) {
+        const solicitud = await Solicitud.findByPk(id, {
+            include: [{
+                model: Usuario,
+                attributes: ['usuario', 'nombre', 'mail']
+            }]
+        });
+
+        if (!solicitud) {
             return res.status(404).json({
                 error: 'Solicitud no encontrada'
             });
         }
-
-        const solicitud = solicitudes[0];
 
         // Verificar permisos (solo el usuario dueño o admin pueden ver)
         if (req.usuario.tipo !== 1 && solicitud.usuario !== req.usuario.id) {
@@ -80,29 +88,23 @@ export const crearSolicitud = async (req, res) => {
         }
 
         const usuario = req.usuario.id;
-        const fecha_solicitud = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const fecha_solicitud = new Date();
         const estatus = 'Pendiente';
 
-        const [resultado] = await db.query(
-            `INSERT INTO solicitudes_donacion
-            (usuario, nombre_planta, descripcion_planta, propiedades_medicinales, ubicacion, motivo_donacion, fecha_solicitud, estatus)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [usuario, nombre_planta, descripcion_planta, propiedades_medicinales || '', ubicacion, motivo_donacion || '', fecha_solicitud, estatus]
-        );
+        const solicitud = await Solicitud.create({
+            usuario,
+            nombre_planta,
+            descripcion_planta,
+            propiedades_medicinales: propiedades_medicinales || '',
+            ubicacion,
+            motivo_donacion: motivo_donacion || '',
+            fecha_solicitud,
+            estatus
+        });
 
         res.status(201).json({
             mensaje: 'Solicitud creada correctamente',
-            solicitud: {
-                id: resultado.insertId,
-                usuario,
-                nombre_planta,
-                descripcion_planta,
-                propiedades_medicinales,
-                ubicacion,
-                motivo_donacion,
-                fecha_solicitud,
-                estatus
-            }
+            solicitud
         });
 
     } catch (error) {
@@ -129,40 +131,24 @@ export const actualizarEstatusSolicitud = async (req, res) => {
             });
         }
 
-        // Verificar si la solicitud existe
-        const [solicitudExistente] = await db.query(
-            'SELECT * FROM solicitudes_donacion WHERE id = ?',
-            [id]
-        );
+        // Buscar solicitud
+        const solicitud = await Solicitud.findByPk(id);
 
-        if (solicitudExistente.length === 0) {
+        if (!solicitud) {
             return res.status(404).json({
                 error: 'Solicitud no encontrada'
             });
         }
 
         // Actualizar estatus
-        let query = 'UPDATE solicitudes_donacion SET estatus = ?';
-        let params = [estatus];
-
-        // Si hay comentarios, actualizar también (agregar campo si no existe)
-        if (comentarios !== undefined) {
-            query += ', comentarios = ?';
-            params.push(comentarios);
-        }
-
-        query += ' WHERE id = ?';
-        params.push(id);
-
-        await db.query(query, params);
+        await solicitud.update({
+            estatus,
+            comentarios: comentarios !== undefined ? comentarios : solicitud.comentarios
+        });
 
         res.json({
             mensaje: 'Estatus actualizado correctamente',
-            solicitud: {
-                id,
-                estatus,
-                comentarios
-            }
+            solicitud
         });
 
     } catch (error) {
@@ -179,26 +165,23 @@ export const eliminarSolicitud = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Verificar si la solicitud existe
-        const [solicitud] = await db.query(
-            'SELECT * FROM solicitudes_donacion WHERE id = ?',
-            [id]
-        );
+        // Buscar solicitud
+        const solicitud = await Solicitud.findByPk(id);
 
-        if (solicitud.length === 0) {
+        if (!solicitud) {
             return res.status(404).json({
                 error: 'Solicitud no encontrada'
             });
         }
 
         // Verificar permisos (solo el usuario dueño o admin pueden eliminar)
-        if (req.usuario.tipo !== 1 && solicitud[0].usuario !== req.usuario.id) {
+        if (req.usuario.tipo !== 1 && solicitud.usuario !== req.usuario.id) {
             return res.status(403).json({
                 error: 'No tienes permisos para eliminar esta solicitud'
             });
         }
 
-        await db.query('DELETE FROM solicitudes_donacion WHERE id = ?', [id]);
+        await solicitud.destroy();
 
         res.json({
             mensaje: 'Solicitud eliminada correctamente'

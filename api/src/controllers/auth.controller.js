@@ -1,6 +1,7 @@
-import db from '../config/database.js';
+import Usuario from '../models/Usuario.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { Op } from 'sequelize';
 
 // Registrar nuevo usuario
 export const registro = async (req, res) => {
@@ -15,51 +16,44 @@ export const registro = async (req, res) => {
             });
         }
 
-        // Verificar si el usuario ya existe
-        const [existeUsuario] = await db.query(
-            'SELECT usuario FROM usuarios WHERE usuario = ?',
-            [usuario]
-        );
-
-        if (existeUsuario.length > 0) {
-            return res.status(400).json({
-                error: 'El nombre de usuario ya está en uso'
-            });
-        }
-
-        // Verificar si el correo ya existe
-        const [existeCorreo] = await db.query(
-            'SELECT mail FROM usuarios WHERE mail = ?',
-            [mail]
-        );
-
-        if (existeCorreo.length > 0) {
-            return res.status(400).json({
-                error: 'El correo electrónico ya está registrado'
-            });
-        }
-
         // Hashear la contraseña
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Insertar usuario
-        const [resultado] = await db.query(
-            'INSERT INTO usuarios (usuario, nombre, mail, password, tipo) VALUES (?, ?, ?, ?, ?)',
-            [usuario, nombre || '', mail, passwordHash, tipo]
-        );
+        // Crear usuario (Sequelize maneja la validación de duplicados automáticamente)
+        const nuevoUsuario = await Usuario.create({
+            usuario,
+            nombre: nombre || '',
+            mail,
+            password: passwordHash,
+            tipo
+        });
 
         res.status(201).json({
             mensaje: 'Usuario registrado correctamente',
             usuario: {
-                id: resultado.insertId,
-                usuario,
-                mail,
-                tipo
+                usuario: nuevoUsuario.usuario,
+                mail: nuevoUsuario.mail,
+                tipo: nuevoUsuario.tipo
             }
         });
 
     } catch (error) {
         console.error('Error en registro:', error);
+
+        // Manejar errores de duplicados
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            if (error.fields.usuario) {
+                return res.status(400).json({
+                    error: 'El nombre de usuario ya está en uso'
+                });
+            }
+            if (error.fields.mail) {
+                return res.status(400).json({
+                    error: 'El correo electrónico ya está registrado'
+                });
+            }
+        }
+
         res.status(500).json({
             error: 'Error al registrar usuario',
             detalle: error.message
@@ -80,18 +74,20 @@ export const login = async (req, res) => {
         }
 
         // Buscar usuario (puede ser por nombre de usuario o email)
-        const [usuarios] = await db.query(
-            'SELECT * FROM usuarios WHERE usuario = ? OR mail = ?',
-            [usuario, usuario]
-        );
+        const user = await Usuario.findOne({
+            where: {
+                [Op.or]: [
+                    { usuario: usuario },
+                    { mail: usuario }
+                ]
+            }
+        });
 
-        if (usuarios.length === 0) {
+        if (!user) {
             return res.status(401).json({
                 error: 'Credenciales inválidas'
             });
         }
-
-        const user = usuarios[0];
 
         // Verificar contraseña (soporte para contraseñas antiguas en texto plano y nuevas hasheadas)
         let passwordValida = false;
@@ -99,21 +95,15 @@ export const login = async (req, res) => {
         // Intentar primero con bcrypt (contraseñas nuevas)
         try {
             passwordValida = await bcrypt.compare(password, user.password);
-            console.log('Bcrypt compare result:', passwordValida);
         } catch (error) {
             // Si falla bcrypt, podría ser contraseña en texto plano (BD antigua)
-            console.log('Bcrypt compare error:', error.message);
             passwordValida = false;
         }
 
         // Si bcrypt falló, verificar si es texto plano (contraseñas antiguas)
         if (!passwordValida && user.password === password) {
-            console.log('Password match - texto plano');
             passwordValida = true;
         }
-
-        console.log('Password final validation:', passwordValida);
-        console.log('User from DB:', user.usuario, 'Password stored:', user.password.substring(0, 20) + '...');
 
         if (!passwordValida) {
             return res.status(401).json({
