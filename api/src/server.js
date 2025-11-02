@@ -9,6 +9,9 @@ import authRoutes from './routes/auth.routes.js';
 import plantasRoutes from './routes/plantas.routes.js';
 import solicitudesRoutes from './routes/solicitudes.routes.js';
 
+// Importar inicialización de base de datos
+import './config/init-database.js';
+
 // Configuración
 dotenv.config();
 const app = express();

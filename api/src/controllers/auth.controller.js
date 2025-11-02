@@ -16,24 +16,24 @@ export const registro = async (req, res) => {
         }
 
         // Verificar si el usuario ya existe
-        const [existeUsuario] = await db.query(
+        const existeUsuario = await db.getAsync(
             'SELECT usuario FROM usuarios WHERE usuario = ?',
             [usuario]
         );
 
-        if (existeUsuario.length > 0) {
+        if (existeUsuario) {
             return res.status(400).json({
                 error: 'El nombre de usuario ya está en uso'
             });
         }
 
         // Verificar si el correo ya existe
-        const [existeCorreo] = await db.query(
+        const existeCorreo = await db.getAsync(
             'SELECT mail FROM usuarios WHERE mail = ?',
             [mail]
         );
 
-        if (existeCorreo.length > 0) {
+        if (existeCorreo) {
             return res.status(400).json({
                 error: 'El correo electrónico ya está registrado'
             });
@@ -43,7 +43,7 @@ export const registro = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
 
         // Insertar usuario
-        const [resultado] = await db.query(
+        const resultado = await db.runAsync(
             'INSERT INTO usuarios (usuario, nombre, mail, password, tipo) VALUES (?, ?, ?, ?, ?)',
             [usuario, nombre || '', mail, passwordHash, tipo]
         );
@@ -51,7 +51,7 @@ export const registro = async (req, res) => {
         res.status(201).json({
             mensaje: 'Usuario registrado correctamente',
             usuario: {
-                id: resultado.insertId,
+                id: resultado.lastID,
                 usuario,
                 mail,
                 tipo
@@ -80,18 +80,16 @@ export const login = async (req, res) => {
         }
 
         // Buscar usuario (puede ser por nombre de usuario o email)
-        const [usuarios] = await db.query(
+        const user = await db.getAsync(
             'SELECT * FROM usuarios WHERE usuario = ? OR mail = ?',
             [usuario, usuario]
         );
 
-        if (usuarios.length === 0) {
+        if (!user) {
             return res.status(401).json({
                 error: 'Credenciales inválidas'
             });
         }
-
-        const user = usuarios[0];
 
         // Verificar contraseña (soporte para contraseñas antiguas en texto plano y nuevas hasheadas)
         let passwordValida = false;

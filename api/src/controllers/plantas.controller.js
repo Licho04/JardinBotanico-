@@ -41,7 +41,7 @@ export const upload = multer({
 // Obtener todas las plantas
 export const obtenerPlantas = async (req, res) => {
     try {
-        const [plantas] = await db.query('SELECT * FROM plantas ORDER BY nombre');
+        const plantas = await db.allAsync('SELECT * FROM plantas ORDER BY nombre');
 
         res.json({
             total: plantas.length,
@@ -60,15 +60,15 @@ export const obtenerPlantas = async (req, res) => {
 export const obtenerPlantaPorId = async (req, res) => {
     try {
         const { id } = req.params;
-        const [plantas] = await db.query('SELECT * FROM plantas WHERE id = ?', [id]);
+        const planta = await db.getAsync('SELECT * FROM plantas WHERE id = ?', [id]);
 
-        if (plantas.length === 0) {
+        if (!planta) {
             return res.status(404).json({
                 error: 'Planta no encontrada'
             });
         }
 
-        res.json(plantas[0]);
+        res.json(planta);
     } catch (error) {
         console.error('Error al obtener planta:', error);
         res.status(500).json({
@@ -99,7 +99,7 @@ export const crearPlanta = async (req, res) => {
 
         const imagen = req.file ? req.file.filename : '';
 
-        const [resultado] = await db.query(
+        const resultado = await db.runAsync(
             `INSERT INTO plantas
             (nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos)
             VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -109,7 +109,7 @@ export const crearPlanta = async (req, res) => {
         res.status(201).json({
             mensaje: 'Planta creada correctamente',
             planta: {
-                id: resultado.insertId,
+                id: resultado.lastID,
                 nombre,
                 descripcion,
                 imagen,
@@ -143,26 +143,26 @@ export const actualizarPlanta = async (req, res) => {
         } = req.body;
 
         // Verificar si la planta existe
-        const [plantaExistente] = await db.query('SELECT * FROM plantas WHERE id = ?', [id]);
+        const plantaExistente = await db.getAsync('SELECT * FROM plantas WHERE id = ?', [id]);
 
-        if (plantaExistente.length === 0) {
+        if (!plantaExistente) {
             return res.status(404).json({
                 error: 'Planta no encontrada'
             });
         }
 
         // Si hay nueva imagen, usar esa; si no, mantener la anterior
-        const imagen = req.file ? req.file.filename : plantaExistente[0].imagen;
+        const imagen = req.file ? req.file.filename : plantaExistente.imagen;
 
         // Si hay nueva imagen y existía una anterior, eliminar la anterior
-        if (req.file && plantaExistente[0].imagen) {
-            const rutaImagenAnterior = path.join(__dirname, '../../../recursos/imagenes', plantaExistente[0].imagen);
+        if (req.file && plantaExistente.imagen) {
+            const rutaImagenAnterior = path.join(__dirname, '../../../recursos/imagenes', plantaExistente.imagen);
             if (fs.existsSync(rutaImagenAnterior)) {
                 fs.unlinkSync(rutaImagenAnterior);
             }
         }
 
-        await db.query(
+        await db.runAsync(
             `UPDATE plantas SET
             nombre = ?,
             descripcion = ?,
@@ -204,23 +204,23 @@ export const eliminarPlanta = async (req, res) => {
         const { id } = req.params;
 
         // Verificar si la planta existe
-        const [planta] = await db.query('SELECT * FROM plantas WHERE id = ?', [id]);
+        const planta = await db.getAsync('SELECT * FROM plantas WHERE id = ?', [id]);
 
-        if (planta.length === 0) {
+        if (!planta) {
             return res.status(404).json({
                 error: 'Planta no encontrada'
             });
         }
 
         // Eliminar imagen si existe
-        if (planta[0].imagen) {
-            const rutaImagen = path.join(__dirname, '../../../recursos/imagenes', planta[0].imagen);
+        if (planta.imagen) {
+            const rutaImagen = path.join(__dirname, '../../../recursos/imagenes', planta.imagen);
             if (fs.existsSync(rutaImagen)) {
                 fs.unlinkSync(rutaImagen);
             }
         }
 
-        await db.query('DELETE FROM plantas WHERE id = ?', [id]);
+        await db.runAsync('DELETE FROM plantas WHERE id = ?', [id]);
 
         res.json({
             mensaje: 'Planta eliminada correctamente'

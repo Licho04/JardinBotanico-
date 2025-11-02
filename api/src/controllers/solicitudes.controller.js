@@ -12,7 +12,7 @@ export const obtenerSolicitudes = async (req, res) => {
             params = [req.usuario.id];
         }
 
-        const [solicitudes] = await db.query(query, params);
+        const solicitudes = await db.allAsync(query, params);
 
         res.json({
             total: solicitudes.length,
@@ -31,18 +31,16 @@ export const obtenerSolicitudes = async (req, res) => {
 export const obtenerSolicitudPorId = async (req, res) => {
     try {
         const { id } = req.params;
-        const [solicitudes] = await db.query(
+        const solicitud = await db.getAsync(
             'SELECT * FROM solicitudes_donacion WHERE id = ?',
             [id]
         );
 
-        if (solicitudes.length === 0) {
+        if (!solicitud) {
             return res.status(404).json({
                 error: 'Solicitud no encontrada'
             });
         }
-
-        const solicitud = solicitudes[0];
 
         // Verificar permisos (solo el usuario dueño o admin pueden ver)
         if (req.usuario.tipo !== 1 && solicitud.usuario !== req.usuario.id) {
@@ -83,7 +81,7 @@ export const crearSolicitud = async (req, res) => {
         const fecha_solicitud = new Date().toISOString().slice(0, 19).replace('T', ' ');
         const estatus = 'Pendiente';
 
-        const [resultado] = await db.query(
+        const resultado = await db.runAsync(
             `INSERT INTO solicitudes_donacion
             (usuario, nombre_planta, descripcion_planta, propiedades_medicinales, ubicacion, motivo_donacion, fecha_solicitud, estatus)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -93,7 +91,7 @@ export const crearSolicitud = async (req, res) => {
         res.status(201).json({
             mensaje: 'Solicitud creada correctamente',
             solicitud: {
-                id: resultado.insertId,
+                id: resultado.lastID,
                 usuario,
                 nombre_planta,
                 descripcion_planta,
@@ -130,12 +128,12 @@ export const actualizarEstatusSolicitud = async (req, res) => {
         }
 
         // Verificar si la solicitud existe
-        const [solicitudExistente] = await db.query(
+        const solicitudExistente = await db.getAsync(
             'SELECT * FROM solicitudes_donacion WHERE id = ?',
             [id]
         );
 
-        if (solicitudExistente.length === 0) {
+        if (!solicitudExistente) {
             return res.status(404).json({
                 error: 'Solicitud no encontrada'
             });
@@ -154,7 +152,7 @@ export const actualizarEstatusSolicitud = async (req, res) => {
         query += ' WHERE id = ?';
         params.push(id);
 
-        await db.query(query, params);
+        await db.runAsync(query, params);
 
         res.json({
             mensaje: 'Estatus actualizado correctamente',
@@ -180,25 +178,25 @@ export const eliminarSolicitud = async (req, res) => {
         const { id } = req.params;
 
         // Verificar si la solicitud existe
-        const [solicitud] = await db.query(
+        const solicitud = await db.getAsync(
             'SELECT * FROM solicitudes_donacion WHERE id = ?',
             [id]
         );
 
-        if (solicitud.length === 0) {
+        if (!solicitud) {
             return res.status(404).json({
                 error: 'Solicitud no encontrada'
             });
         }
 
         // Verificar permisos (solo el usuario dueño o admin pueden eliminar)
-        if (req.usuario.tipo !== 1 && solicitud[0].usuario !== req.usuario.id) {
+        if (req.usuario.tipo !== 1 && solicitud.usuario !== req.usuario.id) {
             return res.status(403).json({
                 error: 'No tienes permisos para eliminar esta solicitud'
             });
         }
 
-        await db.query('DELETE FROM solicitudes_donacion WHERE id = ?', [id]);
+        await db.runAsync('DELETE FROM solicitudes_donacion WHERE id = ?', [id]);
 
         res.json({
             mensaje: 'Solicitud eliminada correctamente'
