@@ -5,8 +5,7 @@ API REST para el sistema de gestión de jardín botánico. Esta API proporciona 
 ## Requisitos
 
 - Node.js v16 o superior
-- MySQL 5.7 o superior
-- XAMPP (para desarrollo local)
+- SQLite 3 (se instala automáticamente como dependencia)
 
 ## Instalación
 
@@ -20,15 +19,13 @@ npm install
 Crear archivo `.env` en la carpeta `api/` con las siguientes variables:
 
 ```env
-DB_HOST=localhost
-DB_USER=ADMIN
-DB_PASSWORD=0192837465
-DB_NAME=JardinBotanico
-DB_PORT=3306
-PORT=3000
+PORT=3001
+DB_PATH=./database.sqlite
 JWT_SECRET=tu_clave_secreta_muy_segura_cambiar_en_produccion
 NODE_ENV=development
 ```
+
+**Nota**: La base de datos SQLite se creará automáticamente al iniciar el servidor si no existe.
 
 ## Iniciar el servidor
 
@@ -36,7 +33,7 @@ NODE_ENV=development
 npm start
 ```
 
-El servidor estará corriendo en `http://localhost:3000`
+El servidor estará corriendo en `http://localhost:3001` (o el puerto configurado en `.env`)
 
 ## Endpoints de la API
 
@@ -360,10 +357,10 @@ async function crearSolicitud(solicitud) {
 
 ## Notas importantes
 
-1. **Asegúrate de que XAMPP esté corriendo** antes de iniciar la API
-2. La base de datos debe existir y tener las tablas creadas
+1. **La base de datos SQLite se crea automáticamente** al iniciar el servidor
+2. **No necesitas MySQL o XAMPP** - SQLite es un archivo local
 3. Cambia `JWT_SECRET` en producción
-4. En el servidor virtual, cambia `DB_HOST`, `DB_USER`, `DB_PASSWORD` según la configuración del servidor
+4. El archivo `database.sqlite` se genera en la carpeta `api/` - inclúyelo en `.gitignore` si contiene datos sensibles
 
 ## Contacto
 
