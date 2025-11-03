@@ -2,10 +2,25 @@
 session_start();
 include('configuracion/conexion.php');
 $plantas = [];
-$sql = "SELECT nombre, imagen FROM plantas";
-$result = mysqli_query($conexion, $sql);
-while($row = mysqli_fetch_assoc($result)){
-    $plantas[] = $row;
+
+// Si está usando API
+if (defined('USAR_API') && USAR_API && $conexion instanceof ApiClient) {
+    $response = $conexion->obtenerPlantas();
+    if ($response['success']) {
+        $plantas = array_map(function($planta) {
+            return [
+                'nombre' => $planta['nombre'],
+                'imagen' => $planta['imagen'] ?? ''
+            ];
+        }, $response['plantas']);
+    }
+} else {
+    // Modo conexión directa (MySQL)
+    $sql = "SELECT nombre, imagen FROM plantas";
+    $result = mysqli_query($conexion, $sql);
+    while($row = mysqli_fetch_assoc($result)){
+        $plantas[] = $row;
+    }
 }
 ?>
 <!DOCTYPE html>

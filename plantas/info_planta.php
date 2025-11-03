@@ -1,9 +1,18 @@
 <?php
 include('../configuracion/conexion.php');
-$nombre = $_POST['nombre'];
-$sql = "SELECT * FROM plantas WHERE nombre = '$nombre'";
-$res = mysqli_query($conexion, $sql);
-if($row = mysqli_fetch_assoc($res)){
+$nombre = $_POST['nombre'] ?? '';
+
+// Si está usando API
+if (defined('USAR_API') && USAR_API && $conexion instanceof ApiClient) {
+    $row = $conexion->obtenerPlantaPorNombre($nombre);
+} else {
+    // Modo conexión directa (MySQL)
+    $sql = "SELECT * FROM plantas WHERE nombre = '$nombre'";
+    $res = mysqli_query($conexion, $sql);
+    $row = mysqli_fetch_assoc($res);
+}
+
+if($row){
     ?>
     <div class="info-planta-container">
         <div class="cientifico-destacado">
@@ -12,18 +21,18 @@ if($row = mysqli_fetch_assoc($res)){
         
         <h2><?php echo htmlspecialchars($row['nombre']); ?></h2>
         
-        <?php if($row['imagen']): ?>
+        <?php if(!empty($row['imagen'])): ?>
             <div class="imagen-planta">
                 <img src="recursos/imagenes/<?php echo htmlspecialchars($row['imagen']); ?>" alt="<?php echo htmlspecialchars($row['nombre']); ?>" class="imagen-principal">
             </div>
         <?php endif; ?>
         
         <div class="detalles-planta">
-            <p><strong><i class="fas fa-tag"></i> Nomenclatura científica:</strong> <i><?php echo htmlspecialchars($row['nombre_cientifico']); ?></i></p>
-            <p><strong><i class="fas fa-file-alt"></i> Descripción morfológica:</strong> <?php echo htmlspecialchars($row['descripcion']); ?></p>
-            <p><strong><i class="fas fa-pills"></i> Propiedades farmacológicas:</strong> <?php echo htmlspecialchars($row['propiedades']); ?></p>
-            <p><strong><i class="fas fa-globe-americas"></i> Distribución biogeográfica:</strong> <?php echo htmlspecialchars($row['zona_geografica']); ?></p>
-            <p><strong><i class="fas fa-heart"></i> Aplicaciones terapéuticas:</strong> <?php echo htmlspecialchars($row['usos']); ?></p>
+            <p><strong><i class="fas fa-tag"></i> Nomenclatura científica:</strong> <i><?php echo htmlspecialchars($row['nombre_cientifico'] ?? ''); ?></i></p>
+            <p><strong><i class="fas fa-file-alt"></i> Descripción morfológica:</strong> <?php echo htmlspecialchars($row['descripcion'] ?? ''); ?></p>
+            <p><strong><i class="fas fa-pills"></i> Propiedades farmacológicas:</strong> <?php echo htmlspecialchars($row['propiedades'] ?? ''); ?></p>
+            <p><strong><i class="fas fa-globe-americas"></i> Distribución biogeográfica:</strong> <?php echo htmlspecialchars($row['zona_geografica'] ?? ''); ?></p>
+            <p><strong><i class="fas fa-heart"></i> Aplicaciones terapéuticas:</strong> <?php echo htmlspecialchars($row['usos'] ?? ''); ?></p>
         </div>
         
         <div class="alert-warning">
