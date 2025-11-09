@@ -10,7 +10,7 @@ services:
       - key: NODE_VERSION
         value: 18
       - key: JWT_SECRET
-        generateValue: true
+        value: LuisYSveinEstanDesarrollandoUnaAplicacion
       - key: PORT
         value: 3000
 
