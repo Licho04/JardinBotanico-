@@ -13,3 +13,4 @@ services:
         generateValue: true
       - key: PORT
         value: 3000
+
