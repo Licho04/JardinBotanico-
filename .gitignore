@@ -1,11 +1,20 @@
-# Archivos de configuración sensibles
-configuracion/conexion.php
-api/.env
+# Ignorar todo en la raíz
+/*
+
+# Excepciones
+!/.gitignore
+!/api/
+!/recursos/
+!/render.yaml
+!/README.md
+
+# ============================================
+# IGNORAR DENTRO DE LAS CARPETAS PERMITIDAS
+# ============================================
 
 # Node.js
 api/node_modules/
-node_modules/
-package-lock.json
+api/.env
 
 # Archivos de sistema
 .DS_Store
@@ -26,20 +35,3 @@ desktop.ini
 *.swp
 *.swo
 *~
-
-# Dependencias (si usas Composer)
-/vendor/
-composer.lock
-
-# Archivos de entorno
-.env
-.env.local
-.env.*.local
-
-# Archivos subidos por usuarios (si aplica)
-/uploads/*
-!/uploads/.gitkeep
-
-# Cache
-/cache/
-/tmp/
