@@ -106,6 +106,34 @@ app.use((req, res) => {
     });
 });
 
+// Middleware de manejo de errores global
+app.use((err, req, res, next) => {
+    console.error('🔥 Error no manejado:', err);
+
+    // Errores de Multer (subida de archivos)
+    if (err.name === 'MulterError') {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'El archivo es demasiado grande (Máx 5MB)' });
+        }
+        return res.status(400).json({ error: 'Error al subir archivo: ' + err.message });
+    }
+
+    // Errores generales en peticiones AJAX/API
+    if (req.xhr || req.path.startsWith('/api/') || req.path.startsWith('/administracion/')) {
+        return res.status(500).json({
+            error: err.message || 'Error interno del servidor',
+            detalle: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+    }
+
+    // Renderizar error para vistas normales
+    res.status(500).render('error', {
+        mensaje: 'Ha ocurrido un error inesperado',
+        usuario: req.session?.usuario || null,
+        isAuthenticated: !!req.session?.usuario
+    });
+});
+
 // Iniciar servidor
 // Escuchar explícitamente en 0.0.0.0 para asegurar accesibilidad en contenedores (Render)
 app.listen(PORT, '0.0.0.0', () => {

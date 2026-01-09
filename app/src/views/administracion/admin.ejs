@@ -194,8 +194,8 @@
                             }
                         })
                         .catch(err => {
-                            console.error('Error:', err);
-                            alert('Error al procesar la solicitud');
+                            console.error('SERVER ERROR:', err);
+                            alert('Error técnico: ' + (err.message || err));
                         });
                 }
             });
