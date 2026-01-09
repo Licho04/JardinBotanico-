@@ -71,7 +71,7 @@ router.post('/administracion/usuarios', requireAdmin, async (req, res) => {
         // Insertar usuario
         await db.runAsync(
             'INSERT INTO usuarios (usuario, nombre, mail, password, tipo) VALUES (?, ?, ?, ?, ?)',
-            [usuario, nombre || '', mail, passwordHash, tipo ? 1 : 0]
+            [usuario, nombre || '', mail, passwordHash, parseInt(tipo) === 1 ? 1 : 0]
         );
 
         console.log('✅ [CREATE USER] Usuario creado exitosamente:', usuario);
@@ -109,7 +109,7 @@ const actualizarUsuario = async (req, res) => {
         const { nombre, mail, password, tipo } = req.body;
 
         let query = 'UPDATE usuarios SET nombre = ?, mail = ?, tipo = ?';
-        let params = [nombre || '', mail, tipo ? 1 : 0];
+        let params = [nombre || '', mail, parseInt(tipo) === 1 ? 1 : 0];
 
         // Si hay nueva contraseña, actualizarla
         if (password) {
