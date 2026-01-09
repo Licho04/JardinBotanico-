@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,49 +8,71 @@
     <link rel="stylesheet" href="/recursos/estilos/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <%- include('../partials/header', { usuario, isAuthenticated: true }) %>
-    
-    <main class="contenido-principal" style="padding: 40px 20px; max-width: 1200px; margin: 0 auto;">
-        <h1 style="color: #2d4c2a; margin-bottom: 30px;">
-            <i class="fas fa-seedling"></i> Mis Solicitudes de Donación
-        </h1>
-        
-        <% if (solicitudes && solicitudes.length > 0) { %>
-            <div style="display: grid; gap: 20px;">
-                <% solicitudes.forEach(function(solicitud) { %>
-                <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                        <h3 style="color: #4b6e3c; margin: 0;"><%= solicitud.nombre_planta %></h3>
-                        <span style="padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; 
-                            background: <%= solicitud.estado === 'aprobada' ? '#d4edda' : (solicitud.estado === 'rechazada' ? '#f8d7da' : '#fff3cd') %>;
-                            color: <%= solicitud.estado === 'aprobada' ? '#155724' : (solicitud.estado === 'rechazada' ? '#721c24' : '#856404') %>;">
-                            <%= solicitud.estado || 'Pendiente' %>
-                        </span>
-                    </div>
-                    <p style="color: #666; margin: 10px 0;"><strong>Fecha:</strong> <%= new Date(solicitud.fecha).toLocaleDateString('es-MX') %></p>
-                    <p style="color: #666; margin: 10px 0;"><strong>Ubicación:</strong> <%= solicitud.ubicacion %></p>
-                    <% if (solicitud.respuesta) { %>
-                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                            <strong>Respuesta del administrador:</strong>
-                            <p style="margin-top: 5px; color: #333;"><%= solicitud.respuesta %></p>
-                        </div>
-                    <% } %>
-                </div>
-                <% }); %>
-            </div>
-        <% } else { %>
-            <div style="text-align: center; padding: 40px; background: white; border-radius: 8px;">
-                <i class="fas fa-inbox" style="font-size: 4rem; color: #ccc; margin-bottom: 20px;"></i>
-                <p style="color: #666; font-size: 1.1rem;">No tienes solicitudes de donación aún.</p>
-                <a href="/" style="display: inline-block; margin-top: 20px; color: #4b6e3c; text-decoration: none;">
-                    <i class="fas fa-arrow-left"></i> Volver al inicio
-                </a>
-            </div>
-        <% } %>
-    </main>
-    
-    <%- include('../partials/footer') %>
-</body>
-</html>
 
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+    <%- include('../partials/header', { usuario, isAuthenticated: true }) %>
+
+        <div style="flex: 1;">
+            <main class="solicitudes-container" style="margin-top: 40px; margin-bottom: 40px;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <h1 style="color: var(--verde-oscuro); font-size: 2rem;">
+                        <i class="fas fa-seedling" style="color: var(--verde-vibrante);"></i> Mis Solicitudes
+                    </h1>
+                    <p style="color: var(--texto-secundario);">Historial de tus donaciones de plantas</p>
+                </div>
+
+                <% if (solicitudes && solicitudes.length> 0) { %>
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <% solicitudes.forEach(function(solicitud) { let claseEstado='estado-pendiente' ; if
+                            (solicitud.estado==='aprobada' ) claseEstado='estado-aprobado' ; if
+                            (solicitud.estado==='rechazada' ) claseEstado='estado-rechazado' ; %>
+                            <div class="solicitud-item">
+                                <div class="solicitud-header">
+                                    <h3 class="solicitud-titulo">
+                                        <%= solicitud.nombre_planta %>
+                                    </h3>
+                                    <span class="<%= claseEstado %>">
+                                        <%= solicitud.estado ? solicitud.estado.toUpperCase() : 'PENDIENTE' %>
+                                    </span>
+                                </div>
+
+                                <div class="solicitud-detalle">
+                                    <strong><i class="far fa-calendar-alt"></i> Fecha:</strong>
+                                    <%= new Date(solicitud.fecha).toLocaleDateString('es-MX', { weekday: 'long' ,
+                                        year: 'numeric' , month: 'long' , day: 'numeric' }) %>
+                                </div>
+
+                                <div class="solicitud-detalle">
+                                    <strong><i class="fas fa-map-marker-alt"></i> Ubicación propuesta:</strong>
+                                    <%= solicitud.ubicacion %>
+                                </div>
+
+                                <% if (solicitud.respuesta) { %>
+                                    <div class="alert-info" style="margin-top: 16px;">
+                                        <strong><i class="fas fa-comment-alt"></i> Respuesta del administrador:</strong>
+                                        <p style="margin-top: 8px;">
+                                            <%= solicitud.respuesta %>
+                                        </p>
+                                    </div>
+                                    <% } %>
+                            </div>
+                            <% }); %>
+                    </div>
+                    <% } else { %>
+                        <div class="sin-solicitudes">
+                            <i class="fas fa-inbox"
+                                style="font-size: 4rem; color: var(--gris-medio); margin-bottom: 20px; display: block;"></i>
+                            <h3 style="color: var(--texto-principal);">No tienes solicitudes activas</h3>
+                            <p>¡Anímate a donar una planta al jardín botánico!</p>
+                            <a href="/" class="btn-volver" style="margin-top: 24px;">
+                                <i class="fas fa-plus-circle"></i> Nueva Solicitud
+                            </a>
+                        </div>
+                        <% } %>
+            </main>
+        </div>
+
+        <%- include('../partials/footer') %>
+</body>
+
+</html>
