@@ -90,6 +90,8 @@ export const crearSolicitud = async (req, res) => {
         );
 
         res.status(201).json({
+            success: true,
+            id: resultado.lastID,
             mensaje: 'Solicitud creada correctamente',
             solicitud: {
                 id: resultado.lastID,
