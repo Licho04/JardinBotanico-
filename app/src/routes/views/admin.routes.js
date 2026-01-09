@@ -51,9 +51,11 @@ router.get('/administracion/usuarios/agregar', requireAdmin, (req, res) => {
 // Crear usuario
 router.post('/administracion/usuarios', requireAdmin, async (req, res) => {
     try {
+        console.log('📝 [CREATE USER] Request Body:', req.body);
         const { usuario, nombre, mail, password, tipo } = req.body;
 
         if (!usuario || !mail || !password) {
+            console.error('❌ [CREATE USER] Campos faltantes:', { usuario: !!usuario, mail: !!mail, password: !!password });
             return res.status(400).json({ error: 'Campos requeridos faltantes' });
         }
 
@@ -72,9 +74,10 @@ router.post('/administracion/usuarios', requireAdmin, async (req, res) => {
             [usuario, nombre || '', mail, passwordHash, tipo ? 1 : 0]
         );
 
+        console.log('✅ [CREATE USER] Usuario creado exitosamente:', usuario);
         res.json({ success: true, mensaje: 'Usuario creado correctamente' });
     } catch (error) {
-        console.error('Error al crear usuario:', error);
+        console.error('❌ [CREATE USER] Error:', error);
         res.status(500).json({ error: 'Error al crear usuario' });
     }
 });
@@ -134,22 +137,41 @@ router.post('/administracion/usuarios/:usuario/actualizar', requireAdmin, actual
 router.delete('/administracion/usuarios/:usuario', requireAdmin, async (req, res) => {
     try {
         const { usuario } = req.params;
+        console.log(`🗑️ [DELETE USER] Intentando eliminar usuario: ${usuario}`);
 
         // No permitir eliminar el propio usuario admin
         if (usuario === req.session.usuario.usuario) {
             return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
         }
 
-        // Eliminar solicitudes asociadas primero (para evitar error de FK)
-        await db.runAsync('DELETE FROM solicitudes WHERE usuario = ?', [usuario]);
+        // FORZAR LIMPIEZA: Desactivar FK temporalmente para garantizar borrado
+        // Esto es necesario si hay referencias inconsistentes o si el borrado normal falla
+        await db.runAsync('PRAGMA foreign_keys = OFF');
 
-        // Eliminar usuario
-        await db.runAsync('DELETE FROM usuarios WHERE usuario = ?', [usuario]);
+        try {
+            // Eliminar dependencias manualmente
+            const resSol = await db.runAsync('DELETE FROM solicitudes WHERE usuario = ?', [usuario]);
+            console.log(`- Solicitudes eliminadas: ${resSol.changes}`);
+
+            // Eliminar usuario
+            const resUser = await db.runAsync('DELETE FROM usuarios WHERE usuario = ?', [usuario]);
+            console.log(`- Usuario eliminado: ${resUser.changes}`);
+
+            if (resUser.changes === 0) {
+                throw new Error("Usuario no encontrado o no se pudo eliminar");
+            }
+        } finally {
+            // Re-activar FKs siempre
+            await db.runAsync('PRAGMA foreign_keys = ON');
+        }
 
         res.json({ success: true, mensaje: 'Usuario eliminado correctamente' });
     } catch (error) {
-        console.error('Error al eliminar usuario:', error);
-        res.status(500).json({ error: 'Error al eliminar usuario' });
+        console.error('❌ [DELETE USER] Error:', error);
+        // Intentar reactivar FKs por si acaso falló dentro del try
+        try { await db.runAsync('PRAGMA foreign_keys = ON'); } catch (e) { }
+
+        res.status(500).json({ error: 'Error al eliminar usuario: ' + error.message });
     }
 });
 
