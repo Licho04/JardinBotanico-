@@ -8,11 +8,29 @@ dotenv.config();
 const sqlite = sqlite3.verbose();
 
 // Ruta de la base de datos SQLite
-// Si existe DATA_PATH (Render Disk), usar esa ruta, si no, usar local
 import path from 'path';
-const DB_PATH = process.env.DATA_PATH 
-    ? path.join(process.env.DATA_PATH, 'database.sqlite')
-    : (process.env.DB_PATH || './database.sqlite');
+import fs from 'fs';
+
+let DB_PATH = process.env.DB_PATH || './database.sqlite';
+
+// Auto-migración para Render Disk
+if (process.env.DATA_PATH) {
+    const targetPath = path.join(process.env.DATA_PATH, 'database.sqlite');
+    const sourcePath = path.join(process.cwd(), 'database.sqlite'); // Archivo local del repositorio
+
+    // Si no existe la BD en el disco persistente pero sí en el repo, copiarla
+    if (!fs.existsSync(targetPath) && fs.existsSync(sourcePath)) {
+        console.log('📦 Migrando base de datos local a disco persistente...');
+        try {
+            fs.copyFileSync(sourcePath, targetPath);
+            console.log('✅ Base de datos migrada correctamente.');
+        } catch (error) {
+            console.error('❌ Error al migrar base de datos:', error);
+        }
+    }
+
+    DB_PATH = targetPath;
+}
 
 // Crear conexión a la base de datos
 const db = new sqlite.Database(DB_PATH, (err) => {
@@ -25,9 +43,9 @@ const db = new sqlite.Database(DB_PATH, (err) => {
 });
 
 // Convertir métodos de callback a promesas con el contexto correcto
-db.runAsync = function(...args) {
+db.runAsync = function (...args) {
     return new Promise((resolve, reject) => {
-        db.run(...args, function(err) {
+        db.run(...args, function (err) {
             if (err) {
                 reject(err);
             } else {
