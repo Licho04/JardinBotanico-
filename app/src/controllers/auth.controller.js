@@ -150,13 +150,20 @@ export const login = async (req, res) => {
     }
 };
 
-// Verificar token (middleware)
+// Verificar token o sesión (Middleware híbrido)
 export const verificarToken = (req, res, next) => {
+    // 1. Verificar si hay sesión activa (Navegador)
+    if (req.session && req.session.usuario) {
+        req.usuario = req.session.usuario;
+        return next();
+    }
+
+    // 2. Verificar si hay token Bearer (API / Postman)
     const token = req.headers['authorization']?.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
         return res.status(403).json({
-            error: 'Token no proporcionado'
+            error: 'Token no proporcionado. Inicie sesión.'
         });
     }
 
