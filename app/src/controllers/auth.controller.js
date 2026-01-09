@@ -154,7 +154,12 @@ export const login = async (req, res) => {
 export const verificarToken = (req, res, next) => {
     // 1. Verificar si hay sesión activa (Navegador)
     if (req.session && req.session.usuario) {
-        req.usuario = req.session.usuario;
+        // Normalizar objeto usuario para que coincida con la estructura del token JWT
+        // El token tiene 'id' pero la sesión tiene 'usuario' como clave primaria
+        req.usuario = {
+            ...req.session.usuario,
+            id: req.session.usuario.usuario
+        };
         return next();
     }
 
