@@ -1,0 +1,97 @@
+<% if (typeof usuario !=='undefined' && usuario && usuario.tipo==0) { %>
+    <div id="modal-solicitud-donacion" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-seedling"></i> Solicitud de Donación Científica</h2>
+            <div class="alert-info">
+                <p><strong>Contribución Científica:</strong> Tu donación ayudará a enriquecer nuestro catálogo
+                    científico y promover la investigación en plantas medicinales.</p>
+            </div>
+            <form action="/api/solicitudes" method="post" onsubmit="enviarSolicitudDonacion(event, this)">
+                <label>
+                    <i class="fas fa-leaf"></i> Nombre común de la planta:
+                    <input type="text" name="nombre_planta" required placeholder="Ej: Manzanilla, Romero, Albahaca...">
+                </label>
+                <label>
+                    <i class="fas fa-file-alt"></i> Descripción morfológica:
+                    <textarea name="descripcion_planta" required
+                        placeholder="Describe las características físicas de la planta (tamaño, forma de hojas, flores, etc.)..."></textarea>
+                </label>
+                <label>
+                    <i class="fas fa-pills"></i> Propiedades medicinales conocidas:
+                    <textarea name="propiedades_medicinales" required
+                        placeholder="Describe las propiedades medicinales y usos terapéuticos documentados..."></textarea>
+                </label>
+                <label>
+                    <i class="fas fa-map-marker-alt"></i> Ubicación geográfica:
+                    <input type="text" name="ubicacion" required
+                        placeholder="Ej: Jardín particular, Parque local, Área natural protegida...">
+                </label>
+                <label>
+                    <i class="fas fa-heart"></i> Motivo de la donación:
+                    <textarea name="motivo_donacion" required
+                        placeholder="Explica el propósito científico o educativo de tu donación..."></textarea>
+                </label>
+                <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+                    <button type="submit"><i class="fas fa-paper-plane"></i> Enviar Solicitud</button>
+                    <button type="button"
+                        onclick="document.getElementById('modal-solicitud-donacion').style.display='none'"><i
+                            class="fas fa-times"></i> Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Lógica del modal de donación
+        document.addEventListener('DOMContentLoaded', function () {
+            var btnSolicitud = document.getElementById('btn-solicitud-donacion');
+            var modalSolicitud = document.getElementById('modal-solicitud-donacion');
+
+            if (btnSolicitud && modalSolicitud) {
+                btnSolicitud.onclick = function (e) {
+                    e.preventDefault();
+                    modalSolicitud.style.display = 'flex';
+                };
+
+                modalSolicitud.onclick = function (e) {
+                    if (e.target === this) this.style.display = 'none';
+                };
+            }
+        });
+
+        // Envío AJAX para evitar redirecciones raras si estamos en subpáginas
+        function enviarSolicitudDonacion(e, form) {
+            e.preventDefault();
+
+            const data = Object.fromEntries(new FormData(form).entries());
+            data.fecha = new Date().toISOString();
+            data.usuario = '<%= usuario.usuario %>'; // Inyectar usuario actual
+
+            // Mapear campos para coincidir con la API si es necesario, o usar el endpoint de vista
+            // Usaremos el endpoint API /api/solicitudes creado anteriormente o el de la vista
+            // Para mantener consistencia con lo que arreglamos en admin, enviamos JSON
+
+            fetch('/api/solicitudes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.id || res.success) {
+                        alert('Solicitud enviada correctamente');
+                        document.getElementById('modal-solicitud-donacion').style.display = 'none';
+                        form.reset();
+                    } else {
+                        alert('Error: ' + (res.error || 'No se pudo enviar'));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error al enviar solicitud');
+                });
+        }
+    </script>
+    <% } %>

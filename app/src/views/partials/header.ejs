@@ -10,22 +10,39 @@
         <a href="/usuario/historia">Historia</a>
         <% if (!isAuthenticated) { %>
             <a href="/auth/login" class="btn-sesion">Iniciar Sesión</a>
-        <% } %>
-        <% if (isAuthenticated) { %>
-            <div class="menu-hamburguesa">
-                <button id="btn-menu">&#9776;</button>
-                <div id="menu-opciones" style="display: none;">
-                    <a href="/usuario/perfil">Perfil</a>
-                    <% if (usuario && usuario.tipo == 0) { %>
-                        <a href="#" id="btn-solicitud-donacion">Solicitar Donación</a>
+            <% } %>
+                <% if (isAuthenticated) { %>
+                    <div class="menu-hamburguesa">
+                        <button id="btn-menu">&#9776;</button>
+                        <div id="menu-opciones" style="display: none;">
+                            <a href="/usuario/perfil">Perfil</a>
+                            <% if (usuario && usuario.tipo==0) { %>
+                                <a href="#" id="btn-solicitud-donacion">Solicitar Donación</a>
+                                <% } %>
+                                    <% if (usuario && usuario.tipo==1) { %>
+                                        <a href="/administracion/admin">Administrador</a>
+                                        <% } %>
+                                            <a href="/auth/logout">Cerrar sesión</a>
+                        </div>
+                    </div>
                     <% } %>
-                    <% if (usuario && usuario.tipo == 1) { %>
-                        <a href="/administracion/admin">Administrador</a>
-                    <% } %>
-                    <a href="/auth/logout">Cerrar sesión</a>
-                </div>
-            </div>
-        <% } %>
     </nav>
 </header>
 
+<script>
+    // Lógica del menú hamburguesa (Global)
+    document.addEventListener('DOMContentLoaded', function () {
+        var btnMenu = document.getElementById('btn-menu');
+        if (btnMenu) {
+            btnMenu.onclick = function () {
+                var menu = document.getElementById('menu-opciones');
+                if (menu.style.display === 'flex') {
+                    menu.style.display = 'none';
+                } else {
+                    menu.style.display = 'flex';
+                    menu.style.flexDirection = 'column';
+                }
+            };
+        }
+    });
+</script>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,33 +18,40 @@
             max-width: 900px;
             width: 100%;
         }
-        
+
         .construccion-icono {
             font-size: 6rem;
             color: #4b6e3c;
             margin-bottom: 30px;
             animation: bounce 2s infinite;
         }
-        
+
         @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
                 transform: translateY(0);
             }
+
             40% {
                 transform: translateY(-20px);
             }
+
             60% {
                 transform: translateY(-10px);
             }
         }
-        
+
         .construccion-titulo {
             font-size: 2.5rem;
             color: #2d4c2a;
             margin-bottom: 20px;
             font-weight: 600;
         }
-        
+
         .construccion-descripcion {
             font-size: 1.2rem;
             color: #666;
@@ -51,7 +59,7 @@
             max-width: 600px;
             line-height: 1.6;
         }
-        
+
         .construccion-caracteristicas {
             display: flex;
             flex-wrap: wrap;
@@ -60,7 +68,7 @@
             margin: 30px 0;
             max-width: 800px;
         }
-        
+
         .caracteristica {
             background: #f8f9fa;
             padding: 20px;
@@ -69,19 +77,19 @@
             min-width: 200px;
             text-align: left;
         }
-        
+
         .caracteristica h3 {
             color: #2d4c2a;
             margin-bottom: 10px;
             font-size: 1.1rem;
         }
-        
+
         .caracteristica p {
             color: #666;
             font-size: 0.9rem;
             margin: 0;
         }
-        
+
         .btn-volver {
             background: #4b6e3c;
             color: white;
@@ -94,17 +102,17 @@
             margin-top: 20px;
             transition: background 0.3s;
         }
-        
+
         .btn-volver:hover {
             background: #2d4c2a;
         }
-        
+
         .progreso-container {
             width: 100%;
             max-width: 400px;
             margin: 30px auto;
         }
-        
+
         .progreso-bar {
             width: 100%;
             height: 8px;
@@ -112,44 +120,52 @@
             border-radius: 4px;
             overflow: hidden;
         }
-        
+
         .progreso-fill {
             height: 100%;
             background: linear-gradient(90deg, #4b6e3c, #7ca77a);
             width: 25%;
             animation: progress 3s ease-in-out infinite;
         }
-        
+
         @keyframes progress {
-            0% { width: 25%; }
-            50% { width: 75%; }
-            100% { width: 25%; }
+            0% {
+                width: 25%;
+            }
+
+            50% {
+                width: 75%;
+            }
+
+            100% {
+                width: 25%;
+            }
         }
-        
+
         .progreso-texto {
             text-align: center;
             margin-top: 10px;
             color: #666;
             font-size: 0.9rem;
         }
-        
+
         @media (max-width: 768px) {
             .construccion-container {
                 padding: 20px 15px;
             }
-            
+
             .construccion-titulo {
                 font-size: 2rem;
             }
-            
+
             .construccion-descripcion {
                 font-size: 1rem;
             }
-            
+
             .construccion-caracteristicas {
                 gap: 15px;
             }
-            
+
             .caracteristica {
                 min-width: 150px;
                 padding: 15px;
@@ -157,84 +173,75 @@
         }
     </style>
 </head>
+
 <body>
     <%- include('../partials/header', { usuario, isAuthenticated: true }) %>
 
-    <main class="contenido-principal" style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
-        <div class="construccion-container">
-            <div class="construccion-icono">
-                <i class="fas fa-tools"></i>
-            </div>
-            
-            <h1 class="construccion-titulo">Página en Construcción</h1>
-            
-            <p class="construccion-descripcion">
-                Estamos trabajando para traerte una experiencia completa de perfil de usuario. 
-                Esta funcionalidad estará disponible próximamente con características avanzadas 
-                para gestionar tu cuenta y preferencias.
-            </p>
-            
-            <div class="progreso-container">
-                <div class="progreso-bar">
-                    <div class="progreso-fill"></div>
+        <main class="contenido-principal"
+            style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+            <div class="construccion-container">
+                <div class="construccion-icono">
+                    <i class="fas fa-tools"></i>
                 </div>
-                <div class="progreso-texto">Desarrollo en progreso...</div>
-            </div>
-            
-            <div class="construccion-caracteristicas">
-                <div class="caracteristica">
-                    <h3><i class="fas fa-user-edit"></i> Editar Perfil</h3>
-                    <p>Actualiza tu información personal y preferencias de cuenta</p>
-                </div>
-                
-                <div class="caracteristica">
-                    <h3><i class="fas fa-history"></i> Historial</h3>
-                    <p>Revisa las plantas que has consultado recientemente</p>
-                </div>
-                
-                <div class="caracteristica">
-                    <h3><i class="fas fa-heart"></i> Favoritos</h3>
-                    <p>Guarda tus plantas favoritas para acceso rápido</p>
-                </div>
-                
-                <div class="caracteristica">
-                    <h3><i class="fas fa-bell"></i> Notificaciones</h3>
-                    <p>Recibe alertas sobre nuevas plantas y actualizaciones</p>
-                </div>
-                
-                <% if (usuario && usuario.tipo == 0) { %>
-                <div class="caracteristica">
-                    <h3><i class="fas fa-seedling"></i> Mis Solicitudes</h3>
-                    <p>Revisa el estado de tus solicitudes de donación de plantas</p>
-                    <a href="/usuario/mis-solicitudes" style="color: #4b6e3c; text-decoration: none; font-weight: 600; margin-top: 10px; display: inline-block;">
-                        <i class="fas fa-eye"></i> Ver mis solicitudes
-                    </a>
-                </div>
-                <% } %>
-            </div>
-            
-            <a href="/" class="btn-volver">
-                <i class="fas fa-arrow-left"></i> Volver al Inicio
-            </a>
-        </div>
-    </main>
 
-    <%- include('../partials/footer') %>
+                <h1 class="construccion-titulo">Página en Construcción</h1>
 
-    <script>
-    var btnMenu = document.getElementById('btn-menu');
-    if(btnMenu){
-        btnMenu.onclick = function() {
-            var menu = document.getElementById('menu-opciones');
-            if(menu.style.display === 'flex'){
-                menu.style.display = 'none';
-            } else {
-                menu.style.display = 'flex';
-                menu.style.flexDirection = 'column';
-            }
-        };
-    }
-    </script>
+                <p class="construccion-descripcion">
+                    Estamos trabajando para traerte una experiencia completa de perfil de usuario.
+                    Esta funcionalidad estará disponible próximamente con características avanzadas
+                    para gestionar tu cuenta y preferencias.
+                </p>
+
+                <div class="progreso-container">
+                    <div class="progreso-bar">
+                        <div class="progreso-fill"></div>
+                    </div>
+                    <div class="progreso-texto">Desarrollo en progreso...</div>
+                </div>
+
+                <div class="construccion-caracteristicas">
+                    <div class="caracteristica">
+                        <h3><i class="fas fa-user-edit"></i> Editar Perfil</h3>
+                        <p>Actualiza tu información personal y preferencias de cuenta</p>
+                    </div>
+
+                    <div class="caracteristica">
+                        <h3><i class="fas fa-history"></i> Historial</h3>
+                        <p>Revisa las plantas que has consultado recientemente</p>
+                    </div>
+
+                    <div class="caracteristica">
+                        <h3><i class="fas fa-heart"></i> Favoritos</h3>
+                        <p>Guarda tus plantas favoritas para acceso rápido</p>
+                    </div>
+
+                    <div class="caracteristica">
+                        <h3><i class="fas fa-bell"></i> Notificaciones</h3>
+                        <p>Recibe alertas sobre nuevas plantas y actualizaciones</p>
+                    </div>
+
+                    <% if (usuario && usuario.tipo==0) { %>
+                        <div class="caracteristica">
+                            <h3><i class="fas fa-seedling"></i> Mis Solicitudes</h3>
+                            <p>Revisa el estado de tus solicitudes de donación de plantas</p>
+                            <a href="/usuario/mis-solicitudes"
+                                style="color: #4b6e3c; text-decoration: none; font-weight: 600; margin-top: 10px; display: inline-block;">
+                                <i class="fas fa-eye"></i> Ver mis solicitudes
+                            </a>
+                        </div>
+                        <% } %>
+                </div>
+
+                <a href="/" class="btn-volver">
+                    <i class="fas fa-arrow-left"></i> Volver al Inicio
+                </a>
+            </div>
+        </main>
+
+        <%- include('../partials/footer') %>
+
+            <!-- Modal de donación -->
+            <%- include('../partials/modal-donacion', { usuario: typeof usuario !=='undefined' ? usuario : null }) %>
 </body>
-</html>
 
+</html>
