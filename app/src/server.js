@@ -107,9 +107,10 @@ app.use((req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    console.log(`Documentación disponible en http://localhost:${PORT}/`);
+// Escuchar explícitamente en 0.0.0.0 para asegurar accesibilidad en contenedores (Render)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    console.log(`🌐 Accesible en http://0.0.0.0:${PORT}`);
 });
 
 export default app;
