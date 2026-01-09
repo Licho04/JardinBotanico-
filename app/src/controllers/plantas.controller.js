@@ -10,7 +10,15 @@ const __dirname = path.dirname(__filename);
 // Configurar multer para subida de imágenes
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../../../recursos/imagenes');
+        let uploadPath;
+        if (process.env.DATA_PATH) {
+            // En Producción (Render Disk)
+            uploadPath = path.join(process.env.DATA_PATH, 'imagenes');
+        } else {
+            // En Desarrollo
+            uploadPath = path.join(__dirname, '../../../recursos/imagenes');
+        }
+
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
@@ -156,7 +164,13 @@ export const actualizarPlanta = async (req, res) => {
 
         // Si hay nueva imagen y existía una anterior, eliminar la anterior
         if (req.file && plantaExistente.imagen) {
-            const rutaImagenAnterior = path.join(__dirname, '../../../recursos/imagenes', plantaExistente.imagen);
+            let rutaImagenAnterior;
+            if (process.env.DATA_PATH) {
+                rutaImagenAnterior = path.join(process.env.DATA_PATH, 'imagenes', plantaExistente.imagen);
+            } else {
+                rutaImagenAnterior = path.join(__dirname, '../../../recursos/imagenes', plantaExistente.imagen);
+            }
+
             if (fs.existsSync(rutaImagenAnterior)) {
                 fs.unlinkSync(rutaImagenAnterior);
             }
@@ -214,7 +228,13 @@ export const eliminarPlanta = async (req, res) => {
 
         // Eliminar imagen si existe
         if (planta.imagen) {
-            const rutaImagen = path.join(__dirname, '../../../recursos/imagenes', planta.imagen);
+            let rutaImagen;
+            if (process.env.DATA_PATH) {
+                rutaImagen = path.join(process.env.DATA_PATH, 'imagenes', planta.imagen);
+            } else {
+                rutaImagen = path.join(__dirname, '../../../recursos/imagenes', planta.imagen);
+            }
+
             if (fs.existsSync(rutaImagen)) {
                 fs.unlinkSync(rutaImagen);
             }

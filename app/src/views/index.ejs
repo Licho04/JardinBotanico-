@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plantas Medicinales</title>
+    <link rel="stylesheet" href="/recursos/estilos/styles.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <%- include('partials/header', { usuario, isAuthenticated }) %>
+
+    <main class="contenido-principal">
+        <section class="barra-lateral">
+            <div class="cientifico-destacado">
+                <h3>Catálogo Científico</h3>
+                <p>Explora nuestra colección de plantas medicinales con información científica detallada.</p>
+            </div>
+            
+            <form class="busqueda" onsubmit="return false;">
+                <input type="text" placeholder="Buscar planta medicinal..." id="busqueda-input">
+            </form>
+            
+            <div class="lista-elementos" id="lista-plantas">
+                <% plantas.forEach(function(planta) { %>
+                <div class="elemento planta-item" data-nombre="<%= planta.nombre %>">
+                    <div class="imagen-placeholder">
+                        <% if(planta.imagen) { %>
+                            <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>" style="width:50px;height:50px;object-fit:cover;border-radius:8px;">
+                        <% } else { %>
+                            🌱
+                        <% } %>
+                    </div>
+                    <span class="nombre"><%= planta.nombre %></span>
+                </div>
+                <% }); %>
+            </div>
+        </section>
+        
+        <section class="descripcion" id="info-planta">
+            <div class="descripcion-texto" id="info-planta-content">
+                <div class="alert-info">
+                    <h3><i class="fas fa-microscope"></i> Información Científica</h3>
+                    <p>Selecciona una planta del catálogo para consultar su información científica detallada, incluyendo:</p>
+                    <ul style="margin: 12px 0; padding-left: 20px;">
+                        <li>Nomenclatura científica</li>
+                        <li>Propiedades medicinales</li>
+                        <li>Distribución geográfica</li>
+                        <li>Usos tradicionales y modernos</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <%- include('partials/footer') %>
+    
+    <!-- Modal para solicitud de donación -->
+    <% if (isAuthenticated && usuario && usuario.tipo == 0) { %>
+    <div id="modal-solicitud-donacion" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-seedling"></i> Solicitud de Donación Científica</h2>
+            <div class="alert-info">
+                <p><strong>Contribución Científica:</strong> Tu donación ayudará a enriquecer nuestro catálogo científico y promover la investigación en plantas medicinales.</p>
+            </div>
+            <form action="/solicitudes/enviar" method="post">
+                <label>
+                    <i class="fas fa-leaf"></i> Nombre común de la planta:
+                    <input type="text" name="nombre_planta" required placeholder="Ej: Manzanilla, Romero, Albahaca...">
+                </label>
+                <label>
+                    <i class="fas fa-file-alt"></i> Descripción morfológica:
+                    <textarea name="descripcion_planta" required placeholder="Describe las características físicas de la planta (tamaño, forma de hojas, flores, etc.)..."></textarea>
+                </label>
+                <label>
+                    <i class="fas fa-pills"></i> Propiedades medicinales conocidas:
+                    <textarea name="propiedades_medicinales" required placeholder="Describe las propiedades medicinales y usos terapéuticos documentados..."></textarea>
+                </label>
+                <label>
+                    <i class="fas fa-map-marker-alt"></i> Ubicación geográfica:
+                    <input type="text" name="ubicacion" required placeholder="Ej: Jardín particular, Parque local, Área natural protegida...">
+                </label>
+                <label>
+                    <i class="fas fa-heart"></i> Motivo de la donación:
+                    <textarea name="motivo_donacion" required placeholder="Explica el propósito científico o educativo de tu donación..."></textarea>
+                </label>
+                <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+                    <button type="submit"><i class="fas fa-paper-plane"></i> Enviar Solicitud</button>
+                    <button type="button" onclick="document.getElementById('modal-solicitud-donacion').style.display='none'"><i class="fas fa-times"></i> Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <% } %>
+    
+    <script>
+    var btnMenu = document.getElementById('btn-menu');
+    if(btnMenu){
+        btnMenu.onclick = function() {
+            var menu = document.getElementById('menu-opciones');
+            if(menu.style.display === 'flex'){
+                menu.style.display = 'none';
+            } else {
+                menu.style.display = 'flex';
+                menu.style.flexDirection = 'column';
+            }
+        };
+    }
+    
+    // Función para filtrar plantas
+    function filtrarPlantas() {
+        var busqueda = document.getElementById('busqueda-input').value.toLowerCase();
+        var plantas = document.querySelectorAll('.planta-item');
+        
+        plantas.forEach(function(planta) {
+            var nombre = planta.querySelector('.nombre').textContent.toLowerCase();
+            if (nombre.includes(busqueda)) {
+                planta.style.display = 'flex';
+            } else {
+                planta.style.display = 'none';
+            }
+        });
+    }
+    
+    // Búsqueda en tiempo real
+    document.getElementById('busqueda-input').addEventListener('input', filtrarPlantas);
+    
+    // Modal de solicitud de donación
+    var btnSolicitud = document.getElementById('btn-solicitud-donacion');
+    if(btnSolicitud){
+        btnSolicitud.onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('modal-solicitud-donacion').style.display = 'flex';
+        };
+    }
+    
+    // Cerrar modal al hacer clic fuera
+    var modalSolicitud = document.getElementById('modal-solicitud-donacion');
+    if(modalSolicitud){
+        modalSolicitud.onclick = function(e){
+            if(e.target === this) this.style.display = 'none';
+        };
+    }
+    
+    document.querySelectorAll('.planta-item').forEach(function(item){
+        item.onclick = function() {
+            // Remover selección previa
+            document.querySelectorAll('.planta-item').forEach(function(el) {
+                el.classList.remove('selected');
+            });
+            
+            // Agregar selección al elemento actual
+            this.classList.add('selected');
+            
+            var nombre = this.dataset.nombre;
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/plantas/info', true);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xhr.onload = function() {
+                document.getElementById('info-planta-content').innerHTML = xhr.responseText;
+            };
+            xhr.send('nombre=' + encodeURIComponent(nombre));
+        };
+    });
+    </script>
+</body>
+</html>
+

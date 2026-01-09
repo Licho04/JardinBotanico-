@@ -8,7 +8,11 @@ dotenv.config();
 const sqlite = sqlite3.verbose();
 
 // Ruta de la base de datos SQLite
-const DB_PATH = process.env.DB_PATH || './database.sqlite';
+// Si existe DATA_PATH (Render Disk), usar esa ruta, si no, usar local
+import path from 'path';
+const DB_PATH = process.env.DATA_PATH 
+    ? path.join(process.env.DATA_PATH, 'database.sqlite')
+    : (process.env.DB_PATH || './database.sqlite');
 
 // Crear conexión a la base de datos
 const db = new sqlite.Database(DB_PATH, (err) => {

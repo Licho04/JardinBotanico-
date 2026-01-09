@@ -1,0 +1,47 @@
+<h2><%= accion === 'agregar' ? 'Agregar nueva planta' : 'Modificar planta' %></h2>
+<form id="form-planta" action="<%= accion === 'agregar' ? '/administracion/plantas' : '/administracion/plantas/' + planta.id + '/actualizar' %>" 
+      method="POST" enctype="multipart/form-data">
+    <label>
+        Nombre común:
+        <input type="text" name="nombre" value="<%= planta ? planta.nombre : '' %>" 
+               required placeholder="Ej: Albahaca">
+    </label>
+    <label>
+        Nombre científico:
+        <input type="text" name="nombre_cientifico" value="<%= planta ? planta.nombre_cientifico : '' %>" 
+               placeholder="Ej: Ocimum basilicum">
+    </label>
+    <label>
+        Descripción:
+        <textarea name="descripcion" required><%= planta ? planta.descripcion : '' %></textarea>
+    </label>
+    <label>
+        Propiedades medicinales:
+        <textarea name="propiedades"><%= planta ? planta.propiedades : '' %></textarea>
+    </label>
+    <label>
+        Zona geográfica:
+        <input type="text" name="zona_geografica" value="<%= planta ? planta.zona_geografica : '' %>" 
+               placeholder="Ej: Región tropical">
+    </label>
+    <label>
+        Usos:
+        <textarea name="usos"><%= planta ? planta.usos : '' %></textarea>
+    </label>
+    <label>
+        Imagen:
+        <input type="file" name="imagen" accept="image/*">
+        <% if (planta && planta.imagen) { %>
+            <small>Imagen actual: <%= planta.imagen %></small>
+        <% } %>
+    </label>
+    <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+        <button type="submit">
+            <i class="fas fa-save"></i> <%= accion === 'agregar' ? 'Crear' : 'Actualizar' %>
+        </button>
+        <button type="button" onclick="document.getElementById('modal-editar-planta').style.display='none'">
+            <i class="fas fa-times"></i> Cancelar
+        </button>
+    </div>
+</form>
+

@@ -4,13 +4,19 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: cd api && npm install
-    startCommand: cd api && npm start
+    buildCommand: cd app && npm install
+    startCommand: cd app && npm start
     envVars:
       - key: NODE_VERSION
         value: 18
       - key: JWT_SECRET
         value: LuisYSveinEstanDesarrollandoUnaAplicacion
-      - key: PORT
-        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: DATA_PATH
+        value: /var/data
+    disk:
+      name: jardin-botanico-data
+      mountPath: /var/data
+      sizeGB: 1
 

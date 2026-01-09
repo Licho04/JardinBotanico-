@@ -26,9 +26,9 @@ const initDatabase = () => {
         )
     `;
 
-    // Crear tabla de solicitudes_donacion
+    // Crear tabla de solicitudes
     const crearTablaSolicitudes = `
-        CREATE TABLE IF NOT EXISTS solicitudes_donacion (
+        CREATE TABLE IF NOT EXISTS solicitudes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario TEXT NOT NULL,
             nombre_planta TEXT NOT NULL,
@@ -36,9 +36,9 @@ const initDatabase = () => {
             propiedades_medicinales TEXT,
             ubicacion TEXT NOT NULL,
             motivo_donacion TEXT,
-            fecha_solicitud TEXT NOT NULL,
-            estatus TEXT NOT NULL DEFAULT 'Pendiente',
-            comentarios TEXT,
+            estado TEXT NOT NULL DEFAULT 'pendiente',
+            fecha TEXT NOT NULL,
+            respuesta TEXT,
             FOREIGN KEY (usuario) REFERENCES usuarios(usuario)
         )
     `;
@@ -63,9 +63,9 @@ const initDatabase = () => {
 
         db.run(crearTablaSolicitudes, (err) => {
             if (err) {
-                console.error('Error al crear tabla solicitudes_donacion:', err.message);
+                console.error('Error al crear tabla solicitudes:', err.message);
             } else {
-                console.log('✅ Tabla solicitudes_donacion creada o ya existe');
+                console.log('✅ Tabla solicitudes creada o ya existe');
             }
         });
     });

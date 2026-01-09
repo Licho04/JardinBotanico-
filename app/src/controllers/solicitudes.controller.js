@@ -3,12 +3,12 @@ import db from '../config/database.js';
 // Obtener todas las solicitudes (admin) o las del usuario
 export const obtenerSolicitudes = async (req, res) => {
     try {
-        let query = 'SELECT * FROM solicitudes_donacion ORDER BY fecha_solicitud DESC';
+        let query = 'SELECT * FROM solicitudes ORDER BY fecha DESC';
         let params = [];
 
         // Si no es admin, solo ver sus propias solicitudes
         if (req.usuario.tipo !== 1) {
-            query = 'SELECT * FROM solicitudes_donacion WHERE usuario = ? ORDER BY fecha_solicitud DESC';
+            query = 'SELECT * FROM solicitudes WHERE usuario = ? ORDER BY fecha DESC';
             params = [req.usuario.id];
         }
 
@@ -32,7 +32,7 @@ export const obtenerSolicitudPorId = async (req, res) => {
     try {
         const { id } = req.params;
         const solicitud = await db.getAsync(
-            'SELECT * FROM solicitudes_donacion WHERE id = ?',
+            'SELECT * FROM solicitudes WHERE id = ?',
             [id]
         );
 
@@ -78,14 +78,15 @@ export const crearSolicitud = async (req, res) => {
         }
 
         const usuario = req.usuario.id;
-        const fecha_solicitud = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        const estatus = 'Pendiente';
+
+        const fecha = new Date().toISOString();
+        const estado = 'pendiente';
 
         const resultado = await db.runAsync(
-            `INSERT INTO solicitudes_donacion
-            (usuario, nombre_planta, descripcion_planta, propiedades_medicinales, ubicacion, motivo_donacion, fecha_solicitud, estatus)
+            `INSERT INTO solicitudes
+            (usuario, nombre_planta, descripcion_planta, propiedades_medicinales, ubicacion, motivo_donacion, fecha, estado)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [usuario, nombre_planta, descripcion_planta, propiedades_medicinales || '', ubicacion, motivo_donacion || '', fecha_solicitud, estatus]
+            [usuario, nombre_planta, descripcion_planta, propiedades_medicinales || '', ubicacion, motivo_donacion || '', fecha, estado]
         );
 
         res.status(201).json({
@@ -98,8 +99,8 @@ export const crearSolicitud = async (req, res) => {
                 propiedades_medicinales,
                 ubicacion,
                 motivo_donacion,
-                fecha_solicitud,
-                estatus
+                fecha,
+                estado
             }
         });
 
@@ -118,18 +119,18 @@ export const actualizarEstatusSolicitud = async (req, res) => {
         const { id } = req.params;
         const { estatus, comentarios } = req.body;
 
-        // Validar estatus
-        const estatusValidos = ['Pendiente', 'Aprobada', 'Rechazada', 'En proceso'];
-        if (!estatusValidos.includes(estatus)) {
+        // Validar estado
+        const estadosValidos = ['pendiente', 'aprobada', 'rechazada', 'en proceso'];
+        if (!estadosValidos.includes(estatus.toLowerCase())) {
             return res.status(400).json({
-                error: 'Estatus inválido',
-                estatusValidos
+                error: 'Estado inválido',
+                estadosValidos
             });
         }
 
         // Verificar si la solicitud existe
         const solicitudExistente = await db.getAsync(
-            'SELECT * FROM solicitudes_donacion WHERE id = ?',
+            'SELECT * FROM solicitudes WHERE id = ?',
             [id]
         );
 
@@ -139,13 +140,13 @@ export const actualizarEstatusSolicitud = async (req, res) => {
             });
         }
 
-        // Actualizar estatus
-        let query = 'UPDATE solicitudes_donacion SET estatus = ?';
+        // Actualizar estado
+        let query = 'UPDATE solicitudes SET estado = ?';
         let params = [estatus];
 
-        // Si hay comentarios, actualizar también (agregar campo si no existe)
+        // Si hay comentarios/respuesta, actualizar también
         if (comentarios !== undefined) {
-            query += ', comentarios = ?';
+            query += ', respuesta = ?';
             params.push(comentarios);
         }
 
@@ -155,11 +156,11 @@ export const actualizarEstatusSolicitud = async (req, res) => {
         await db.runAsync(query, params);
 
         res.json({
-            mensaje: 'Estatus actualizado correctamente',
+            mensaje: 'Estado actualizado correctamente',
             solicitud: {
                 id,
-                estatus,
-                comentarios
+                estado: estatus,
+                respuesta: comentarios
             }
         });
 
@@ -179,7 +180,7 @@ export const eliminarSolicitud = async (req, res) => {
 
         // Verificar si la solicitud existe
         const solicitud = await db.getAsync(
-            'SELECT * FROM solicitudes_donacion WHERE id = ?',
+            'SELECT * FROM solicitudes WHERE id = ?',
             [id]
         );
 
@@ -196,7 +197,7 @@ export const eliminarSolicitud = async (req, res) => {
             });
         }
 
-        await db.runAsync('DELETE FROM solicitudes_donacion WHERE id = ?', [id]);
+        await db.runAsync('DELETE FROM solicitudes WHERE id = ?', [id]);
 
         res.json({
             mensaje: 'Solicitud eliminada correctamente'

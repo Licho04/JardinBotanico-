@@ -3,18 +3,23 @@
 
 # Excepciones
 !/.gitignore
-!/api/
+!/app/
 !/recursos/
 !/render.yaml
 !/README.md
+!/REQUERIMIENTOS_TECNICOS.md
+!/REQUERIMIENTOS_FUNCIONALES_V2.md
 
 # ============================================
 # IGNORAR DENTRO DE LAS CARPETAS PERMITIDAS
 # ============================================
 
 # Node.js
-api/node_modules/
-api/.env
+app/node_modules/
+app/.env
+app/database.sqlite
+app/*.sqlite
+app/*.db
 
 # Archivos de sistema
 .DS_Store
