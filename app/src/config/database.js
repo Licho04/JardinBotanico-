@@ -41,10 +41,17 @@ if (process.env.DATA_PATH) {
 
         if (realizarCopia) {
             try {
+                // Asegurar que el directorio destino exista
+                if (!fs.existsSync(process.env.DATA_PATH)) {
+                    console.log(`📦 Creando directorio de datos: ${process.env.DATA_PATH}`);
+                    fs.mkdirSync(process.env.DATA_PATH, { recursive: true });
+                }
+
                 fs.copyFileSync(sourcePath, targetPath);
                 console.log('✅ Base de datos migrada/restaurada correctamente.');
             } catch (error) {
-                console.error('❌ Error al migrar base de datos:', error);
+                console.error('❌ Error CRÍTICO al migrar base de datos:', error);
+                // No matamos el proceso, dejamos que intente conectar con lo que haya o falle en conexión
             }
         }
     }
