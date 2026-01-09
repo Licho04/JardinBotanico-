@@ -29,16 +29,7 @@ if (process.env.DATA_PATH) {
             console.log('📦 Base de datos no encontrada en disco. Preparando migración...');
             realizarCopia = true;
         } else {
-            // Si existe, verificar si parece estar vacía (comparando tamaños)
-            const targetSize = fs.statSync(targetPath).size;
-            const sourceSize = fs.statSync(sourcePath).size;
-
-            // Si la base de datos persistente es muy pequeña (< 16KB) y la local es mayor,
-            // asumimos que fue una inicialización vacía accidental y la sobrescribimos.
-            if (targetSize < 16 * 1024 && sourceSize > 20 * 1024) {
-                console.log(`⚠️ Base de datos en disco parece vacía (${targetSize} bytes). Sobrescribiendo con datos locales (${sourceSize} bytes)...`);
-                realizarCopia = true;
-            }
+            console.log('✅ Base de datos existente detectada en disco persistente. No se necesita migración.');
         }
 
         if (realizarCopia) {
