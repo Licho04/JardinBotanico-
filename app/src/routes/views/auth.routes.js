@@ -14,8 +14,14 @@ router.get('/auth/login', (req, res) => {
     if (req.session && req.session.usuario) {
         return res.redirect('/');
     }
+
+    // Verificar si viene de un registro exitoso
+    const registroExitoso = req.query.registro === 'exitoso';
+    const mensaje = registroExitoso ? '¡Cuenta creada con éxito! Por favor inicia sesión.' : null;
+
     res.render('auth/login', {
         error: null,
+        mensaje: mensaje,
         usuario: null,
         isAuthenticated: false
     });
