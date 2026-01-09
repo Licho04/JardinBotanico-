@@ -61,50 +61,48 @@
 
         <%- include('partials/footer') %>
 
-            <%- include('partials/footer') %>
+            <%- include('partials/modal-donacion', { usuario: typeof usuario !=='undefined' ? usuario : null }) %>
 
-                <%- include('partials/modal-donacion', { usuario: typeof usuario !=='undefined' ? usuario : null }) %>
+                <script>
+                    // Función para filtrar plantas
+                    function filtrarPlantas() {
+                        var busqueda = document.getElementById('busqueda-input').value.toLowerCase();
+                        var plantas = document.querySelectorAll('.planta-item');
 
-                    <script>
-                        // Función para filtrar plantas
-                        function filtrarPlantas() {
-                            var busqueda = document.getElementById('busqueda-input').value.toLowerCase();
-                            var plantas = document.querySelectorAll('.planta-item');
-
-                            plantas.forEach(function (planta) {
-                                var nombre = planta.querySelector('.nombre').textContent.toLowerCase();
-                                if (nombre.includes(busqueda)) {
-                                    planta.style.display = 'flex';
-                                } else {
-                                    planta.style.display = 'none';
-                                }
-                            });
-                        }
-
-                        // Búsqueda en tiempo real
-                        document.getElementById('busqueda-input').addEventListener('input', filtrarPlantas);
-
-                        document.querySelectorAll('.planta-item').forEach(function (item) {
-                            item.onclick = function () {
-                                // Remover selección previa
-                                document.querySelectorAll('.planta-item').forEach(function (el) {
-                                    el.classList.remove('selected');
-                                });
-
-                                // Agregar selección al elemento actual
-                                this.classList.add('selected');
-
-                                var nombre = this.dataset.nombre;
-                                var xhr = new XMLHttpRequest();
-                                xhr.open('POST', '/plantas/info', true);
-                                xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-                                xhr.onload = function () {
-                                    document.getElementById('info-planta-content').innerHTML = xhr.responseText;
-                                };
-                                xhr.send('nombre=' + encodeURIComponent(nombre));
-                            };
+                        plantas.forEach(function (planta) {
+                            var nombre = planta.querySelector('.nombre').textContent.toLowerCase();
+                            if (nombre.includes(busqueda)) {
+                                planta.style.display = 'flex';
+                            } else {
+                                planta.style.display = 'none';
+                            }
                         });
-                    </script>
+                    }
+
+                    // Búsqueda en tiempo real
+                    document.getElementById('busqueda-input').addEventListener('input', filtrarPlantas);
+
+                    document.querySelectorAll('.planta-item').forEach(function (item) {
+                        item.onclick = function () {
+                            // Remover selección previa
+                            document.querySelectorAll('.planta-item').forEach(function (el) {
+                                el.classList.remove('selected');
+                            });
+
+                            // Agregar selección al elemento actual
+                            this.classList.add('selected');
+
+                            var nombre = this.dataset.nombre;
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('POST', '/plantas/info', true);
+                            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                            xhr.onload = function () {
+                                document.getElementById('info-planta-content').innerHTML = xhr.responseText;
+                            };
+                            xhr.send('nombre=' + encodeURIComponent(nombre));
+                        };
+                    });
+                </script>
 </body>
 
 </html>
