@@ -84,7 +84,7 @@ router.get('/administracion/usuarios/:usuario/editar', requireAdmin, async (req,
     try {
         const { usuario } = req.params;
         const user = await db.getAsync('SELECT * FROM usuarios WHERE usuario = ?', [usuario]);
-        
+
         if (!user) {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
@@ -140,6 +140,10 @@ router.delete('/administracion/usuarios/:usuario', requireAdmin, async (req, res
             return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
         }
 
+        // Eliminar solicitudes asociadas primero (para evitar error de FK)
+        await db.runAsync('DELETE FROM solicitudes WHERE usuario = ?', [usuario]);
+
+        // Eliminar usuario
         await db.runAsync('DELETE FROM usuarios WHERE usuario = ?', [usuario]);
 
         res.json({ success: true, mensaje: 'Usuario eliminado correctamente' });
@@ -186,7 +190,7 @@ router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) 
     try {
         const { id } = req.params;
         const planta = await db.getAsync('SELECT * FROM plantas WHERE id = ?', [id]);
-        
+
         if (!planta) {
             return res.status(404).json({ error: 'Planta no encontrada' });
         }
@@ -250,7 +254,7 @@ router.get('/administracion/solicitudes/:id/responder', requireAdmin, async (req
     try {
         const { id } = req.params;
         const solicitud = await db.getAsync('SELECT * FROM solicitudes WHERE id = ?', [id]);
-        
+
         if (!solicitud) {
             return res.status(404).json({ error: 'Solicitud no encontrada' });
         }
