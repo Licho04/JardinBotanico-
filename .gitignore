@@ -17,7 +17,8 @@
 # Node.js
 app/node_modules/
 app/.env
-app/database.sqlite
+# app/database.sqlite (Comentado para permitir subida inicial)
+!app/database.sqlite
 app/*.sqlite
 app/*.db
 
