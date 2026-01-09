@@ -43,31 +43,52 @@ const initDatabase = () => {
         )
     `;
 
-    // Ejecutar la creación de tablas
+    // Ejecutar la creación de tablas y sembrado inicial
     db.serialize(() => {
-        db.run(crearTablaUsuarios, (err) => {
-            if (err) {
-                console.error('Error al crear tabla usuarios:', err.message);
-            } else {
-                console.log('✅ Tabla usuarios creada o ya existe');
-            }
+        const checkAndCreate = (tableName, createQuery, finalCallback) => {
+            db.run(createQuery, (err) => {
+                if (err) {
+                    console.error(`Error al crear tabla ${tableName}:`, err.message);
+                } else {
+                    console.log(`✅ Tabla ${tableName} creada o ya existe`);
+                }
+                if (finalCallback) finalCallback();
+            });
+        };
+
+        checkAndCreate('usuarios', crearTablaUsuarios, () => {
+            // Verificar si hay usuarios
+            db.get("SELECT count(*) as count FROM usuarios", async (err, row) => {
+                if (err) {
+                    console.error("Error al verificar usuarios:", err);
+                    return;
+                }
+
+                if (row.count === 0) {
+                    console.log("⚠️ No hay usuarios. Creando administrador por defecto...");
+                    // Hash de 'admin123' usando bcrypt (import dinámico para no romper si no está instanciado arriba)
+                    try {
+                        const bcrypt = await import('bcrypt');
+                        const hash = await bcrypt.default.hash('admin123', 10);
+
+                        const insertAdmin = `
+                            INSERT INTO usuarios (usuario, nombre, mail, password, tipo)
+                            VALUES ('admin', 'Administrador', 'admin@jardin.com', ?, 1)
+                        `;
+
+                        db.run(insertAdmin, [hash], (err) => {
+                            if (err) console.error("Error al crear admin:", err);
+                            else console.log("✅ Usuario 'admin' creado con password 'admin123'");
+                        });
+                    } catch (e) {
+                        console.error("Error al importar bcrypt para seeding:", e);
+                    }
+                }
+            });
         });
 
-        db.run(crearTablaPlantas, (err) => {
-            if (err) {
-                console.error('Error al crear tabla plantas:', err.message);
-            } else {
-                console.log('✅ Tabla plantas creada o ya existe');
-            }
-        });
-
-        db.run(crearTablaSolicitudes, (err) => {
-            if (err) {
-                console.error('Error al crear tabla solicitudes:', err.message);
-            } else {
-                console.log('✅ Tabla solicitudes creada o ya existe');
-            }
-        });
+        checkAndCreate('plantas', crearTablaPlantas);
+        checkAndCreate('solicitudes', crearTablaSolicitudes);
     });
 };
 
