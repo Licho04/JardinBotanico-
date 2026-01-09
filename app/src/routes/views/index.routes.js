@@ -14,9 +14,11 @@ router.use(optionalAuth);
 // Ruta principal - Página de inicio
 router.get('/', async (req, res) => {
     try {
+        console.log(`🌍 [REQUEST] Access to / from IP: ${req.ip} | User: ${req.session?.usuario?.usuario || 'Guest'}`);
+
         // Obtener todas las plantas
         const plantas = await db.allAsync('SELECT nombre, imagen FROM plantas ORDER BY nombre');
-        
+
         res.render('index', {
             plantas: plantas || [],
             usuario: res.locals.usuario || null,
@@ -37,7 +39,7 @@ router.get('/', async (req, res) => {
 router.post('/plantas/info', async (req, res) => {
     try {
         const { nombre } = req.body;
-        
+
         if (!nombre) {
             return res.status(400).json({ error: 'Nombre de planta requerido' });
         }
@@ -92,7 +94,7 @@ router.get('/usuario/historia', (req, res) => {
 router.get('/usuario/mis-solicitudes', requireAuth, async (req, res) => {
     try {
         const usuario = req.session.usuario;
-        
+
         const solicitudes = await db.allAsync(
             'SELECT * FROM solicitudes WHERE usuario = ? ORDER BY fecha DESC',
             [usuario.usuario]
