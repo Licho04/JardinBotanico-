@@ -19,13 +19,35 @@ if (process.env.DATA_PATH) {
     const sourcePath = path.join(process.cwd(), 'database.sqlite'); // Archivo local del repositorio
 
     // Si no existe la BD en el disco persistente pero sí en el repo, copiarla
-    if (!fs.existsSync(targetPath) && fs.existsSync(sourcePath)) {
-        console.log('📦 Migrando base de datos local a disco persistente...');
-        try {
-            fs.copyFileSync(sourcePath, targetPath);
-            console.log('✅ Base de datos migrada correctamente.');
-        } catch (error) {
-            console.error('❌ Error al migrar base de datos:', error);
+    const existeTarget = fs.existsSync(targetPath);
+    const existeSource = fs.existsSync(sourcePath);
+
+    if (existeSource) {
+        let realizarCopia = false;
+
+        if (!existeTarget) {
+            console.log('📦 Base de datos no encontrada en disco. Preparando migración...');
+            realizarCopia = true;
+        } else {
+            // Si existe, verificar si parece estar vacía (comparando tamaños)
+            const targetSize = fs.statSync(targetPath).size;
+            const sourceSize = fs.statSync(sourcePath).size;
+
+            // Si la base de datos persistente es muy pequeña (< 16KB) y la local es mayor,
+            // asumimos que fue una inicialización vacía accidental y la sobrescribimos.
+            if (targetSize < 16 * 1024 && sourceSize > 20 * 1024) {
+                console.log(`⚠️ Base de datos en disco parece vacía (${targetSize} bytes). Sobrescribiendo con datos locales (${sourceSize} bytes)...`);
+                realizarCopia = true;
+            }
+        }
+
+        if (realizarCopia) {
+            try {
+                fs.copyFileSync(sourcePath, targetPath);
+                console.log('✅ Base de datos migrada/restaurada correctamente.');
+            } catch (error) {
+                console.error('❌ Error al migrar base de datos:', error);
+            }
         }
     }
 
