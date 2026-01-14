@@ -2,26 +2,83 @@
     <div class="cientifico-destacado">
         <h3><i class="fas fa-microscope"></i> Información Taxonómica</h3>
     </div>
-    
-    <h2><%= planta.nombre %></h2>
-    
+
+    <h2>
+        <%= planta.nombre %>
+    </h2>
+
     <% if(planta.imagen) { %>
         <div class="imagen-planta">
             <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>" class="imagen-principal">
         </div>
-    <% } %>
-    
-    <div class="detalles-planta">
-        <p><strong><i class="fas fa-tag"></i> Nomenclatura científica:</strong> <i><%= planta.nombre_cientifico || '' %></i></p>
-        <p><strong><i class="fas fa-file-alt"></i> Descripción morfológica:</strong> <%= planta.descripcion || '' %></p>
-        <p><strong><i class="fas fa-pills"></i> Propiedades farmacológicas:</strong> <%= planta.propiedades || '' %></p>
-        <p><strong><i class="fas fa-globe-americas"></i> Distribución biogeográfica:</strong> <%= planta.zona_geografica || '' %></p>
-        <p><strong><i class="fas fa-heart"></i> Aplicaciones terapéuticas:</strong> <%= planta.usos || '' %></p>
-    </div>
-    
-    <div class="alert-warning">
-        <h4><i class="fas fa-exclamation-triangle"></i> Nota Científica</h4>
-        <p>Esta información es de carácter educativo y científico. Para uso medicinal, consulte siempre con un profesional de la salud.</p>
-    </div>
+        <% } %>
+
+            <p><strong><i class="fas fa-tag"></i> Nomenclatura científica:</strong> <i>
+                    <%= planta.nombre_cientifico || '' %>
+                </i></p>
+            <p><strong><i class="fas fa-file-alt"></i> Descripción morfológica:</strong>
+                <%= planta.descripcion || '' %>
+            </p>
+            <p><strong><i class="fas fa-globe-americas"></i> Distribución biogeográfica:</strong>
+                <%= planta.zona_geografica || '' %>
+            </p>
+
+            <div
+                style="margin: 15px 0; padding: 15px; background: #f0f7f4; border-left: 4px solid #4b6e3c; border-radius: 4px;">
+                <p><strong><i class="fas fa-flask"></i> Principio Activo:</strong>
+                    <%= planta.principio_activo || 'No especificado' %>
+                </p>
+                <p><strong><i class="fas fa-leaf"></i> Parte Utilizada:</strong>
+                    <%= planta.parte_utilizada || '' %>
+                </p>
+                <p><strong><i class="fas fa-prescription-bottle-alt"></i> Formas Farmacéuticas:</strong>
+                    <%= planta.formas_farmaceuticas || '' %>
+                </p>
+            </div>
+
+            <p><strong><i class="fas fa-pills"></i> Propiedades farmacológicas:</strong>
+                <%= planta.propiedades || '' %>
+            </p>
+            <p><strong><i class="fas fa-heart"></i> Aplicaciones terapéuticas:</strong>
+                <%= planta.usos || '' %>
+            </p>
+
+            <% if(planta.dosis) { %>
+                <p><strong><i class="fas fa-clock"></i> Dosis recomendada:</strong>
+                    <%= planta.dosis %>
+                </p>
+                <% } %>
+
+                    <% if(planta.contraindicaciones || planta.efectos_secundarios) { %>
+                        <div
+                            style="margin-top: 15px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                            <% if(planta.contraindicaciones) { %>
+                                <div
+                                    style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #feb2b2;">
+                                    <strong style="color: #c53030;"><i class="fas fa-ban"></i>
+                                        Contraindicaciones:</strong>
+                                    <p style="margin: 5px 0 0 0; font-size: 0.95em;">
+                                        <%= planta.contraindicaciones %>
+                                    </p>
+                                </div>
+                                <% } %>
+                                    <% if(planta.efectos_secundarios) { %>
+                                        <div
+                                            style="background: #fffaf0; padding: 10px; border-radius: 4px; border: 1px solid #fbd38d;">
+                                            <strong style="color: #c05621;"><i class="fas fa-exclamation-circle"></i>
+                                                Efectos Secundarios:</strong>
+                                            <p style="margin: 5px 0 0 0; font-size: 0.95em;">
+                                                <%= planta.efectos_secundarios %>
+                                            </p>
+                                        </div>
+                                        <% } %>
+                        </div>
+                        <% } %>
 </div>
 
+<div class="alert-warning">
+    <h4><i class="fas fa-exclamation-triangle"></i> Nota Científica</h4>
+    <p>Esta información es de carácter educativo y científico. Para uso medicinal, consulte siempre con un profesional
+        de la salud.</p>
+</div>
+</div>

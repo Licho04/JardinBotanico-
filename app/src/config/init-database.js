@@ -22,7 +22,13 @@ const initDatabase = () => {
             propiedades TEXT,
             nombre_cientifico TEXT,
             zona_geografica TEXT,
-            usos TEXT
+            usos TEXT,
+            principio_activo TEXT,
+            parte_utilizada TEXT,
+            dosis TEXT,
+            contraindicaciones TEXT,
+            efectos_secundarios TEXT,
+            formas_farmaceuticas TEXT
         )
     `;
 
@@ -87,7 +93,20 @@ const initDatabase = () => {
             });
         });
 
-        checkAndCreate('plantas', crearTablaPlantas);
+        checkAndCreate('plantas', crearTablaPlantas, () => {
+            // Migración: Agregar columnas nuevas si no existen (para bases de datos existentes)
+            const columnasNuevas = [
+                'principio_activo', 'parte_utilizada', 'dosis',
+                'contraindicaciones', 'efectos_secundarios', 'formas_farmaceuticas'
+            ];
+
+            columnasNuevas.forEach(columna => {
+                db.run(`ALTER TABLE plantas ADD COLUMN ${columna} TEXT`, (err) => {
+                    // Ignorar error si la columna ya existe
+                    if (!err) console.log(`✨ Columna agregada: ${columna}`);
+                });
+            });
+        });
         checkAndCreate('solicitudes', crearTablaSolicitudes);
     });
 };

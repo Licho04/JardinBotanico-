@@ -95,7 +95,13 @@ export const crearPlanta = async (req, res) => {
             descripcion,
             propiedades,
             zona_geografica,
-            usos
+            usos,
+            principio_activo,
+            parte_utilizada,
+            dosis,
+            contraindicaciones,
+            efectos_secundarios,
+            formas_farmaceuticas
         } = req.body;
 
         // Validar campos requeridos
@@ -109,9 +115,13 @@ export const crearPlanta = async (req, res) => {
 
         const resultado = await db.runAsync(
             `INSERT INTO plantas
-            (nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [nombre, descripcion, imagen, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || '']
+            (nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos,
+             principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                nombre, descripcion, imagen, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || '',
+                principio_activo || '', parte_utilizada || '', dosis || '', contraindicaciones || '', efectos_secundarios || '', formas_farmaceuticas || ''
+            ]
         );
 
         res.status(201).json({
@@ -147,7 +157,13 @@ export const actualizarPlanta = async (req, res) => {
             descripcion,
             propiedades,
             zona_geografica,
-            usos
+            usos,
+            principio_activo,
+            parte_utilizada,
+            dosis,
+            contraindicaciones,
+            efectos_secundarios,
+            formas_farmaceuticas
         } = req.body;
 
         // Verificar si la planta existe
@@ -184,9 +200,19 @@ export const actualizarPlanta = async (req, res) => {
             propiedades = ?,
             nombre_cientifico = ?,
             zona_geografica = ?,
-            usos = ?
+            usos = ?,
+            principio_activo = ?,
+            parte_utilizada = ?,
+            dosis = ?,
+            contraindicaciones = ?,
+            efectos_secundarios = ?,
+            formas_farmaceuticas = ?
             WHERE id = ?`,
-            [nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos, id]
+            [
+                nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos,
+                principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas,
+                id
+            ]
         );
 
         res.json({
