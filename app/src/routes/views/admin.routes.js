@@ -188,7 +188,10 @@ router.get('/administracion/plantas/agregar', requireAdmin, (req, res) => {
 // Crear planta
 router.post('/administracion/plantas', requireAdmin, upload.single('imagen'), async (req, res) => {
     try {
-        const { nombre, descripcion, propiedades, nombre_cientifico, zona_geografica, usos } = req.body;
+        const {
+            nombre, descripcion, propiedades, nombre_cientifico, zona_geografica, usos,
+            principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas
+        } = req.body;
         const imagen = req.file ? req.file.filename : null;
 
         if (!nombre || !descripcion) {
@@ -196,8 +199,14 @@ router.post('/administracion/plantas', requireAdmin, upload.single('imagen'), as
         }
 
         await db.runAsync(
-            'INSERT INTO plantas (nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [nombre, descripcion, imagen, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || '']
+            `INSERT INTO plantas 
+            (nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos,
+             principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                nombre, descripcion, imagen, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || '',
+                principio_activo || '', parte_utilizada || '', dosis || '', contraindicaciones || '', efectos_secundarios || '', formas_farmaceuticas || ''
+            ]
         );
 
         res.json({ success: true, mensaje: 'Planta creada correctamente' });
@@ -231,10 +240,19 @@ router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) 
 const actualizarPlanta = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, descripcion, propiedades, nombre_cientifico, zona_geografica, usos } = req.body;
+        const {
+            nombre, descripcion, propiedades, nombre_cientifico, zona_geografica, usos,
+            principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas
+        } = req.body;
 
-        let query = 'UPDATE plantas SET nombre = ?, descripcion = ?, propiedades = ?, nombre_cientifico = ?, zona_geografica = ?, usos = ?';
-        let params = [nombre, descripcion, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || ''];
+        let query = `UPDATE plantas SET 
+            nombre = ?, descripcion = ?, propiedades = ?, nombre_cientifico = ?, zona_geografica = ?, usos = ?,
+            principio_activo = ?, parte_utilizada = ?, dosis = ?, contraindicaciones = ?, efectos_secundarios = ?, formas_farmaceuticas = ?`;
+
+        let params = [
+            nombre, descripcion, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || '',
+            principio_activo || '', parte_utilizada || '', dosis || '', contraindicaciones || '', efectos_secundarios || '', formas_farmaceuticas || ''
+        ];
 
         // Si hay nueva imagen, actualizarla
         if (req.file) {
