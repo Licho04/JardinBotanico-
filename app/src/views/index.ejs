@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jardín de Plantas Medicinales</title>
+    <link rel="icon" type="image/png" href="/recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="/recursos/estilos/styles.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <%- include('partials/header', { usuario, isAuthenticated }) %>
+
+        <main class="contenido-principal">
+            <section class="barra-lateral">
+                <div class="cientifico-destacado">
+                    <h3>Catálogo Científico</h3>
+                    <p>Explora nuestra colección de plantas medicinales con información científica detallada.</p>
+                </div>
+
+                <form class="busqueda" onsubmit="return false;">
+                    <input type="text" placeholder="Buscar planta medicinal..." id="busqueda-input">
+                </form>
+
+                <div class="lista-elementos" id="lista-plantas">
+                    <% plantas.forEach(function(planta) { %>
+                        <div class="elemento planta-item" data-nombre="<%= planta.nombre %>">
+                            <div class="imagen-placeholder">
+                                <% if(planta.imagen) { %>
+                                    <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>"
+                                        style="width:50px;height:50px;object-fit:cover;border-radius:8px;">
+                                    <% } else { %>
+                                        🌱
+                                        <% } %>
+                            </div>
+                            <span class="nombre">
+                                <%= planta.nombre %>
+                            </span>
+                        </div>
+                        <% }); %>
+                </div>
+            </section>
+
+            <section class="descripcion" id="info-planta">
+                <div class="descripcion-texto" id="info-planta-content">
+                    <div class="alert-info">
+                        <h3><i class="fas fa-microscope"></i> Información Científica</h3>
+                        <p>Selecciona una planta del catálogo para consultar su información científica detallada,
+                            incluyendo:</p>
+                        <ul style="margin: 12px 0; padding-left: 20px;">
+                            <li>Nomenclatura científica</li>
+                            <li>Propiedades medicinales</li>
+                            <li>Distribución geográfica</li>
+                            <li>Usos tradicionales y modernos</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <%- include('partials/modal-donacion', { usuario: typeof usuario !=='undefined' ? usuario : null }) %>
+
+                <script>
+                    // Función para filtrar plantas
+                    function filtrarPlantas() {
+                        var busqueda = document.getElementById('busqueda-input').value.toLowerCase();
+                        var plantas = document.querySelectorAll('.planta-item');
+
+                        plantas.forEach(function (planta) {
+                            var nombre = planta.querySelector('.nombre').textContent.toLowerCase();
+                            if (nombre.includes(busqueda)) {
+                                planta.style.display = 'flex';
+                            } else {
+                                planta.style.display = 'none';
+                            }
+                        });
+                    }
+
+                    // Búsqueda en tiempo real
+                    document.getElementById('busqueda-input').addEventListener('input', filtrarPlantas);
+
+                    document.querySelectorAll('.planta-item').forEach(function (item) {
+                        item.onclick = function () {
+                            // Remover selección previa
+                            document.querySelectorAll('.planta-item').forEach(function (el) {
+                                el.classList.remove('selected');
+                            });
+
+                            // Agregar selección al elemento actual
+                            this.classList.add('selected');
+
+                            var nombre = this.dataset.nombre;
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('POST', '/plantas/info', true);
+                            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                            xhr.onload = function () {
+                                document.getElementById('info-planta-content').innerHTML = xhr.responseText;
+                            };
+                            xhr.send('nombre=' + encodeURIComponent(nombre));
+                        };
+                    });
+                </script>
+</body>
+
+</html>

@@ -1,11 +1,26 @@
-# Archivos de configuración sensibles
-configuracion/conexion.php
-api/.env
+# Ignorar todo en la raíz
+/*
+
+# Excepciones
+!/.gitignore
+!/app/
+!/recursos/
+!/render.yaml
+!/README.md
+!/REQUERIMIENTOS_TECNICOS.md
+!/REQUERIMIENTOS_FUNCIONALES_V2.md
+
+# ============================================
+# IGNORAR DENTRO DE LAS CARPETAS PERMITIDAS
+# ============================================
 
 # Node.js
-api/node_modules/
-node_modules/
-package-lock.json
+app/node_modules/
+app/.env
+app/database.sqlite (Comentado para permitir subida inicial)
+!app/database.sqlite
+app/*.sqlite
+app/*.db
 
 # Base de datos SQLite
 api/database.sqlite
@@ -30,20 +45,3 @@ desktop.ini
 *.swp
 *.swo
 *~
-
-# Dependencias (si usas Composer)
-/vendor/
-composer.lock
-
-# Archivos de entorno
-.env
-.env.local
-.env.*.local
-
-# Archivos subidos por usuarios (si aplica)
-/uploads/*
-!/uploads/.gitkeep
-
-# Cache
-/cache/
-/tmp/

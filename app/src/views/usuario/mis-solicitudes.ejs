@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Solicitudes - Jardín de Plantas Medicinales</title>
+    <link rel="icon" type="image/png" href="/recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="/recursos/estilos/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+    <%- include('../partials/header', { usuario, isAuthenticated: true }) %>
+
+        <div style="flex: 1;">
+            <main class="solicitudes-container" style="margin-top: 40px; margin-bottom: 40px;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <h1 style="color: var(--verde-oscuro); font-size: 2rem;">
+                        <i class="fas fa-seedling" style="color: var(--verde-vibrante);"></i> Mis Solicitudes
+                    </h1>
+                    <p style="color: var(--texto-secundario);">Historial de tus donaciones de plantas</p>
+                </div>
+
+                <% if (solicitudes && solicitudes.length> 0) { %>
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <% solicitudes.forEach(function(solicitud) { let claseEstado='estado-pendiente' ; if
+                            (solicitud.estado==='aprobada' ) claseEstado='estado-aprobado' ; if
+                            (solicitud.estado==='rechazada' ) claseEstado='estado-rechazado' ; %>
+                            <div class="solicitud-item">
+                                <div class="solicitud-header">
+                                    <h3 class="solicitud-titulo">
+                                        <%= solicitud.nombre_planta %>
+                                    </h3>
+                                    <span class="<%= claseEstado %>">
+                                        <%= solicitud.estado ? solicitud.estado.toUpperCase() : 'PENDIENTE' %>
+                                    </span>
+                                </div>
+
+                                <div class="solicitud-detalle">
+                                    <strong><i class="far fa-calendar-alt"></i> Fecha:</strong>
+                                    <%= new Date(solicitud.fecha).toLocaleDateString('es-MX', { weekday: 'long' ,
+                                        year: 'numeric' , month: 'long' , day: 'numeric' }) %>
+                                </div>
+
+                                <div class="solicitud-detalle">
+                                    <strong><i class="fas fa-map-marker-alt"></i> Ubicación propuesta:</strong>
+                                    <%= solicitud.ubicacion %>
+                                </div>
+
+                                <% if (solicitud.respuesta) { %>
+                                    <div class="alert-info" style="margin-top: 16px;">
+                                        <strong><i class="fas fa-comment-alt"></i> Respuesta del administrador:</strong>
+                                        <p style="margin-top: 8px;">
+                                            <%= solicitud.respuesta %>
+                                        </p>
+                                    </div>
+                                    <% } %>
+                            </div>
+                            <% }); %>
+                    </div>
+                    <% } else { %>
+                        <div class="sin-solicitudes">
+                            <i class="fas fa-inbox"
+                                style="font-size: 4rem; color: var(--gris-medio); margin-bottom: 20px; display: block;"></i>
+                            <h3 style="color: var(--texto-principal);">No tienes solicitudes activas</h3>
+                            <p>¡Anímate a donar una planta al jardín botánico!</p>
+                            <a href="/" class="btn-volver" style="margin-top: 24px;">
+                                <i class="fas fa-plus-circle"></i> Nueva Solicitud
+                            </a>
+                        </div>
+                        <% } %>
+            </main>
+        </div>
+
+        <%- include('../partials/footer') %>
+</body>
+
+</html>

@@ -1,0 +1,43 @@
+<h2><i class="fas fa-seedling"></i> Solicitudes de donación</h2>
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%;border-collapse:collapse;">
+    <tr>
+        <th>ID</th>
+        <th>Usuario</th>
+        <th>Planta</th>
+        <th>Ubicación</th>
+        <th>Fecha</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+    </tr>
+    <% if (solicitudes && solicitudes.length > 0) { %>
+        <% solicitudes.forEach(function(solicitud) { %>
+        <tr>
+            <td><%= solicitud.id %></td>
+            <td><%= solicitud.usuario %></td>
+            <td><%= solicitud.nombre_planta %></td>
+            <td><%= solicitud.ubicacion %></td>
+            <td><%= new Date(solicitud.fecha).toLocaleDateString('es-MX') %></td>
+            <td>
+                <span style="padding:5px 10px;border-radius:15px;font-size:0.9rem;
+                    background:<%= solicitud.estado === 'aprobada' ? '#d4edda' : (solicitud.estado === 'rechazada' ? '#f8d7da' : '#fff3cd') %>;
+                    color:<%= solicitud.estado === 'aprobada' ? '#155724' : (solicitud.estado === 'rechazada' ? '#721c24' : '#856404') %>;">
+                    <%= solicitud.estado || 'pendiente' %>
+                </span>
+            </td>
+            <td>
+                <button class="btn-modificar" onclick="responderSolicitud(<%= solicitud.id %>)">
+                    <i class="fas fa-reply"></i> Responder
+                </button>
+                <button class="btn-eliminar" onclick="eliminarSolicitud(<%= solicitud.id %>)">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </td>
+        </tr>
+        <% }); %>
+    <% } else { %>
+        <tr>
+            <td colspan="7" style="text-align:center;padding:20px;">No hay solicitudes</td>
+        </tr>
+    <% } %>
+</table>
+

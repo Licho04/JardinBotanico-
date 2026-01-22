@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <link rel="icon" type="image/png" href="/recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="/recursos/estilos/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <%- include('partials/header', { usuario, isAuthenticated }) %>
+
+        <main class="contenido-principal"
+            style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+            <div style="text-align: center; padding: 40px;">
+                <h1 style="color: #d32f2f; font-size: 3rem; margin-bottom: 20px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </h1>
+                <h2 style="color: #2d4c2a; margin-bottom: 20px;">
+                    <%= mensaje || 'Error' %>
+                </h2>
+                <a href="/"
+                    style="display: inline-block; background: #4b6e3c; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; margin-top: 20px;">
+                    <i class="fas fa-home"></i> Volver al Inicio
+                </a>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+</body>
+
+</html>

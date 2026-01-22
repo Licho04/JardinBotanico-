@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: jardin-botanico-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd app && npm install
+    startCommand: cd app && npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: JWT_SECRET
+        value: LuisYSveinEstanDesarrollandoUnaAplicacion
+      - key: NODE_ENV
+        value: production
+      - key: DATA_PATH
+        value: /var/data
+    disk:
+      name: jardin-botanico-data
+      mountPath: /var/data
+      sizeGB: 1
+

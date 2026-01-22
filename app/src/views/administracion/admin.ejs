@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administrador</title>
+    <link rel="icon" type="image/png" href="/recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="/recursos/estilos/styles.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <%- include('../partials/header', { usuario, isAuthenticated: true }) %>
+
+        <main class="admin-dashboard">
+            <aside class="admin-sidebar">
+                <button class="sidebar-btn <%= vista === 'usuarios' ? 'active' : '' %>" id="btn-usuarios" type="button">
+                    <i class="fas fa-users"></i> Administrar usuarios
+                </button>
+                <button class="sidebar-btn <%= vista === 'plantas' ? 'active' : '' %>" id="btn-plantas" type="button">
+                    <i class="fas fa-leaf"></i> Administrar plantas
+                </button>
+                <button class="sidebar-btn <%= vista === 'solicitudes' ? 'active' : '' %>" id="btn-solicitudes"
+                    type="button">
+                    <i class="fas fa-seedling"></i> Solicitudes de donación
+                </button>
+            </aside>
+
+            <section class="admin-panel">
+                <% if (vista==='usuarios' ) { %>
+                    <%- include('partials/tabla-usuarios', { usuarios }) %>
+                        <% } else if (vista==='plantas' ) { %>
+                            <%- include('partials/tabla-plantas', { plantas }) %>
+                                <% } else if (vista==='solicitudes' ) { %>
+                                    <%- include('partials/tabla-solicitudes', { solicitudes }) %>
+                                        <% } %>
+            </section>
+        </main>
+
+        <!-- Modales -->
+        <div id="modal-editar" class="modal" style="display:none;">
+            <div class="modal-content" id="modal-content"></div>
+        </div>
+
+        <div id="modal-editar-planta" class="modal" style="display:none;">
+            <div class="modal-content" id="modal-content-planta"></div>
+        </div>
+
+        <div id="modal-responder-solicitud" class="modal" style="display:none;">
+            <div class="modal-content" id="modal-content-solicitud"></div>
+        </div>
+
+        <script>
+            // Configurar botones de navegación
+            document.getElementById('btn-usuarios').onclick = () => window.location = '/administracion/admin?vista=usuarios';
+            document.getElementById('btn-plantas').onclick = () => window.location = '/administracion/admin?vista=plantas';
+            document.getElementById('btn-solicitudes').onclick = () => window.location = '/administracion/admin?vista=solicitudes';
+
+            // Funciones para usuarios
+            function agregarUsuario() {
+                fetch('/administracion/usuarios/agregar')
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content').innerHTML = html;
+                        document.getElementById('modal-editar').style.display = 'flex';
+                    });
+            }
+
+            function editarUsuario(usuario) {
+                fetch(`/administracion/usuarios/${usuario}/editar`)
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content').innerHTML = html;
+                        document.getElementById('modal-editar').style.display = 'flex';
+                    });
+            }
+
+            function eliminarUsuario(usuario) {
+                if (!confirm('¿Seguro que deseas eliminar este usuario?')) return;
+
+                fetch(`/administracion/usuarios/${usuario}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Usuario eliminado');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.error || 'Error desconocido'));
+                        }
+                    });
+            }
+
+            // Funciones para plantas
+            function agregarPlanta() {
+                fetch('/administracion/plantas/agregar')
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content-planta').innerHTML = html;
+                        document.getElementById('modal-editar-planta').style.display = 'flex';
+                    });
+            }
+
+            function editarPlanta(id) {
+                fetch(`/administracion/plantas/${id}/editar`)
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content-planta').innerHTML = html;
+                        document.getElementById('modal-editar-planta').style.display = 'flex';
+                    });
+            }
+
+            function eliminarPlanta(id) {
+                if (!confirm('¿Seguro que deseas eliminar esta planta?')) return;
+
+                fetch(`/administracion/plantas/${id}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Planta eliminada');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.error || 'Error desconocido'));
+                        }
+                    });
+            }
+
+            // Funciones para solicitudes
+            function responderSolicitud(id) {
+                fetch(`/administracion/solicitudes/${id}/responder`)
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content-solicitud').innerHTML = html;
+                        document.getElementById('modal-responder-solicitud').style.display = 'flex';
+                    });
+            }
+
+            function eliminarSolicitud(id) {
+                if (!confirm('¿Seguro que deseas eliminar esta solicitud?')) return;
+
+                fetch(`/administracion/solicitudes/${id}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Solicitud eliminada');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.error || 'Error desconocido'));
+                        }
+                    });
+            }
+
+            // Cerrar modales al hacer clic fuera
+            document.getElementById('modal-editar').onclick = function (e) {
+                if (e.target === this) this.style.display = 'none';
+            };
+            document.getElementById('modal-editar-planta').onclick = function (e) {
+                if (e.target === this) this.style.display = 'none';
+            };
+            document.getElementById('modal-responder-solicitud').onclick = function (e) {
+                if (e.target === this) this.style.display = 'none';
+            };
+
+            // Manejar envío de formularios
+            document.addEventListener('submit', function (e) {
+                const form = e.target;
+                if (form.id === 'form-usuario' || form.id === 'form-planta' || form.id === 'form-solicitud') {
+                    e.preventDefault();
+
+                    const url = form.action;
+
+                    let options = { method: 'POST' };
+
+                    // Si es formulario de plantas (tiene archivo), usar FormData
+                    if (form.id === 'form-planta') {
+                        options.body = new FormData(form);
+                    } else {
+                        // Para usuarios y solicitudes, usar JSON
+                        const formData = new FormData(form);
+                        const data = Object.fromEntries(formData.entries());
+                        options.headers = {
+                            'Content-Type': 'application/json'
+                        };
+                        options.body = JSON.stringify(data);
+                    }
+
+                    fetch(url, options)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert(data.mensaje || 'Operación exitosa');
+                                location.reload();
+                            } else {
+                                alert('Error: ' + (data.error || 'Error desconocido'));
+                            }
+                        })
+                        .catch(err => {
+                            console.error('SERVER ERROR:', err);
+                            alert('Error técnico: ' + (err.message || err));
+                        });
+                }
+            });
+        </script>
+</body>
+
+</html>

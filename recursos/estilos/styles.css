@@ -87,7 +87,7 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.navegacion > a {
+.navegacion>a {
     color: var(--blanco);
     text-decoration: none;
     font-weight: 600;
@@ -97,12 +97,12 @@ body {
     position: relative;
 }
 
-.navegacion > a:hover {
+.navegacion>a:hover {
     transform: translateY(-2px);
     text-decoration: underline;
 }
 
-.navegacion > a.btn-sesion {
+.navegacion>a.btn-sesion {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
@@ -110,7 +110,7 @@ body {
     margin-left: auto;
 }
 
-.navegacion > a.btn-sesion:hover {
+.navegacion>a.btn-sesion:hover {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.4);
     text-decoration: none;
@@ -433,6 +433,65 @@ body {
     color: rgba(255, 255, 255, 0.9);
 }
 
+.footer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 32px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.footer-heading {
+    color: var(--blanco);
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--verde-vibrante);
+    padding-bottom: 8px;
+}
+
+.footer-text {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.footer-location {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-list {
+    list-style: none;
+    padding: 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.footer-list li {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.footer-list li i {
+    color: var(--verde-vibrante);
+    margin-right: 8px;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: var(--verde-vibrante);
+    text-decoration: underline;
+}
+
 /* ===== MODALES ===== */
 .modal {
     position: fixed;
@@ -588,14 +647,18 @@ td {
 }
 
 /* Columnas específicas para contenido largo */
-td:nth-child(3), /* Descripción */
-td:nth-child(4), /* Propiedades */
-td:nth-child(6) { /* Usos */
+td:nth-child(3),
+/* Descripción */
+td:nth-child(4),
+/* Propiedades */
+td:nth-child(6) {
+    /* Usos */
     max-width: 250px;
     min-width: 150px;
 }
 
-td:nth-child(2) { /* Nombre científico */
+td:nth-child(2) {
+    /* Nombre científico */
     font-style: italic;
     max-width: 180px;
 }
@@ -799,34 +862,34 @@ tr:last-child td {
         padding: 20px;
         gap: 20px;
     }
-    
+
     .barra-lateral {
         width: 100%;
         position: static;
         order: 2;
     }
-    
+
     .descripcion {
         order: 1;
         min-height: 50vh;
     }
-    
+
     .admin-dashboard {
         flex-direction: column;
         padding: 20px;
         gap: 16px;
     }
-    
+
     .admin-sidebar {
         width: 100%;
         position: static;
     }
-    
+
     .admin-panel {
         overflow-x: auto;
         padding: 20px;
     }
-    
+
     table {
         min-width: 600px;
     }
@@ -836,51 +899,64 @@ tr:last-child td {
     .encabezado-izquierda {
         padding: 8px 16px;
     }
-    
+
     .navegacion {
         gap: 12px;
         padding: 0 16px;
     }
-    
-    .navegacion > a {
+
+    .navegacion>a {
         font-size: 0.9rem;
         padding: 8px 16px;
     }
-    
+
     .titulo {
         font-size: 1.4rem;
     }
-    
+
     #btn-menu {
         padding: 8px;
         font-size: 1.2rem;
     }
-    
+
     .contenido-principal {
         padding: 16px;
         gap: 16px;
     }
-    
+
     .descripcion {
         padding: 20px;
         min-height: 40vh;
     }
-    
+
     .info-planta-container h2 {
         font-size: 1.6rem;
     }
-    
+
     .construccion-container {
         padding: 24px 16px;
     }
-    
+
     .construccion-container h1 {
         font-size: 1.8rem;
     }
-    
-    .pie-pagina > div:first-child {
+
+    .construccion-container h1 {
+        font-size: 1.8rem;
+    }
+
+    .footer-grid {
         grid-template-columns: 1fr;
         gap: 24px;
+        text-align: center;
+    }
+
+    .footer-location {
+        justify-content: center;
+    }
+
+    .footer-heading {
+        text-align: center;
     }
 }
 
@@ -888,27 +964,27 @@ tr:last-child td {
     .encabezado-izquierda {
         padding: 8px 16px;
     }
-    
+
     .navegacion {
         padding: 0 16px;
         gap: 8px;
         flex-wrap: wrap;
     }
-    
-    .navegacion > a {
+
+    .navegacion>a {
         font-size: 0.8rem;
         padding: 6px 12px;
     }
-    
+
     .logo {
         width: 40px;
         height: 40px;
     }
-    
+
     .titulo {
         font-size: 1.2rem;
     }
-    
+
     #btn-menu {
         padding: 6px;
         font-size: 1rem;
@@ -948,13 +1024,27 @@ tr:last-child td {
 
 /* ===== ANIMACIONES ===== */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes slideIn {
-    from { transform: translateX(-20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 .elemento {

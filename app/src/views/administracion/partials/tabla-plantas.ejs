@@ -1,0 +1,42 @@
+<h2><i class="fas fa-leaf"></i> Lista de plantas</h2>
+<button onclick="agregarPlanta()" class="boton-nuevo-usuario" style="width:auto;display:inline-block;margin-bottom:16px;">
+    <i class="fas fa-plus"></i> Agregar nueva planta
+</button>
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%;border-collapse:collapse;">
+    <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Nombre Científico</th>
+        <th>Imagen</th>
+        <th>Acciones</th>
+    </tr>
+    <% if (plantas && plantas.length > 0) { %>
+        <% plantas.forEach(function(planta) { %>
+        <tr>
+            <td><%= planta.id %></td>
+            <td><%= planta.nombre %></td>
+            <td><i><%= planta.nombre_cientifico || '' %></i></td>
+            <td>
+                <% if (planta.imagen) { %>
+                    <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>" style="width:50px;height:50px;object-fit:cover;">
+                <% } else { %>
+                    Sin imagen
+                <% } %>
+            </td>
+            <td>
+                <button class="btn-modificar" onclick="editarPlanta(<%= planta.id %>)">
+                    <i class="fas fa-edit"></i> Modificar
+                </button>
+                <button class="btn-eliminar" onclick="eliminarPlanta(<%= planta.id %>)">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </td>
+        </tr>
+        <% }); %>
+    <% } else { %>
+        <tr>
+            <td colspan="5" style="text-align:center;padding:20px;">No hay plantas registradas</td>
+        </tr>
+    <% } %>
+</table>
+

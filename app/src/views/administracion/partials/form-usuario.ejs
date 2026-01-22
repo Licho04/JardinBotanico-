@@ -1,0 +1,40 @@
+<h2><%= accion === 'agregar' ? 'Agregar nuevo usuario' : 'Modificar usuario' %></h2>
+<form id="form-usuario" action="<%= accion === 'agregar' ? '/administracion/usuarios' : '/administracion/usuarios/' + usuario.usuario + '/actualizar' %>" 
+      method="POST">
+    <label>
+        Usuario:
+        <input type="text" name="usuario" value="<%= usuario ? usuario.usuario : '' %>" 
+               <%= accion === 'editar' ? 'readonly' : 'required' %> placeholder="Nombre de usuario">
+    </label>
+    <label>
+        Nombre:
+        <input type="text" name="nombre" value="<%= usuario ? usuario.nombre : '' %>" 
+               required placeholder="Nombre completo">
+    </label>
+    <label>
+        Correo:
+        <input type="email" name="mail" value="<%= usuario ? usuario.mail : '' %>" 
+               required placeholder="correo@ejemplo.com">
+    </label>
+    <label>
+        Contraseña:
+        <input type="password" name="password" 
+               <%= accion === 'agregar' ? 'required' : 'placeholder="Dejar vacío para no cambiar"' %>>
+    </label>
+    <label>
+        Tipo:
+        <select name="tipo" required>
+            <option value="0" <%= usuario && usuario.tipo == 0 ? 'selected' : '' %>>Usuario</option>
+            <option value="1" <%= usuario && usuario.tipo == 1 ? 'selected' : '' %>>Administrador</option>
+        </select>
+    </label>
+    <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+        <button type="submit">
+            <i class="fas fa-save"></i> <%= accion === 'agregar' ? 'Crear' : 'Actualizar' %>
+        </button>
+        <button type="button" onclick="document.getElementById('modal-editar').style.display='none'">
+            <i class="fas fa-times"></i> Cancelar
+        </button>
+    </div>
+</form>
+
