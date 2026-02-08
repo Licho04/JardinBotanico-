@@ -15,14 +15,21 @@ router.get('/administracion/admin', requireAdmin, async (req, res) => {
         let data = { usuario, vista };
 
         if (vista === 'usuarios') {
-            const usuarios = await db.allAsync('SELECT usuario, nombre, mail, tipo FROM usuarios ORDER BY usuario');
+            const usuarios = await db.allAsync('SELECT usuario, nombre, correo, tipo FROM usuarios ORDER BY usuario');
             data.usuarios = usuarios || [];
         } else if (vista === 'plantas') {
-            const plantas = await db.allAsync('SELECT * FROM plantas ORDER BY nombre');
+            // Unir física e info
+            const query = `
+                SELECT pf.id_planta as id, pf.nombre_propio as nombre, pf.situacion, pi.nombre_cientifico 
+                FROM planta_fisica pf
+                LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
+                ORDER BY pf.nombre_propio
+            `;
+            const plantas = await db.allAsync(query);
             data.plantas = plantas || [];
-        } else if (vista === 'solicitudes') {
+        } else if (vista === 'solicitudes') { // Ahora donaciones
             const solicitudes = await db.allAsync(
-                'SELECT * FROM solicitudes ORDER BY fecha DESC'
+                'SELECT * FROM donaciones ORDER BY fecha_donacion DESC'
             );
             data.solicitudes = solicitudes || [];
         }
@@ -60,7 +67,7 @@ router.post('/administracion/usuarios', requireAdmin, async (req, res) => {
         }
 
         // Verificar si el usuario ya existe
-        const existe = await db.getAsync('SELECT usuario FROM usuarios WHERE usuario = ? OR mail = ?', [usuario, mail]);
+        const existe = await db.getAsync('SELECT usuario FROM usuarios WHERE usuario = ? OR correo = ?', [usuario, mail]);
         if (existe) {
             return res.status(400).json({ error: 'Usuario o correo ya existe' });
         }
@@ -70,8 +77,8 @@ router.post('/administracion/usuarios', requireAdmin, async (req, res) => {
 
         // Insertar usuario
         await db.runAsync(
-            'INSERT INTO usuarios (usuario, nombre, mail, password, tipo) VALUES (?, ?, ?, ?, ?)',
-            [usuario, nombre || '', mail, passwordHash, parseInt(tipo) === 1 ? 1 : 0]
+            'INSERT INTO usuarios (usuario, nombre, correo, password, tipo) VALUES (?, ?, ?, ?, ?)',
+            [usuario, nombre || '', mail, passwordHash, tipo === '1' || tipo === 'admin' ? 'admin' : 'usuario']
         );
 
         console.log('✅ [CREATE USER] Usuario creado exitosamente:', usuario);
@@ -102,14 +109,14 @@ router.get('/administracion/usuarios/:usuario/editar', requireAdmin, async (req,
     }
 });
 
-// Actualizar usuario (también acepta POST para formularios)
+// Actualizar usuario
 const actualizarUsuario = async (req, res) => {
     try {
         const { usuario } = req.params;
         const { nombre, mail, password, tipo } = req.body;
 
-        let query = 'UPDATE usuarios SET nombre = ?, mail = ?, tipo = ?';
-        let params = [nombre || '', mail, parseInt(tipo) === 1 ? 1 : 0];
+        let query = 'UPDATE usuarios SET nombre = ?, correo = ?, tipo = ?';
+        let params = [nombre || '', mail, tipo === '1' || tipo === 'admin' ? 'admin' : 'usuario'];
 
         // Si hay nueva contraseña, actualizarla
         if (password) {
@@ -144,33 +151,26 @@ router.delete('/administracion/usuarios/:usuario', requireAdmin, async (req, res
             return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
         }
 
-        // FORZAR LIMPIEZA: Desactivar FK temporalmente para garantizar borrado
-        // Esto es necesario si hay referencias inconsistentes o si el borrado normal falla
-        await db.runAsync('PRAGMA foreign_keys = OFF');
+        // Eliminar dependencias manualmente (donaciones)
+        // NOTA: 'donaciones' usa 'correo_usuario' como FK. Necesitamos buscar el correo del usuario antes.
+        const userToDelete = await db.getAsync('SELECT correo FROM usuarios WHERE usuario = ?', [usuario]);
 
-        try {
-            // Eliminar dependencias manualmente
-            const resSol = await db.runAsync('DELETE FROM solicitudes WHERE usuario = ?', [usuario]);
-            console.log(`- Solicitudes eliminadas: ${resSol.changes}`);
+        if (userToDelete) {
+            const resDon = await db.runAsync('DELETE FROM donaciones WHERE correo_usuario = ?', [userToDelete.correo]);
+            console.log(`- Donaciones eliminadas: ${resDon.changes}`);
+        }
 
-            // Eliminar usuario
-            const resUser = await db.runAsync('DELETE FROM usuarios WHERE usuario = ?', [usuario]);
-            console.log(`- Usuario eliminado: ${resUser.changes}`);
+        // Eliminar usuario
+        const resUser = await db.runAsync('DELETE FROM usuarios WHERE usuario = ?', [usuario]);
+        console.log(`- Usuario eliminado: ${resUser.changes}`);
 
-            if (resUser.changes === 0) {
-                throw new Error("Usuario no encontrado o no se pudo eliminar");
-            }
-        } finally {
-            // Re-activar FKs siempre
-            await db.runAsync('PRAGMA foreign_keys = ON');
+        if (resUser.changes === 0) {
+            throw new Error("Usuario no encontrado o no se pudo eliminar");
         }
 
         res.json({ success: true, mensaje: 'Usuario eliminado correctamente' });
     } catch (error) {
         console.error('❌ [DELETE USER] Error:', error);
-        // Intentar reactivar FKs por si acaso falló dentro del try
-        try { await db.runAsync('PRAGMA foreign_keys = ON'); } catch (e) { }
-
         res.status(500).json({ error: 'Error al eliminar usuario: ' + error.message });
     }
 });
@@ -189,25 +189,29 @@ router.get('/administracion/plantas/agregar', requireAdmin, (req, res) => {
 router.post('/administracion/plantas', requireAdmin, upload.single('imagen'), async (req, res) => {
     try {
         const {
-            nombre, descripcion, propiedades, nombre_cientifico, zona_geografica, usos,
-            principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas
+            nombre, descripcion, propiedades, nombre_cientifico, zona_geografica//, ...
         } = req.body;
         const imagen = req.file ? req.file.filename : null;
 
-        if (!nombre || !descripcion) {
-            return res.status(400).json({ error: 'Nombre y descripción son requeridos' });
+        if (!nombre) {
+            return res.status(400).json({ error: 'El nombre es requerido' });
         }
 
-        await db.runAsync(
-            `INSERT INTO plantas 
-            (nombre, descripcion, imagen, propiedades, nombre_cientifico, zona_geografica, usos,
-             principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                nombre, descripcion, imagen, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || '',
-                principio_activo || '', parte_utilizada || '', dosis || '', contraindicaciones || '', efectos_secundarios || '', formas_farmaceuticas || ''
-            ]
-        );
+        // Lógica simplificada: Insertar en planta_info y luego en planta_fisica
+        // 1. Planta Info (Si no existe, crearla o ignorar)
+        // Usamos nombre científico si lo hay, sino generamos uno temporal basado en el nombre
+        const pkCientifico = nombre_cientifico || `${nombre} (Pendiente)`;
+
+        await db.runAsync(`
+            INSERT OR IGNORE INTO planta_info (nombre_cientifico, descripcion, propiedades_curativas, nombres_comunes, distribucion_geografica)
+            VALUES (?, ?, ?, ?, ?)
+        `, [pkCientifico, descripcion || '', propiedades || '', nombre, zona_geografica || '']);
+
+        // 2. Planta Fisica
+        await db.runAsync(`
+            INSERT INTO planta_fisica (nombre_propio, situacion, imagen_path, nombre_cientifico)
+            VALUES (?, 'Sana', ?, ?)
+        `, [nombre, imagen, pkCientifico]);
 
         res.json({ success: true, mensaje: 'Planta creada correctamente' });
     } catch (error) {
@@ -220,11 +224,21 @@ router.post('/administracion/plantas', requireAdmin, upload.single('imagen'), as
 router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const planta = await db.getAsync('SELECT * FROM plantas WHERE id = ?', [id]);
+        const query = `
+            SELECT pf.id_planta as id, pf.nombre_propio as nombre, pf.imagen_path as imagen, pi.*
+            FROM planta_fisica pf
+            LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
+            WHERE pf.id_planta = ?
+        `;
+        const planta = await db.getAsync(query, [id]);
 
         if (!planta) {
             return res.status(404).json({ error: 'Planta no encontrada' });
         }
+
+        // Alias para compatibilidad con vista
+        planta.propiedades = planta.propiedades_curativas;
+        planta.zona_geografica = planta.distribucion_geografica;
 
         res.render('administracion/partials/form-planta', {
             planta,
@@ -236,34 +250,34 @@ router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) 
     }
 });
 
-// Actualizar planta
+// Actualizar planta (Simplificado: solo actualiza planta_fisica e info básica)
 const actualizarPlanta = async (req, res) => {
     try {
         const { id } = req.params;
-        const {
-            nombre, descripcion, propiedades, nombre_cientifico, zona_geografica, usos,
-            principio_activo, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas
-        } = req.body;
+        const { nombre, descripcion, propiedades } = req.body; // ... otros campos
 
-        let query = `UPDATE plantas SET 
-            nombre = ?, descripcion = ?, propiedades = ?, nombre_cientifico = ?, zona_geografica = ?, usos = ?,
-            principio_activo = ?, parte_utilizada = ?, dosis = ?, contraindicaciones = ?, efectos_secundarios = ?, formas_farmaceuticas = ?`;
+        // Primero obtener el nombre_cientifico asociado
+        const pf = await db.getAsync('SELECT nombre_cientifico FROM planta_fisica WHERE id_planta = ?', [id]);
 
-        let params = [
-            nombre, descripcion, propiedades || '', nombre_cientifico || '', zona_geografica || '', usos || '',
-            principio_activo || '', parte_utilizada || '', dosis || '', contraindicaciones || '', efectos_secundarios || '', formas_farmaceuticas || ''
-        ];
+        if (pf) {
+            // Actualizar Info
+            await db.runAsync('UPDATE planta_info SET descripcion = ?, propiedades_curativas = ? WHERE nombre_cientifico = ?',
+                [descripcion || '', propiedades || '', pf.nombre_cientifico]);
 
-        // Si hay nueva imagen, actualizarla
-        if (req.file) {
-            query += ', imagen = ?';
-            params.push(req.file.filename);
+            // Actualizar Fisica
+            let query = 'UPDATE planta_fisica SET nombre_propio = ?';
+            let params = [nombre];
+
+            if (req.file) {
+                query += ', imagen_path = ?';
+                params.push(req.file.filename);
+            }
+
+            query += ' WHERE id_planta = ?';
+            params.push(id);
+
+            await db.runAsync(query, params);
         }
-
-        query += ' WHERE id = ?';
-        params.push(id);
-
-        await db.runAsync(query, params);
 
         res.json({ success: true, mensaje: 'Planta actualizada correctamente' });
     } catch (error) {
@@ -279,7 +293,7 @@ router.post('/administracion/plantas/:id/actualizar', requireAdmin, upload.singl
 router.delete('/administracion/plantas/:id', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        await db.runAsync('DELETE FROM plantas WHERE id = ?', [id]);
+        await db.runAsync('DELETE FROM planta_fisica WHERE id_planta = ?', [id]);
         res.json({ success: true, mensaje: 'Planta eliminada correctamente' });
     } catch (error) {
         console.error('Error al eliminar planta:', error);
@@ -287,17 +301,21 @@ router.delete('/administracion/plantas/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// ========== CRUD SOLICITUDES ==========
+// ========== CRUD DONACIONES (antes Solicitudes) ==========
 
 // Obtener formulario para responder solicitud
 router.get('/administracion/solicitudes/:id/responder', requireAdmin, async (req, res) => {
+    // Nota: Mantenemos la ruta URL 'solicitudes' pero usamos tabla 'donaciones'
     try {
         const { id } = req.params;
-        const solicitud = await db.getAsync('SELECT * FROM solicitudes WHERE id = ?', [id]);
+        const solicitud = await db.getAsync('SELECT * FROM donaciones WHERE id_donacion = ?', [id]);
 
         if (!solicitud) {
             return res.status(404).json({ error: 'Solicitud no encontrada' });
         }
+
+        // Alias id_donacion -> id para la vista
+        solicitud.id = solicitud.id_donacion;
 
         res.render('administracion/partials/form-responder-solicitud', {
             solicitud
@@ -312,15 +330,17 @@ router.get('/administracion/solicitudes/:id/responder', requireAdmin, async (req
 const actualizarSolicitud = async (req, res) => {
     try {
         const { id } = req.params;
-        const { estado, respuesta } = req.body;
+        const { estado, respuesta } = req.body; // 'respuesta' iría a 'motivo' o nuevo campo? 
+        // Donaciones no tiene campo 'respuesta' en el nuevo esquema, solo 'estado', 'motivo', 'detalles'.
+        // Asumiremos que solo actualizamos estado.
 
         if (!estado) {
             return res.status(400).json({ error: 'Estado es requerido' });
         }
 
         await db.runAsync(
-            'UPDATE solicitudes SET estado = ?, respuesta = ? WHERE id = ?',
-            [estado, respuesta || '', id]
+            'UPDATE donaciones SET estado = ? WHERE id_donacion = ?',
+            [estado, id]
         );
 
         res.json({ success: true, mensaje: 'Solicitud actualizada correctamente' });
@@ -337,7 +357,7 @@ router.post('/administracion/solicitudes/:id/actualizar', requireAdmin, actualiz
 router.delete('/administracion/solicitudes/:id', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        await db.runAsync('DELETE FROM solicitudes WHERE id = ?', [id]);
+        await db.runAsync('DELETE FROM donaciones WHERE id_donacion = ?', [id]);
         res.json({ success: true, mensaje: 'Solicitud eliminada correctamente' });
     } catch (error) {
         console.error('Error al eliminar solicitud:', error);

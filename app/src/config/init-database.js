@@ -1,117 +1,108 @@
 import db from './database.js';
 
 const initDatabase = () => {
-    // Crear tabla de usuarios
+    // --- ESQUEMA DEFINITIVO (UML 100%) ---
+
+    // 1. PlantaInfo (Taxonomía y Ciencia)
+    const crearTablaPlantaInfo = `
+        CREATE TABLE IF NOT EXISTS planta_info (
+            nombre_cientifico TEXT PRIMARY KEY,
+            genero TEXT,
+            descripcion TEXT,
+            principio_activo TEXT,
+            propiedades_curativas TEXT,
+            nombres_comunes TEXT,
+            morfologia TEXT,
+            bibliografia TEXT,
+            distribucion_geografica TEXT
+        )
+    `;
+
+    // 2. PlantaFisica (Inventario)
+    const crearTablaPlantaFisica = `
+        CREATE TABLE IF NOT EXISTS planta_fisica (
+            id_planta INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre_propio TEXT,
+            fecha_sembrada TEXT,
+            situacion TEXT, -- 'Sana', 'Enferma', etc.
+            imagen_path TEXT,
+            nombre_cientifico TEXT, -- FK a planta_info
+            FOREIGN KEY (nombre_cientifico) REFERENCES planta_info(nombre_cientifico)
+        )
+    `;
+
+    // 3. Distribucion (Tabla separada según diagrama)
+    const crearTablaDistribucion = `
+        CREATE TABLE IF NOT EXISTS distribucion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            distribucion TEXT,
+            nombre_cientifico TEXT,
+            FOREIGN KEY (nombre_cientifico) REFERENCES planta_info(nombre_cientifico)
+        )
+    `;
+
+    // 4. Usuarios (Nuevo esquema)
     const crearTablaUsuarios = `
         CREATE TABLE IF NOT EXISTS usuarios (
-            usuario TEXT PRIMARY KEY,
-            nombre TEXT,
-            mail TEXT UNIQUE NOT NULL,
+            correo TEXT PRIMARY KEY,
+            usuario TEXT UNIQUE, -- Username (legacy y compatibilidad)
             password TEXT NOT NULL,
-            tipo INTEGER DEFAULT 0
+            nombre TEXT,
+            tipo TEXT -- 'admin', 'usuario'
         )
     `;
 
-    // Crear tabla de plantas
-    const crearTablaPlantas = `
-        CREATE TABLE IF NOT EXISTS plantas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            descripcion TEXT NOT NULL,
-            imagen TEXT,
-            propiedades TEXT,
-            nombre_cientifico TEXT,
-            zona_geografica TEXT,
-            usos TEXT,
-            principio_activo TEXT,
-            parte_utilizada TEXT,
-            dosis TEXT,
-            contraindicaciones TEXT,
-            efectos_secundarios TEXT,
-            formas_farmaceuticas TEXT
+    // 5. Donaciones (Reemplaza solicitudes)
+    const crearTablaDonaciones = `
+        CREATE TABLE IF NOT EXISTS donaciones (
+            id_donacion INTEGER PRIMARY KEY AUTOINCREMENT,
+            detalles TEXT,
+            motivo TEXT,
+            fecha_donacion TEXT,
+            fecha_aceptada TEXT,
+            estado TEXT, -- 'Aceptada', 'Rechazada', 'En proceso'
+            correo_usuario TEXT,
+            FOREIGN KEY (correo_usuario) REFERENCES usuarios(correo)
         )
     `;
 
-    // Crear tabla de solicitudes
-    const crearTablaSolicitudes = `
-        CREATE TABLE IF NOT EXISTS solicitudes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT NOT NULL,
-            nombre_planta TEXT NOT NULL,
-            descripcion_planta TEXT NOT NULL,
-            propiedades_medicinales TEXT,
-            ubicacion TEXT NOT NULL,
-            motivo_donacion TEXT,
-            estado TEXT NOT NULL DEFAULT 'pendiente',
-            fecha TEXT NOT NULL,
-            respuesta TEXT,
-            FOREIGN KEY (usuario) REFERENCES usuarios(usuario)
-        )
-    `;
-
-    // Ejecutar la creación de tablas y sembrado inicial
+    // Ejecutar la creación de tablas
     db.serialize(() => {
         const checkAndCreate = (tableName, createQuery, finalCallback) => {
             db.run(createQuery, (err) => {
                 if (err) {
                     console.error(`Error al crear tabla ${tableName}:`, err.message);
                 } else {
-                    console.log(`✅ Tabla ${tableName} creada o ya existe`);
+                    console.log(`✅ Tabla ${tableName} verificada`);
                 }
                 if (finalCallback) finalCallback();
             });
         };
 
+        checkAndCreate('planta_info', crearTablaPlantaInfo);
+        checkAndCreate('planta_fisica', crearTablaPlantaFisica);
+        checkAndCreate('distribucion', crearTablaDistribucion);
         checkAndCreate('usuarios', crearTablaUsuarios, () => {
-            // Verificar si hay usuarios
+            // Sembrado de Admin
             db.get("SELECT count(*) as count FROM usuarios", async (err, row) => {
-                if (err) {
-                    console.error("Error al verificar usuarios:", err);
-                    return;
-                }
-
-                if (row.count === 0) {
-                    console.log("⚠️ No hay usuarios. Creando administrador por defecto...");
-                    // Hash de 'admin123' usando bcrypt (import dinámico para no romper si no está instanciado arriba)
+                if (!err && row.count === 0) {
+                    console.log("⚠️ Creando administrador por defecto...");
                     try {
                         const bcrypt = await import('bcrypt');
                         const hash = await bcrypt.default.hash('admin123', 10);
-
-                        const insertAdmin = `
-                            INSERT INTO usuarios (usuario, nombre, mail, password, tipo)
-                            VALUES ('admin', 'Administrador', 'admin@jardin.com', ?, 1)
-                        `;
-
-                        db.run(insertAdmin, [hash], (err) => {
-                            if (err) console.error("Error al crear admin:", err);
-                            else console.log("✅ Usuario 'admin' creado con password 'admin123'");
-                        });
+                        // FIXED: Added 'usuario' column and value 'admin'
+                        const insertAdmin = `INSERT INTO usuarios (correo, usuario, password, nombre, tipo) VALUES (?, ?, ?, ?, ?)`;
+                        db.run(insertAdmin, ['admin@jardin.com', 'admin', hash, 'Administrador', 'admin']);
                     } catch (e) {
-                        console.error("Error al importar bcrypt para seeding:", e);
+                        console.error("Error seeding admin:", e);
                     }
                 }
             });
         });
-
-        checkAndCreate('plantas', crearTablaPlantas, () => {
-            // Migración: Agregar columnas nuevas si no existen (para bases de datos existentes)
-            const columnasNuevas = [
-                'principio_activo', 'parte_utilizada', 'dosis',
-                'contraindicaciones', 'efectos_secundarios', 'formas_farmaceuticas'
-            ];
-
-            columnasNuevas.forEach(columna => {
-                db.run(`ALTER TABLE plantas ADD COLUMN ${columna} TEXT`, (err) => {
-                    // Ignorar error si la columna ya existe
-                    if (!err) console.log(`✨ Columna agregada: ${columna}`);
-                });
-            });
-        });
-        checkAndCreate('solicitudes', crearTablaSolicitudes);
+        checkAndCreate('donaciones', crearTablaDonaciones);
     });
 };
 
-// Ejecutar la inicialización
 initDatabase();
 
 export default initDatabase;

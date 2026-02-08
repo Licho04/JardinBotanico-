@@ -30,7 +30,8 @@ export const requireAdmin = async (req, res, next) => {
             return res.redirect('/auth/login');
         }
 
-        if (req.session.usuario.tipo !== 1) {
+        // Verificar si es admin (soporte para 'admin' string y 1 legacy)
+        if (req.session.usuario.tipo !== 'admin' && req.session.usuario.tipo !== 1) {
             return res.status(403).render('error', {
                 mensaje: 'Acceso denegado. Se requieren permisos de administrador',
                 usuario: req.session.usuario

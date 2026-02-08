@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 // Registrar nuevo usuario
 export const registro = async (req, res) => {
     try {
-        const { usuario, nombre, mail, password, tipo = 0 } = req.body;
+        const { usuario, nombre, mail, password, tipo = 'usuario' } = req.body;
 
         // Validar campos requeridos
         if (!usuario || !mail || !password) {
@@ -29,11 +29,22 @@ export const registro = async (req, res) => {
 
         // Verificar si el correo ya existe
         const existeCorreo = await db.getAsync(
-            'SELECT mail FROM usuarios WHERE mail = ?',
+            'SELECT correo FROM usuarios WHERE correo = ?',
             [mail]
         );
+        // NOTA: En el esquema nuevo el campo es 'correo', pero en el código legacy era 'mail'.
+        // Debemos estandarizar. Vamos a usar 'correo' en la consulta si la BD lo tiene como 'correo'.
+        // Init-db dice: correo TEXT PRIMARY KEY.
+        // El input del body dice 'mail'. Mapeamos.
 
-        if (existeCorreo) {
+        const correo = mail;
+
+        const existeCorreoBD = await db.getAsync(
+            'SELECT correo FROM usuarios WHERE correo = ?',
+            [correo]
+        );
+
+        if (existeCorreoBD) {
             return res.status(400).json({
                 error: 'El correo electrónico ya está registrado'
             });
@@ -44,16 +55,15 @@ export const registro = async (req, res) => {
 
         // Insertar usuario
         const resultado = await db.runAsync(
-            'INSERT INTO usuarios (usuario, nombre, mail, password, tipo) VALUES (?, ?, ?, ?, ?)',
-            [usuario, nombre || '', mail, passwordHash, tipo]
+            'INSERT INTO usuarios (usuario, nombre, correo, password, tipo) VALUES (?, ?, ?, ?, ?)',
+            [usuario, nombre || '', correo, passwordHash, tipo]
         );
 
         res.status(201).json({
             mensaje: 'Usuario registrado correctamente',
             usuario: {
-                id: resultado.lastID,
+                correo, // PK
                 usuario,
-                mail,
                 tipo
             }
         });
@@ -70,18 +80,18 @@ export const registro = async (req, res) => {
 // Login de usuario
 export const login = async (req, res) => {
     try {
-        const { usuario, password } = req.body;
+        const { usuario, password } = req.body; // 'usuario' puede ser username o correo
 
         // Validar campos requeridos
         if (!usuario || !password) {
             return res.status(400).json({
-                error: 'Usuario y contraseña son requeridos'
+                error: 'Usuario/Correo y contraseña son requeridos'
             });
         }
 
-        // Buscar usuario (puede ser por nombre de usuario o email)
+        // Buscar usuario (por usuario o correo)
         const user = await db.getAsync(
-            'SELECT * FROM usuarios WHERE usuario = ? OR mail = ?',
+            'SELECT * FROM usuarios WHERE usuario = ? OR correo = ?',
             [usuario, usuario]
         );
 
@@ -91,27 +101,18 @@ export const login = async (req, res) => {
             });
         }
 
-        // Verificar contraseña (soporte para contraseñas antiguas en texto plano y nuevas hasheadas)
+        // Verificar contraseña
         let passwordValida = false;
-
-        // Intentar primero con bcrypt (contraseñas nuevas)
         try {
             passwordValida = await bcrypt.compare(password, user.password);
-            console.log('Bcrypt compare result:', passwordValida);
         } catch (error) {
-            // Si falla bcrypt, podría ser contraseña en texto plano (BD antigua)
-            console.log('Bcrypt compare error:', error.message);
             passwordValida = false;
         }
 
-        // Si bcrypt falló, verificar si es texto plano (contraseñas antiguas)
+        // Fallback texto plano (legacy)
         if (!passwordValida && user.password === password) {
-            console.log('Password match - texto plano');
             passwordValida = true;
         }
-
-        console.log('Password final validation:', passwordValida);
-        console.log('User from DB:', user.usuario, 'Password stored:', user.password.substring(0, 20) + '...');
 
         if (!passwordValida) {
             return res.status(401).json({
@@ -122,8 +123,8 @@ export const login = async (req, res) => {
         // Generar token JWT
         const token = jwt.sign(
             {
-                id: user.usuario,
-                mail: user.mail,
+                id: user.correo, // PK es correo ahora
+                usuario: user.usuario,
                 tipo: user.tipo
             },
             process.env.JWT_SECRET || 'tu_clave_secreta',
@@ -135,7 +136,7 @@ export const login = async (req, res) => {
             usuario: {
                 usuario: user.usuario,
                 nombre: user.nombre,
-                mail: user.mail,
+                correo: user.correo,
                 tipo: user.tipo
             },
             token
@@ -150,21 +151,19 @@ export const login = async (req, res) => {
     }
 };
 
-// Verificar token o sesión (Middleware híbrido)
+// Verificar token o sesión
 export const verificarToken = (req, res, next) => {
-    // 1. Verificar si hay sesión activa (Navegador)
+    // 1. Sesión
     if (req.session && req.session.usuario) {
-        // Normalizar objeto usuario para que coincida con la estructura del token JWT
-        // El token tiene 'id' pero la sesión tiene 'usuario' como clave primaria
         req.usuario = {
             ...req.session.usuario,
-            id: req.session.usuario.usuario
+            id: req.session.usuario.correo
         };
         return next();
     }
 
-    // 2. Verificar si hay token Bearer (API / Postman)
-    const token = req.headers['authorization']?.split(' ')[1]; // Bearer TOKEN
+    // 2. Token Bearer
+    const token = req.headers['authorization']?.split(' ')[1];
 
     if (!token) {
         return res.status(403).json({
@@ -185,7 +184,8 @@ export const verificarToken = (req, res, next) => {
 
 // Verificar si es administrador
 export const verificarAdmin = (req, res, next) => {
-    if (req.usuario.tipo !== 1) {
+    // Ahora tipo es string 'admin'
+    if (req.usuario.tipo !== 'admin' && req.usuario.tipo !== 1) { // Compatibilidad con int 1
         return res.status(403).json({
             error: 'Acceso denegado. Se requieren permisos de administrador'
         });

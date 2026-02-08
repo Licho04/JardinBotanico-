@@ -16,8 +16,13 @@ router.get('/', async (req, res) => {
     try {
         console.log(`🌍 [REQUEST] Access to / from IP: ${req.ip} | User: ${req.session?.usuario?.usuario || 'Guest'}`);
 
-        // Obtener todas las plantas
-        const plantas = await db.allAsync('SELECT nombre, imagen FROM plantas ORDER BY nombre');
+        // Obtener todas las plantas (Vista previa: nombre e imagen)
+        const query = `
+            SELECT pf.nombre_propio as nombre, pf.imagen_path as imagen
+            FROM planta_fisica pf
+            ORDER BY pf.nombre_propio
+        `;
+        const plantas = await db.allAsync(query);
 
         res.render('index', {
             plantas: plantas || [],
@@ -44,14 +49,31 @@ router.post('/plantas/info', async (req, res) => {
             return res.status(400).json({ error: 'Nombre de planta requerido' });
         }
 
-        const planta = await db.getAsync(
-            'SELECT * FROM plantas WHERE nombre = ?',
-            [nombre]
-        );
+        const query = `
+            SELECT 
+                pf.id_planta,
+                pf.nombre_propio as nombre,
+                pf.imagen_path as imagen,
+                pi.*,
+                d.distribucion as distribucion_extra
+            FROM planta_fisica pf
+            LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
+            LEFT JOIN distribucion d ON pi.nombre_cientifico = d.nombre_cientifico
+            WHERE pf.nombre_propio = ?
+        `;
+
+        const planta = await db.getAsync(query, [nombre]);
 
         if (!planta) {
             return res.status(404).json({ error: 'Planta no encontrada' });
         }
+
+        // Mapeo de compatibilidad para la vista parcial (si usa campos viejos)
+        // La vista info-planta usa: planta.nombre, planta.nombre_cientifico, planta.descripcion, 
+        // planta.propiedades, planta.distribucion_geografica, etc.
+        // planta_info tiene: descripcion, propiedades_curativas, distribucion_geografica.
+        // Mapeamos lo necesario:
+        planta.propiedades = planta.propiedades_curativas; // Alias
 
         // Renderizar solo el contenido de la planta
         res.render('partials/info-planta', { planta }, (err, html) => {

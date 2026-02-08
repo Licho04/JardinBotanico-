@@ -42,7 +42,7 @@ router.post('/auth/login', async (req, res) => {
 
         // Buscar usuario (puede ser por nombre de usuario o email)
         const user = await db.getAsync(
-            'SELECT * FROM usuarios WHERE usuario = ? OR mail = ?',
+            'SELECT * FROM usuarios WHERE usuario = ? OR correo = ?',
             [identificador, identificador]
         );
 
@@ -81,7 +81,7 @@ router.post('/auth/login', async (req, res) => {
         req.session.usuario = {
             usuario: user.usuario,
             nombre: user.nombre,
-            mail: user.mail,
+            correo: user.correo,
             tipo: user.tipo
         };
 
@@ -140,7 +140,7 @@ router.post('/auth/registro', async (req, res) => {
 
         // Verificar si el correo ya existe
         const existeCorreo = await db.getAsync(
-            'SELECT mail FROM usuarios WHERE mail = ?',
+            'SELECT correo FROM usuarios WHERE correo = ?',
             [mail]
         );
 
@@ -157,8 +157,8 @@ router.post('/auth/registro', async (req, res) => {
 
         // Insertar usuario
         await db.runAsync(
-            'INSERT INTO usuarios (usuario, nombre, mail, password, tipo) VALUES (?, ?, ?, ?, ?)',
-            [usuario, nombre || '', mail, passwordHash, 0]
+            'INSERT INTO usuarios (usuario, nombre, correo, password, tipo) VALUES (?, ?, ?, ?, ?)',
+            [usuario, nombre || '', mail, passwordHash, 'usuario']
         );
 
         // Redirigir al login
