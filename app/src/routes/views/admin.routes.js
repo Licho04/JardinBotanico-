@@ -446,5 +446,24 @@ router.get('/administracion/usos/:id/editar', requireAdmin, async (req, res) => 
     });
 });
 
+// Descargar respaldo de base de datos
+router.get('/administracion/backup', requireAdmin, (req, res) => {
+    try {
+        const dbPath = db.filename;
+        const date = new Date().toISOString().slice(0, 10);
+        res.download(dbPath, `respaldo_jardin_${date}.sqlite`, (err) => {
+            if (err) {
+                console.error('Error al descargar base de datos:', err);
+                if (!res.headersSent) {
+                    res.status(500).send('Error al generar respaldo');
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error en ruta de respaldo:', error);
+        res.status(500).send('Error interno');
+    }
+});
+
 export default router;
 
