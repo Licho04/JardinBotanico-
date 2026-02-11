@@ -175,7 +175,7 @@
                         <p style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
                             ${solicitud.motivo_donacion || 'No especificado'}
                         </p>
-                        
+
                         <div style="text-align: center; margin-top: 20px;">
                             <button onclick="document.getElementById('modal-ver-donacion').style.display='none'" 
                                 style="background: #666; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
@@ -537,6 +537,86 @@
                         });
                 }
             });
+        </script>
+        <!-- MODAL QR -->
+        <div id="modal-qr" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width: 400px; text-align: center;">
+                <span class="close" onclick="document.getElementById('modal-qr').style.display='none'">&times;</span>
+                <h3>Código QR</h3>
+                <p id="qr-plant-name" style="font-weight: bold; margin-bottom: 1rem;"></p>
+                <div id="qr-code-container"
+                    style="display: flex; justify-content: center; align-items: center; margin: 20px auto; width: 100%;">
+                </div>
+                <p style="font-size: 0.9em; color: #666; word-break: break-all;" id="qr-url-text"></p>
+                <button onclick="imprimirQR()" class="btn-formulario" style="margin-top: 15px;">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <!-- Librería QR Code (usando CDN confiable) -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+        <script>
+            // ... (Scripts existentes) ...
+
+            // Lógica QR
+            let qrCodeObj = null;
+
+            function generarQR(nombreCientifico, nombreComun) {
+                const modal = document.getElementById('modal-qr');
+                const container = document.getElementById('qr-code-container');
+                const nameLabel = document.getElementById('qr-plant-name');
+                const urlLabel = document.getElementById('qr-url-text');
+
+                // Limpiar previo
+                container.innerHTML = '';
+
+                // Construir URL Deep Link
+                // Usamos window.location.origin para obtener el dominio actual (localhost o render)
+                // Asumimos que la ruta pública es la raíz '/'
+                // Ajustar si el proyecto está en subruta, pero generalmente es root.
+                const baseUrl = window.location.origin;
+                const deepLink = `${baseUrl}/?planta=${encodeURIComponent(nombreCientifico)}`;
+
+                console.log('Generando QR para:', deepLink);
+
+                nameLabel.textContent = `${nombreComun} (${nombreCientifico})`;
+                urlLabel.textContent = deepLink;
+
+                // Generar QR
+                try {
+                    qrCodeObj = new QRCode(container, {
+                        text: deepLink,
+                        width: 256,
+                        height: 256,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+
+                    modal.style.display = 'block';
+                } catch (e) {
+                    console.error('Error generando QR:', e);
+                    alert('Error al generar el código QR. Verifique conexión a internet para cargar la librería.');
+                }
+            }
+
+            function imprimirQR() {
+                const contenido = document.getElementById('qr-code-container').innerHTML;
+                const titulo = document.getElementById('qr-plant-name').textContent;
+
+                const ventana = window.open('', '', 'height=600,width=800');
+                ventana.document.write('<html><head><title>Imprimir QR</title>');
+                ventana.document.write('<style>body{font-family: sans-serif; text-align: center; padding: 50px;}</style>');
+                ventana.document.write('</head><body>');
+                ventana.document.write(`<h2>${titulo}</h2>`);
+                ventana.document.write(contenido);
+                ventana.document.write('<p>Escanea para ver información detallada</p>');
+                ventana.document.write('</body></html>');
+                ventana.document.close();
+                ventana.print();
+            }
         </script>
 </body>
 

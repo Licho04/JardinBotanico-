@@ -22,6 +22,7 @@ router.get('/', async (req, res) => {
             SELECT 
                 pf.nombre_propio as nombre, 
                 pf.imagen_path as imagen,
+                pi.nombre_cientifico,
                 pi.fotos_crecimiento
             FROM planta_fisica pf
             LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
@@ -81,7 +82,8 @@ router.post('/plantas/info', async (req, res) => {
             return res.status(400).json({ error: 'Nombre de planta requerido' });
         }
 
-        const query = `
+        // Intento 1: Buscar por Nombre Científico (Exacto)
+        let query = `
             SELECT 
                 pf.id_planta,
                 pf.nombre_propio as nombre,
@@ -91,10 +93,27 @@ router.post('/plantas/info', async (req, res) => {
             FROM planta_fisica pf
             LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
             LEFT JOIN distribucion d ON pi.nombre_cientifico = d.nombre_cientifico
-            WHERE pf.nombre_propio = ?
+            WHERE pi.nombre_cientifico = ?
         `;
 
-        const planta = await db.getAsync(query, [nombre]);
+        let planta = await db.getAsync(query, [nombre]);
+
+        // Intento 2: Buscar por Nombre Común (Legacy)
+        if (!planta) {
+            query = `
+                SELECT 
+                    pf.id_planta,
+                    pf.nombre_propio as nombre,
+                    pf.imagen_path as imagen,
+                    pi.*,
+                    d.distribucion as distribucion_extra
+                FROM planta_fisica pf
+                LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
+                LEFT JOIN distribucion d ON pi.nombre_cientifico = d.nombre_cientifico
+                WHERE pf.nombre_propio = ?
+            `;
+            planta = await db.getAsync(query, [nombre]);
+        }
 
         if (!planta) {
             return res.status(404).json({ error: 'Planta no encontrada' });

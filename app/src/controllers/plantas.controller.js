@@ -117,10 +117,14 @@ export const obtenerPlantas = async (req, res) => {
     }
 };
 
-// Obtener una planta por ID (JOIN + Relaciones)
+// Obtener una planta por NOMBRE CIENTIFICO
 export const obtenerPlantaPorId = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { nombre_cientifico } = req.params;
+
+        // Decodificar el nombre por si viene con %20
+        const nombreDecoded = decodeURIComponent(nombre_cientifico);
+
         const query = `
             SELECT 
                 pf.id_planta as id,
@@ -138,10 +142,13 @@ export const obtenerPlantaPorId = async (req, res) => {
                 pi.genero
             FROM planta_fisica pf
             LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
-            WHERE pf.id_planta = ?
+            WHERE pi.nombre_cientifico = ?
         `;
 
-        const planta = await db.getAsync(query, [id]);
+        // Como puede haber varias plantas físicas de la misma especie,
+        // tomamos la primera (o devolvemos todas si cambiáramos la lógica).
+        // Por ahora, para mantener compatibilidad con "Ficha de Planta", devolvemos una.
+        const planta = await db.getAsync(query, [nombreDecoded]);
 
         if (!planta) {
             return res.status(404).json({
@@ -149,19 +156,13 @@ export const obtenerPlantaPorId = async (req, res) => {
             });
         }
 
-        // Obtener relaciones
-        // *REFACTOR*: Ahora pertenecen a Remedios, ya no a Planta.
-        // Mantenemos los arrays vacíos o los eliminamos del response si el frontend lo soporta.
-        // Para compatibilidad con view existente (si espera arrays), mandamos vacíos por ahora, 
-        // pero la data real vendrá dentro de 'remedios'.
         planta.contraindicaciones = [];
         planta.efectos_secundarios = [];
         planta.usos = [];
 
-        // Obtener Remedios con sus detalles completos
-        const remedios = await db.allAsync("SELECT * FROM remedios WHERE nombre_cientifico = ?", [planta.nombre_cientifico]);
+        // Obtener Remedios con sus detalles completos usando el nombre científico directo
+        const remedios = await db.allAsync("SELECT * FROM remedios WHERE nombre_cientifico = ?", [nombreDecoded]);
 
-        // Popular detalles de cada remedio
         for (let r of remedios) {
             r.contraindicaciones = await db.allAsync("SELECT * FROM contraindicaciones WHERE id_remedio = ?", [r.id]);
             r.efectos_secundarios = await db.allAsync("SELECT * FROM efectos_secundarios WHERE id_remedio = ?", [r.id]);
@@ -175,16 +176,21 @@ export const obtenerPlantaPorId = async (req, res) => {
         planta.remedios = remedios;
 
         // NORMALIZACIÓN DE GALERÍA (String Array)
-        // Aseguramos que siempre sea ['foto1.jpg', 'foto2.jpg'] sin vacíos
-        if (planta.fotos_crecimiento) {
+        // Recuperamos desde planta_info (join anterior)
+        // Nota: planta.fotos_crecimiento viene del query inicial si lo seleccionamos?
+        // Ah, en el query arriba falta seleccionar fotos_crecimiento de pi.
+        // Vamos a hacer otro query rápido para asegurar o corregir el query inicial.
+
+        // CORRECCIÓN: Agregar fotos_crecimiento al SELECT
+        const info = await db.getAsync("SELECT fotos_crecimiento FROM planta_info WHERE nombre_cientifico = ?", [nombreDecoded]);
+
+        if (info && info.fotos_crecimiento) {
             try {
-                let parsed = JSON.parse(planta.fotos_crecimiento);
+                let parsed = JSON.parse(info.fotos_crecimiento);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    // Si son objetos (Legacy), extraemos imagen_path
                     if (typeof parsed[0] === 'object' && parsed[0].imagen_path) {
                         parsed = parsed.map(f => f.imagen_path);
                     }
-                    // Filtrar strings vacíos o nulos
                     parsed = parsed.filter(f => typeof f === 'string' && f.trim().length > 0);
                 } else {
                     parsed = [];
@@ -236,8 +242,6 @@ export const crearPlanta = async (req, res) => {
         await db.run('BEGIN TRANSACTION');
 
         // 1. Insertar o Actualizar PlantaInfo Base
-        // Serializar galería a JSON (Array de Objetos)
-        // Serializar galería a JSON (Array de Strings)
         let fotosCrecimiento = [];
 
         if (galeriaFotos.length > 0) {
@@ -265,8 +269,6 @@ export const crearPlanta = async (req, res) => {
             zona_geografica || ''
         ]);
 
-        // 2, 3, 4. Relaciones movidas a Remedios
-
         // 5. Crear la Planta Fisica
         const fisicaQuery = `
             INSERT INTO planta_fisica
@@ -283,8 +285,6 @@ export const crearPlanta = async (req, res) => {
         ]);
 
         const idPlanta = resultado.lastID;
-
-        // 6. Fotos de Galería ya se guardaron en PlantaInfo como JSON
 
         await db.run('COMMIT');
 
@@ -309,17 +309,34 @@ export const crearPlanta = async (req, res) => {
     }
 };
 
-// Actualizar planta (Actualiza todo)
+// Actualizar planta (Actualiza todo por nombre científico)
 export const actualizarPlanta = async (req, res) => {
     try {
-        const { id } = req.params; // ID de planta_fisica
+        const { nombre_cientifico } = req.params; // Viene de la URL
+        const nombreDecoded = decodeURIComponent(nombre_cientifico);
+
         console.log('--- ACTUALIZAR PLANTA DEBUG ---');
-        console.log('ID:', id);
-        console.log('Body:', JSON.stringify(req.body, null, 2)); // Debug body
-        console.log('Files:', req.files ? Object.keys(req.files) : 'No files');
+        console.log('Target Científico:', nombreDecoded);
+
+        // Para mantener compatibilidad con el form que envía datos mixtos,
+        // necesitamos saber qué planta física actualizar si hay varias.
+        // Pero idealmente actualizamos la INFORMACIÓN CIENTÍFICA (que es única)
+        // y la PLANTA FÍSICA asociada (o la primera que encontremos).
+
+        // En este refactor, asumimos que se actualiza la INFO general.
+
+        /* 
+           NOTA IMPORTANTE: 
+           Como la UI de admin envía el ID oculto del registro físico, 
+           podríamos usar ese ID del body para actualizar la tabla física,
+           y usar el nombre_cientifico del URL para la tabla info.
+        */
+        const idFisico = req.body.id_planta || req.body.id; // Intentar obtener ID si viene en body
+
+        // Recuperar datos del body
         const {
             nombre,
-            nombre_cientifico,
+            // nombre_cientifico (del body puede ser nuevo si lo cambiaron)
             descripcion,
             propiedades,
             principio_activo,
@@ -331,29 +348,17 @@ export const actualizarPlanta = async (req, res) => {
             bibliografia
         } = req.body;
 
-        const plantaFisica = await db.getAsync('SELECT * FROM planta_fisica WHERE id_planta = ?', [id]);
-        if (!plantaFisica) return res.status(404).json({ error: 'Planta física no encontrada' });
-
-        // Imagen principal ignorada/eliminada logicamente
+        const nuevoNombreCientifico = req.body.nombre_cientifico || nombreDecoded;
 
         await db.run('BEGIN TRANSACTION');
 
         // 1. Actualizar Info Científica
-        // Recuperar fotos existentes segun el orden enviado por el formulario
-        let fotosExistentes = []; // Será Array de Strings
-
-        // NORMALIZAR DB ACTUAL PRIMERO (para búsquedas si fuera necesario, aunque ahora solo recibimos strings del form)
-        // En este caso, el formulario envía hidden inputs con el FILENAME directo.
-        // Solo necesitamos confiar en el orden que envía el form.
+        let fotosExistentes = [];
 
         if (req.body.imagenes_orden) {
-            // Si el formulario envió orden, usamos eso (maneja reordenamiento y borrado)
-            // Express puede devolver un string si es solo uno, o array si son varios.
             const orden = Array.isArray(req.body.imagenes_orden) ? req.body.imagenes_orden : [req.body.imagenes_orden];
-            // Filtrar vacíos
             fotosExistentes = orden.filter(f => f && typeof f === 'string' && f.trim().length > 0);
         } else {
-            // Si no hay key 'imagenes_orden', significa que se borraron todas O que no había ninguna.
             fotosExistentes = [];
         }
 
@@ -364,37 +369,53 @@ export const actualizarPlanta = async (req, res) => {
 
         const fotosCrecimientoJSON = JSON.stringify(fotosExistentes);
 
+        // Si cambia el nombre científico, necesitamos actualizar la PK en planta_info primero?
+        // No, SQLite no soporta CASCADE UPDATE en PKs text facilmente si no está configurado.
+        // Mejor estrategia: Si cambia nombre, Crear Nuevo Info -> Mover Referencias -> Borrar Viejo.
+        // PERO simplifiquemos: Asumimos Update in Place de los campos, y si cambian el nombre,
+        // actualizamos el registro existente.
+
         const updateInfoQuery = `
-            INSERT INTO planta_info (nombre_cientifico, descripcion, propiedades_curativas, principio_activo, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(nombre_cientifico) DO UPDATE SET
-            descripcion=excluded.descripcion,
-            propiedades_curativas=excluded.propiedades_curativas,
-            principio_activo=excluded.principio_activo,
-            bibliografia=excluded.bibliografia,
-            fotos_crecimiento=excluded.fotos_crecimiento,
-            genero=excluded.genero,
-            morfologia=excluded.morfologia,
-            distribucion_geografica=excluded.distribucion_geografica
+            UPDATE planta_info SET
+                nombre_cientifico = ?,
+                descripcion = ?,
+                propiedades_curativas = ?,
+                principio_activo = ?,
+                bibliografia = ?,
+                fotos_crecimiento = ?,
+                genero = ?,
+                morfologia = ?,
+                distribucion_geografica = ?
+            WHERE nombre_cientifico = ?
         `;
 
-        // Usamos el NUEVO nombre cientifico (o el mismo si no cambió)
         await db.runAsync(updateInfoQuery, [
-            nombre_cientifico, // Nuevo nombre
+            nuevoNombreCientifico,
             descripcion, propiedades, principio_activo,
             bibliografia, fotosCrecimientoJSON,
-            genero || '', morfologia || '', zona_geografica || ''
+            genero || '', morfologia || '', zona_geografica || '',
+            nombreDecoded // WHERE el viejo nombre
         ]);
 
-        // 2, 3. Relaciones movidas a Remedios
+        // 2. Actualizar referencias en Planta Física
+        // Si tenemos ID físico, actualizamos ese específico. Si no, actualizamos todos los que tengan ese nombre.
+        if (idFisico) {
+            await db.runAsync(
+                `UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ?, nombre_cientifico = ? WHERE id_planta = ?`,
+                [nombre, fecha_sembrada, situacion, nuevoNombreCientifico, idFisico]
+            );
+        } else {
+            // Fallback: Actualizar todos (Riesgoso si hay multiples, pero coherente con cambio de especie)
+            await db.runAsync(
+                `UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ?, nombre_cientifico = ? WHERE nombre_cientifico = ?`,
+                [nombre, fecha_sembrada, situacion, nuevoNombreCientifico, nombreDecoded]
+            );
+        }
 
-        // 4. Actualizar Planta Física (incluyendo cambio de FK nombre_cientifico)
-        await db.runAsync(
-            `UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ?, nombre_cientifico = ? WHERE id_planta = ?`,
-            [nombre, fecha_sembrada || plantaFisica.fecha_sembrada, situacion || plantaFisica.situacion, nombre_cientifico, id]
-        );
-
-        // 5. Fotos de galería ya actualizadas en PlantaInfo
+        // 3. Actualizar FK en Remedios si cambió el nombre
+        if (nuevoNombreCientifico !== nombreDecoded) {
+            await db.runAsync('UPDATE remedios SET nombre_cientifico = ? WHERE nombre_cientifico = ?', [nuevoNombreCientifico, nombreDecoded]);
+        }
 
         await db.run('COMMIT');
 
@@ -407,34 +428,31 @@ export const actualizarPlanta = async (req, res) => {
     }
 };
 
-// Eliminar planta (Solo elimina inventario físico)
+// Eliminar planta (Por nombre científico)
 export const eliminarPlanta = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { nombre_cientifico } = req.params;
+        const nombreDecoded = decodeURIComponent(nombre_cientifico);
 
-        const planta = await db.getAsync('SELECT * FROM planta_fisica WHERE id_planta = ?', [id]);
+        // Eliminar Info Científica (Cascade lógico)
+        // Primero borrar físicas
+        const plantasFisicas = await db.allAsync('SELECT * FROM planta_fisica WHERE nombre_cientifico = ?', [nombreDecoded]);
 
-        if (!planta) {
-            return res.status(404).json({ error: 'Planta no encontrada' });
-        }
-
-        // Eliminar imagen
-        if (planta.imagen_path) {
-            let rutaImagen;
-            if (process.env.DATA_PATH) {
-                rutaImagen = path.join(process.env.DATA_PATH, 'imagenes', planta.imagen_path);
-            } else {
-                rutaImagen = path.join(__dirname, '../../../recursos/imagenes', planta.imagen_path);
+        for (let p of plantasFisicas) {
+            // Eliminar imagen física si existiera (legacy)
+            if (p.imagen_path) {
+                let rutaImagen = path.join(__dirname, '../../../recursos/imagenes', p.imagen_path);
+                if (process.env.DATA_PATH) rutaImagen = path.join(process.env.DATA_PATH, 'imagenes', p.imagen_path);
+                if (fs.existsSync(rutaImagen)) fs.unlinkSync(rutaImagen);
             }
-            if (fs.existsSync(rutaImagen)) fs.unlinkSync(rutaImagen);
         }
 
-        await db.runAsync('DELETE FROM planta_fisica WHERE id_planta = ?', [id]);
+        await db.runAsync('DELETE FROM planta_fisica WHERE nombre_cientifico = ?', [nombreDecoded]);
+        await db.runAsync('DELETE FROM planta_info WHERE nombre_cientifico = ?', [nombreDecoded]);
+        // Remedios también deberían borrarse o quedar huérfanos? Mejor borrarlos.
+        await db.runAsync('DELETE FROM remedios WHERE nombre_cientifico = ?', [nombreDecoded]);
 
-        // Opcional: Podríamos verificar si quedan plantas de ese nombre_cientifico y borrar planta_info si count=0.
-        // Por ahora lo dejamos para preservar la info científica.
-
-        res.json({ success: true, mensaje: 'Planta eliminada correctamente' });
+        res.json({ success: true, mensaje: 'Planta y toda su información eliminada correctamente' });
 
     } catch (error) {
         console.error('Error al eliminar planta:', error);

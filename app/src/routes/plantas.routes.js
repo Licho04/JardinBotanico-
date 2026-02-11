@@ -18,10 +18,10 @@ const router = express.Router();
 router.get('/', obtenerPlantas);
 
 /**
- * GET /api/plantas/:id
- * Obtener una planta por ID (público)
+ * GET /api/plantas/:nombre_cientifico
+ * Obtener una planta por Nombre Científico (público)
  */
-router.get('/:id', obtenerPlantaPorId);
+router.get('/:nombre_cientifico', obtenerPlantaPorId);
 
 /**
  * POST /api/plantas
@@ -30,15 +30,15 @@ router.get('/:id', obtenerPlantaPorId);
 router.post('/', verificarToken, verificarAdmin, upload.single('imagen'), crearPlanta);
 
 /**
- * PUT /api/plantas/:id
+ * PUT /api/plantas/:nombre_cientifico
  * Actualizar planta (requiere autenticación y permisos de admin)
  */
-router.put('/:id', verificarToken, verificarAdmin, upload.single('imagen'), actualizarPlanta);
+router.put('/:nombre_cientifico', verificarToken, verificarAdmin, upload.single('imagen'), actualizarPlanta);
 
 /**
- * DELETE /api/plantas/:id
+ * DELETE /api/plantas/:nombre_cientifico
  * Eliminar planta (requiere autenticación y permisos de admin)
  */
-router.delete('/:id', verificarToken, verificarAdmin, eliminarPlanta);
+router.delete('/:nombre_cientifico', verificarToken, verificarAdmin, eliminarPlanta);
 
 export default router;

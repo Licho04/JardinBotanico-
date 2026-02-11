@@ -26,7 +26,8 @@
 
                 <div class="lista-elementos" id="lista-plantas">
                     <% plantas.forEach(function(planta) { %>
-                        <div class="elemento planta-item" data-nombre="<%= planta.nombre %>">
+                        <div class="elemento planta-item" data-nombre="<%= planta.nombre %>"
+                            data-cientifico="<%= planta.nombre_cientifico %>">
                             <div class="imagen-placeholder">
                                 <% if(planta.imagen) { %>
                                     <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>"
@@ -120,8 +121,21 @@
                             // Agregar selección al elemento actual
                             this.classList.add('selected');
 
-                            var nombre = this.dataset.nombre;
+                            // AHORA USAMOS NOMBRE CIENTÍFICO SI EXISTE, SI NO NOMBRE COMÚN (Legacy)
+                            var identificador = this.dataset.cientifico || this.dataset.nombre;
+
                             var xhr = new XMLHttpRequest();
+                            // Como cambiamos la ruta a GET /api/plantas/:nombre, el XHR debe cambiar
+                            // Antes era POST /plantas/info (que renderizaba el partial).
+                            // Wait, index.ejs usa un endpoint de vista (POST /plantas/info) no la API directa para cargar el HTML parcial.
+                            // Necesito verificar `plantas.view.routes.js` o donde esté definido POST /plantas/info.
+                            // Si `index.ejs` hace `xhr.open('POST', '/plantas/info')`, eso no es la API JSON que acabo de cambiar.
+
+                            // Revertimos estrategia momentáneamente:
+                            // El usuario pidió cambiar el ENDPOINT DE LA API.
+                            // Pero la vista `index.ejs` llama a un endpoint interno para renderizar HTML.
+                            // Debo actualizar ESE endpoint también para que acepte el nombre científico.
+
                             xhr.open('POST', '/plantas/info', true);
                             xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                             xhr.onload = function () {
@@ -129,7 +143,7 @@
                                 // Reiniciar carrusel al cargar nueva planta
                                 setTimeout(initCarousel, 100);
                             };
-                            xhr.send('nombre=' + encodeURIComponent(nombre));
+                            xhr.send('nombre=' + encodeURIComponent(identificador));
                         };
                     });
 
@@ -223,6 +237,36 @@
                             if (e.key === 'Escape') closeLightbox();
                             if (e.key === 'ArrowLeft') moveLightboxSlide(-1);
                             if (e.key === 'ArrowRight') moveLightboxSlide(1);
+                        }
+                    });
+
+                    // DEEP LINKING: Auto-abrir planta desde URL
+                    window.addEventListener('load', function() {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const plantaParam = urlParams.get('planta');
+                        
+                        if (plantaParam) {
+                            // Buscar por científico (prioridad) o nombre común
+                            // Decodificamos por si acaso, aunque URLSearchParams ya lo hace
+                            const target = decodeURIComponent(plantaParam).toLowerCase();
+                            
+                            const items = document.querySelectorAll('.planta-item');
+                            let found = null;
+                            
+                            for (let item of items) {
+                                const cientifico = (item.dataset.cientifico || '').toLowerCase();
+                                const nombre = (item.dataset.nombre || '').toLowerCase();
+                                
+                                if (cientifico === target || nombre === target) {
+                                    found = item;
+                                    break;
+                                }
+                            }
+                            
+                            if (found) {
+                                found.click();
+                                found.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
                         }
                     });
                 </script>
