@@ -622,7 +622,55 @@
                 ventana.document.close();
                 ventana.print();
             }
+            // Funciones QR (existentes...)
+
+            // --- RESTAURAR BASE DE DATOS ---
+            function mostrarModalRestaurar() {
+                document.getElementById('modal-restaurar').style.display = 'flex';
+                document.getElementById('restaurar-status').innerHTML = '';
+            }
+
+            function restaurarDB(event) {
+                event.preventDefault();
+                if (!confirm('¿ESTÁS SEGURO? Se borrarán todos los datos actuales del servidor y se reemplazarán por este archivo. Esta acción no se puede deshacer.')) {
+                    return;
+                }
+
+                const form = document.getElementById('form-restaurar');
+                const formData = new FormData(form);
+                const statusDiv = document.getElementById('restaurar-status');
+
+                statusDiv.innerHTML = '<span style="color: blue;"><i class="fas fa-spinner fa-spin"></i> Subiendo y restaurando... Por favor espera.</span>';
+
+                // Deshabilitar botón
+                const btn = form.querySelector('button');
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+
+                fetch('/administracion/restore', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.text();
+                        } else {
+                            return response.text().then(text => { throw new Error(text) });
+                        }
+                    })
+                    .then(html => {
+                        statusDiv.innerHTML = '<span style="color: green;"><i class="fas fa-check-circle"></i> Restauración completada.</span>';
+                        document.body.innerHTML = html; // Mostrar mensaje de éxito a pantalla completa o redirect
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        statusDiv.innerHTML = `<span style="color: red;"><i class="fas fa-times-circle"></i> Error: ${error.message}</span>`;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    });
+            }
         </script>
 </body>
 
 </html>
+```

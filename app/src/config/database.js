@@ -36,8 +36,8 @@ if (process.env.DATA_PATH) {
     if (existeSource) {
         let realizarCopia = false;
 
-        if (!existeTarget) {
-            console.log('📦 Base de datos no encontrada en disco. Preparando migración...');
+        if (!existeTarget || true) { // <--- FORZAMOS LA COPIA
+            console.log('📦 [FORCE UPDATE] Base de datos local sobrescribiendo producción...');
             realizarCopia = true;
         } else {
             console.log('✅ Base de datos existente detectada en disco persistente. No se necesita migración.');

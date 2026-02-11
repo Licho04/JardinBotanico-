@@ -446,6 +446,110 @@ router.get('/administracion/usos/:id/editar', requireAdmin, async (req, res) => 
     });
 });
 
+// Configuración de Multer para subir base de datos
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
+
+const storageDB = multer.diskStorage({
+    destination: (req, file, cb) => {
+        // Usar la misma ubicación que la base de datos actual
+        const dbDir = path.dirname(db.filename);
+        cb(null, dbDir);
+    },
+    filename: (req, file, cb) => {
+        // Nombre temporal
+        cb(null, 'database_restore.sqlite');
+    }
+});
+
+const uploadDB = multer({
+    storage: storageDB,
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/x-sqlite3' || file.originalname.endsWith('.sqlite')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Solo se permiten archivos .sqlite'));
+        }
+    }
+});
+
+// Restaurar base de datos
+router.post('/administracion/restore', requireAdmin, uploadDB.single('database'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).send('No se subió ningún archivo');
+        }
+
+        const currentDBPath = db.filename;
+        const newDBPath = req.file.path;
+        const backupPath = currentDBPath + '.bak';
+
+        console.log(`[DB RESTORE] Iniciando restauración...`);
+        console.log(`- Actual: ${currentDBPath}`);
+        console.log(`- Nuevo: ${newDBPath}`);
+
+        // 1. Cerrar conexión actual (Intentar, aunque sqlite3 no tiene método close síncrono fácil en wrapper)
+        // En este wrapper db es una instancia.
+        // await new Promise((resolve, reject) => db.close(err => err ? reject(err) : resolve())); 
+        // PELIGROSO: Si cerramos la conexión, el proceso podría quedar inestable si no reiniciamos.
+        // ESTRATEGIA: Reemplazar archivo y confiar en sistema de archivos (atomic rename en linux) o reiniciar.
+
+        // Windows/Linux file locking might be an issue.
+        // Intentaremos renombrar la actual a .bak y mover la nueva a .sqlite
+        // Si falla, restaurar .bak
+
+        try {
+            // Backup actual
+            if (fs.existsSync(currentDBPath)) {
+                // En windows si está abierto lanzará EBUSY.
+                // En linux, rename funciona incluso con archivo abierto (pero la conexión DB seguiría apuntando al inodo viejo).
+                // Por lo tanto, REQUERIMOS reiniciar la aplicación para que tome el nuevo archivo.
+
+                // Copy en lugar de rename para minimizar EBUSY en lectura? No, escritura es el problema.
+                fs.copyFileSync(currentDBPath, backupPath);
+            }
+
+            // Reemplazar (Copy content to existing file path might be better than rename if allowed)
+            // O mejor: fs.copyFileSync(newDBPath, currentDBPath);
+            // Esto sobrescribe.
+
+            // INTENTO DE SOBRESCRITURA
+            // Si funciona, genial. Si no, error.
+            fs.copyFileSync(newDBPath, currentDBPath);
+
+            // Borrar temporal
+            fs.unlinkSync(newDBPath);
+
+            console.log('[DB RESTORE] Base de datos reemplazada correctamente.');
+
+            // En Render, lo ideal sería reiniciar el proceso.
+            // Podemos forzar un exit, Render reiniciará.
+            res.send(`
+                <h1>Restauración Exitosa</h1>
+                <p>La base de datos ha sido reemplazada. El servidor se reiniciará para aplicar los cambios.</p>
+                <script>
+                    setTimeout(() => { window.location.href = '/administracion/admin'; }, 5000);
+                </script>
+            `);
+
+            // Forzar reinicio tras responder
+            setTimeout(() => {
+                console.log('🔄 [DB RESTORE] Reiniciando servidor para cargar nueva BD...');
+                process.exit(0);
+            }, 1000);
+
+        } catch (err) {
+            console.error('[DB RESTORE] Error al reemplazar archivo:', err);
+            res.status(500).send(`Error al reemplazar base de datos: ${err.message}. (Posiblemente bloqueada)`);
+        }
+
+    } catch (error) {
+        console.error('Error en restauración:', error);
+        res.status(500).send('Error interno en restauración');
+    }
+});
+
 // Descargar respaldo de base de datos
 router.get('/administracion/backup', requireAdmin, (req, res) => {
     try {
