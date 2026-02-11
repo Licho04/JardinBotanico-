@@ -1,0 +1,58 @@
+<div class="table-container">
+    <div class="table-header">
+        <h2>Gestión de Catálogo de Usos</h2>
+        <div class="header-actions">
+            <button class="btn-main" onclick="agregarUso()">
+                <i class="fas fa-plus"></i> Nuevo Uso
+            </button>
+            <a href="/administracion/admin?vista=plantas" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver a Plantas
+            </a>
+        </div>
+    </div>
+
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (usos && usos.length> 0) { %>
+                <% usos.forEach(function(uso) { %>
+                    <tr>
+                        <td>
+                            <%= uso.nombre %>
+                        </td>
+                        <td>
+                            <span class="badge badge-<%= uso.tipo === 'Medicinal' ? 'success' : 'primary' %>"
+                                style="background: <%= uso.tipo === 'Medicinal' ? '#d4edda' : '#cce5ff' %>; color: <%= uso.tipo === 'Medicinal' ? '#155724' : '#004085' %>; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem;">
+                                <%= uso.tipo %>
+                            </span>
+                        </td>
+                        <td>
+                            <%= uso.descripcion || 'Sin descripción' %>
+                        </td>
+                        <td class="actions-cell">
+                            <button type="button" class="btn-edit" onclick="editarUso('<%= uso.id %>')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn-delete" onclick="eliminarUso('<%= uso.id %>')"
+                                title="Eliminar">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 20px; color: #666;">No hay usos
+                                    registrados en el catálogo.</td>
+                            </tr>
+                            <% } %>
+        </tbody>
+    </table>
+</div>

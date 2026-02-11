@@ -96,9 +96,28 @@ export const login = async (req, res) => {
         );
 
         if (!user) {
+            // Para seguridad, no decimos si el usuario existe o no, pero simulamos tiempo de espera.
+            // Aunque en este caso simple, retornamos error genérico.
             return res.status(401).json({
                 error: 'Credenciales inválidas'
             });
+        }
+
+        // Verificar si está bloqueado
+        if (user.bloqueado_hasta) {
+            const ahora = new Date();
+            const bloqueo = new Date(user.bloqueado_hasta);
+            if (ahora < bloqueo) {
+                const tiempoRestante = Math.ceil((bloqueo - ahora) / 1000 / 60); // Minutos
+                return res.status(403).json({
+                    error: `Cuenta bloqueada temporalmente por intentos fallidos. Intente de nuevo en ${tiempoRestante} minutos.`
+                });
+            } else {
+                // El tiempo ya pasó, desbloquear (opcionalmente se hace al login exitoso, 
+                // pero aquí limpiamos para que el contador de intentos reinicie limpio si falla de nuevo)
+                await db.runAsync('UPDATE usuarios SET bloqueado_hasta = NULL, intentos_fallidos = 0 WHERE correo = ?', [user.correo]);
+                user.intentos_fallidos = 0; // Actualizar objeto en memoria
+            }
         }
 
         // Verificar contraseña
@@ -115,9 +134,37 @@ export const login = async (req, res) => {
         }
 
         if (!passwordValida) {
+            // Incrementar intentos fallidos
+            const nuevosIntentos = (user.intentos_fallidos || 0) + 1;
+            let updateQuery = 'UPDATE usuarios SET intentos_fallidos = ? WHERE correo = ?';
+            let params = [nuevosIntentos, user.correo];
+
+            // Si llega a 5 intentos, bloquear
+            if (nuevosIntentos >= 5) {
+                const bloqueoHasta = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+                updateQuery = 'UPDATE usuarios SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE correo = ?';
+                params = [nuevosIntentos, bloqueoHasta.toISOString(), user.correo];
+
+                await db.runAsync(updateQuery, params);
+
+                return res.status(403).json({
+                    error: 'Demasiados intentos fallidos. Su cuenta ha sido bloqueada por 15 minutos.'
+                });
+            }
+
+            await db.runAsync(updateQuery, params);
+
             return res.status(401).json({
-                error: 'Credenciales inválidas'
+                error: `Credenciales inválidas. Intentos restantes: ${5 - nuevosIntentos}`
             });
+        }
+
+        // Login Exitoso: Resetear contadores
+        if (user.intentos_fallidos > 0 || user.bloqueado_hasta) {
+            await db.runAsync(
+                'UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE correo = ?',
+                [user.correo]
+            );
         }
 
         // Generar token JWT

@@ -16,10 +16,10 @@
                         <button id="btn-menu">&#9776;</button>
                         <div id="menu-opciones" style="display: none;">
                             <a href="/usuario/perfil">Perfil</a>
-                            <% if (usuario && usuario.tipo==0) { %>
+                            <% if (usuario && (usuario.tipo==='usuario' || usuario.tipo==0)) { %>
                                 <a href="#" id="btn-solicitud-donacion">Solicitar Donación</a>
                                 <% } %>
-                                    <% if (usuario && (usuario.tipo === 'admin' || usuario.tipo == 1)) { %>
+                                    <% if (usuario && (usuario.tipo==='admin' || usuario.tipo==1)) { %>
                                         <a href="/administracion/admin">Administrador</a>
                                         <% } %>
                                             <a href="/auth/logout">Cerrar sesión</a>

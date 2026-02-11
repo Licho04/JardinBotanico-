@@ -1,0 +1,63 @@
+<div class="table-container">
+    <div class="table-header">
+        <% const nombrePlanta=planta.nombre_propio || planta.nombre; // Asegurar que tenemos un ID válido const
+            plantaId=planta.id_planta || planta.id; %>
+            <h2>Remedios para: <%= nombrePlanta %>
+            </h2>
+            <div class="header-actions">
+                <!-- Usamos la variable plantaId pre-calculada para evitar lógica en el atributo -->
+                <button class="btn-main" onclick="agregarRemedio('<%= plantaId %>')">
+                    <i class="fas fa-plus"></i> Nuevo Remedio
+                </button>
+                <a href="/administracion/admin?vista=plantas" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver a Plantas
+                </a>
+            </div>
+    </div>
+
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Parte Utilizada</th>
+                <th>Formato</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (remedios && remedios.length> 0) { %>
+                <% remedios.forEach(function(remedio) { %>
+                    <tr>
+                        <td>
+                            <%= remedio.nombre %>
+                        </td>
+                        <td>
+                            <%= remedio.descripcion %>
+                        </td>
+                        <td>
+                            <%= remedio.parte %>
+                        </td>
+                        <td>
+                            <%= remedio.formato %>
+                        </td>
+                        <td class="actions-cell">
+                            <button class="btn-edit" onclick="editarRemedio('<%= remedio.id %>')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-delete" onclick="eliminarRemedio('<%= remedio.id %>')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 20px;">
+                                    No hay remedios registrados para esta planta.
+                                </td>
+                            </tr>
+                            <% } %>
+        </tbody>
+    </table>
+</div>

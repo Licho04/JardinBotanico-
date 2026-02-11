@@ -1,0 +1,46 @@
+<h2>
+    <%= accion==='agregar' ? 'Agregar Nuevo Uso' : 'Editar Uso' %>
+</h2>
+
+<form id="form-uso" method="POST">
+    <% if (accion==='editar' ) { %>
+        <input type="hidden" name="id" id="id_uso" value="<%= uso.id %>">
+        <% } %>
+
+            <label>
+                Nombre:
+                <input type="text" name="nombre" value="<%= uso ? uso.nombre : '' %>" required
+                    placeholder="Ej: Dolor de cabeza">
+            </label>
+
+            <label>
+                Tipo:
+                <select name="tipo" required
+                    style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; background: #f5f5f5;">
+                    <option value="Medicinal" <%=(uso && uso.tipo==='Medicinal' ) ? 'selected' : '' %>>Medicinal
+                    </option>
+                    <option value="Ornamental" <%=(uso && uso.tipo==='Ornamental' ) ? 'selected' : '' %>>Ornamental
+                    </option>
+                    <option value="Comestible" <%=(uso && uso.tipo==='Comestible' ) ? 'selected' : '' %>>Comestible
+                    </option>
+                    <option value="Industrial" <%=(uso && uso.tipo==='Industrial' ) ? 'selected' : '' %>>Industrial
+                    </option>
+                    <option value="Otro" <%=(uso && uso.tipo==='Otro' ) ? 'selected' : '' %>>Otro</option>
+                </select>
+            </label>
+
+            <label>
+                Descripción:
+                <textarea name="descripcion" required rows="3"><%= uso ? uso.descripcion : '' %></textarea>
+            </label>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+                <button type="submit" class="btn-main">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('modal-editar').style.display='none'">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+</form>

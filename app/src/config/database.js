@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { promisify } from 'util';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -11,12 +12,15 @@ const sqlite = sqlite3.verbose();
 import path from 'path';
 import fs from 'fs';
 
-let DB_PATH = process.env.DB_PATH || './database.sqlite';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../database.sqlite');
 
 // Auto-migración para Render Disk
 if (process.env.DATA_PATH) {
     const targetPath = path.join(process.env.DATA_PATH, 'database.sqlite');
-    const sourcePath = path.join(process.cwd(), 'database.sqlite'); // Archivo local del repositorio
+    const sourcePath = path.join(__dirname, '../../database.sqlite'); // Archivo local en root/app/database.sqlite
 
     console.log('🔍 [DB DEBUG] DATA_PATH detectado:', process.env.DATA_PATH);
     console.log('🔍 [DB DEBUG] Target Path:', targetPath);

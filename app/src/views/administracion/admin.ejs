@@ -25,6 +25,9 @@
                     type="button">
                     <i class="fas fa-seedling"></i> Solicitudes de donación
                 </button>
+                <button class="sidebar-btn <%= vista === 'usos' ? 'active' : '' %>" id="btn-usos" type="button">
+                    <i class="fas fa-tags"></i> Administrar usos
+                </button>
             </aside>
 
             <section class="admin-panel">
@@ -34,7 +37,11 @@
                             <%- include('partials/tabla-plantas', { plantas }) %>
                                 <% } else if (vista==='solicitudes' ) { %>
                                     <%- include('partials/tabla-solicitudes', { solicitudes }) %>
-                                        <% } %>
+                                        <% } else if (vista==='remedios' ) { %>
+                                            <%- include('partials/tabla-remedios', { planta, remedios }) %>
+                                                <% } else if (vista==='usos' ) { %>
+                                                    <%- include('partials/tabla-usos', { usos }) %>
+                                                        <% } %>
             </section>
         </main>
 
@@ -51,11 +58,22 @@
             <div class="modal-content" id="modal-content-solicitud"></div>
         </div>
 
+        <div id="modal-ver-donacion" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width: 600px; width: 90%;">
+                <span class="close"
+                    onclick="document.getElementById('modal-ver-donacion').style.display='none'">&times;</span>
+                <h2 style="color: var(--verde-oscuro); margin-bottom: 20px;"><i class="fas fa-search-plus"></i> Detalle
+                    de Donación</h2>
+                <div id="contenido-ver-donacion" style="text-align: left; line-height: 1.6;"></div>
+            </div>
+        </div>
+
         <script>
             // Configurar botones de navegación
             document.getElementById('btn-usuarios').onclick = () => window.location = '/administracion/admin?vista=usuarios';
             document.getElementById('btn-plantas').onclick = () => window.location = '/administracion/admin?vista=plantas';
             document.getElementById('btn-solicitudes').onclick = () => window.location = '/administracion/admin?vista=solicitudes';
+            document.getElementById('btn-usos').onclick = () => window.location = '/administracion/admin?vista=usos';
 
             // Funciones para usuarios
             function agregarUsuario() {
@@ -120,12 +138,85 @@
                             alert('Planta eliminada');
                             location.reload();
                         } else {
+                            console.error('Delete failed:', data);
                             alert('Error: ' + (data.error || 'Error desconocido'));
                         }
+                    })
+                    .catch(err => {
+                        console.error('Delete fetch error:', err);
+                        alert('Error de conexión o respuesta inválida');
                     });
             }
 
             // Funciones para solicitudes
+            // Funciones para solicitudes
+            function verDetallesDonacion(solicitudStr) {
+                try {
+                    const solicitud = JSON.parse(solicitudStr);
+                    const html = `
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <p><strong><i class="fas fa-user"></i> Usuario:</strong> ${solicitud.usuario || solicitud.correo_usuario}</p>
+                            <p><strong><i class="fas fa-calendar"></i> Fecha:</strong> ${new Date(solicitud.fecha || solicitud.fecha_donacion).toLocaleDateString()}</p>
+                            <p><strong><i class="fas fa-leaf"></i> Planta:</strong> ${solicitud.nombre_comun || solicitud.nombre_planta}</p>
+                            <p><strong><i class="fas fa-map-marker-alt"></i> Distribución:</strong> ${solicitud.distribucion_geografica || solicitud.ubicacion || 'No especificada'}</p>
+                        </div>
+
+                        <h3 style="font-size: 1.1rem; color: #4b6e3c; margin-top: 15px;">Descripción</h3>
+                        <p style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            ${solicitud.descripcion || solicitud.descripcion_planta || 'Sin descripción'}
+                        </p>
+
+                        <h3 style="font-size: 1.1rem; color: #4b6e3c; margin-top: 15px;">Propiedades Curativas</h3>
+                        <p style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            ${solicitud.propiedades_curativas || solicitud.propiedades_medicinales || 'No especificadas'}
+                        </p>
+
+                        <h3 style="font-size: 1.1rem; color: #4b6e3c; margin-top: 15px;">Motivo de Donación</h3>
+                        <p style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            ${solicitud.motivo_donacion || 'No especificado'}
+                        </p>
+                        
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button onclick="document.getElementById('modal-ver-donacion').style.display='none'" 
+                                style="background: #666; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                                Cerrar
+                            </button>
+                        </div>
+                    `;
+                    document.getElementById('contenido-ver-donacion').innerHTML = html;
+                    document.getElementById('modal-ver-donacion').style.display = 'flex';
+                } catch (e) {
+                    console.error('Error parsing JSON', e);
+                    alert('Error al cargar detalles');
+                }
+            }
+
+            function enviarRespuesta(e, id) {
+                e.preventDefault();
+                const form = e.target;
+
+                const data = Object.fromEntries(new FormData(form).entries());
+
+                fetch(`/administracion/solicitudes/${id}/actualizar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            alert('Respuesta guardada');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (res.error || 'Error desconocido'));
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error:', err);
+                        alert('Error de conexión');
+                    });
+            }
+
             function responderSolicitud(id) {
                 fetch(`/administracion/solicitudes/${id}/responder`)
                     .then(r => r.text())
@@ -138,10 +229,10 @@
             function eliminarSolicitud(id) {
                 if (!confirm('¿Seguro que deseas eliminar esta solicitud?')) return;
 
-                fetch(`/administracion/solicitudes/${id}`, { method: 'DELETE' })
+                fetch(`/api/solicitudes/${id}`, { method: 'DELETE' }) // Usar API endpoint correcto
                     .then(r => r.json())
                     .then(data => {
-                        if (data.success) {
+                        if (data.success || data.mensaje) {
                             alert('Solicitud eliminada');
                             location.reload();
                         } else {
@@ -150,7 +241,211 @@
                     });
             }
 
+            // Funciones para Usos
+            function agregarUso() {
+                fetch('/administracion/usos/agregar')
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content').innerHTML = html;
+                        document.getElementById('modal-editar').style.display = 'flex';
+                    });
+            }
+
+            function editarUso(id) {
+                console.log('Clicked editarUso with ID:', id);
+                fetch(`/administracion/usos/${id}/editar`)
+                    .then(r => {
+                        console.log('Fetch response status:', r.status);
+                        return r.text();
+                    })
+                    .then(html => {
+                        console.log('Modal content received');
+                        document.getElementById('modal-content').innerHTML = html;
+                        document.getElementById('modal-editar').style.display = 'flex';
+                    })
+                    .catch(err => console.error('Error fetching edit form:', err));
+            }
+
+            function eliminarUso(id) {
+                if (!confirm('¿Estás seguro de eliminar este uso? Esto podría afectar a las plantas que lo tengan asignado.')) return;
+
+                fetch(`/api/usos/${id}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Uso eliminado correctamente');
+                            location.reload();
+                        } else {
+                            alert('Error al eliminar: ' + (data.error || 'Desconocido'));
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Error al eliminar uso');
+                    });
+            }
+
+            // Funciones para Remedios
+            function agregarRemedio(plantaId) {
+                fetch(`/administracion/remedios/agregar?planta_id=${plantaId}`)
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content-planta').innerHTML = html;
+                        document.getElementById('modal-editar-planta').style.display = 'flex';
+                    });
+            }
+
+            function editarRemedio(id) {
+                fetch(`/administracion/remedios/${id}/editar`)
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('modal-content-planta').innerHTML = html;
+                        document.getElementById('modal-editar-planta').style.display = 'flex';
+                    });
+            }
+
+            function eliminarRemedio(id) {
+                if (!confirm('¿Seguro que deseas eliminar este remedio?')) return;
+
+                fetch(`/api/remedios/${id}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(data => {
+                        // La API puede retornar success: true o id eliminado
+                        if (data.success || data.id) {
+                            alert('Remedio eliminado correctamente');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.error || 'Error desconocido'));
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Error de conexión');
+                    });
+            }
+
+            // Funciones Globales para Galería (Plantas)
+            // Se mueven aquí porque al cargar el formulario vía AJAX, los scripts internos no se ejecutan
+            window.eliminarImagen = function (btn) {
+                if (confirm('¿Quitar esta imagen de la galería? (Se aplicará al guardar)')) {
+                    const item = btn.closest('.gallery-item');
+                    if (item) item.remove();
+                }
+            };
+
+            window.moverImagen = function (btn, direction) {
+                const item = btn.closest('.gallery-item');
+                const container = item.parentElement;
+                if (direction === -1 && item.previousElementSibling) {
+                    container.insertBefore(item, item.previousElementSibling);
+                } else if (direction === 1 && item.nextElementSibling) {
+                    container.insertBefore(item.nextElementSibling, item);
+                }
+            };
+
+            // --- LÓGICA DE REMEDIOS (Globalizada) ---
+            window.agregarPasoInput = function () {
+                const container = document.getElementById('lista-pasos');
+                const count = container.querySelectorAll('.paso-item').length;
+                const div = document.createElement('div');
+                div.className = 'paso-item';
+                div.style = "display: flex; gap: 10px; margin-bottom: 10px; align-items: center;";
+                div.innerHTML = `
+                    <span class="paso-num" style="font-weight: bold; width: 25px; text-align: center; background: #e2e8f0; border-radius: 50%; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">${count + 1}</span>
+                    <input type="text" name="pasos_desc[]" required style="flex: 1; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f5f5f5;" placeholder="Descripción del paso">
+                    <button type="button" onclick="eliminarPaso(this)" style="background: #dc2626; color: white; padding: 5px 10px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+                actualizarNumerosPasos();
+            };
+
+            window.eliminarPaso = function (btn) {
+                const item = btn.closest('.paso-item');
+                const container = document.getElementById('lista-pasos');
+                if (container.querySelectorAll('.paso-item').length > 1) {
+                    item.remove();
+                    actualizarNumerosPasos();
+                } else {
+                    // Si es el único, solo limpiar valor
+                    item.querySelector('input').value = '';
+                }
+            };
+
+            window.actualizarNumerosPasos = function () {
+                const pasos = document.querySelectorAll('.paso-item .paso-num');
+                pasos.forEach((span, index) => {
+                    span.textContent = index + 1;
+                });
+            };
+
+            window.submitRemedio = async function (e, url, method) {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData(form);
+
+                // Objeto base
+                const obj = {
+                    pasos: [],
+                    usos: []
+                };
+
+                // Recolectar campos de texto simples
+                const simpleFields = [
+                    'nombre', 'descripcion', 'parte', 'formato',
+                    'dosis_cantidad', 'dosis_unidad', 'tiempo_efectividad',
+                    'nombre_cientifico', 'contraindicaciones', 'efectos_secundarios'
+                ];
+
+                simpleFields.forEach(field => {
+                    if (formData.has(field)) obj[field] = formData.get(field);
+                });
+
+                // Checkbox booleano
+                obj.checar_medico = formData.get('checar_medico') === 'on';
+
+                // Checkboxes múltiples (Usos)
+                const usosChecked = form.querySelectorAll('input[name="usos"]:checked');
+                usosChecked.forEach(cb => obj.usos.push(cb.value));
+
+                // Pasos (recolectar todos los inputs 'pasos_desc[]' en orden)
+                const pasosInputs = form.querySelectorAll('input[name="pasos_desc[]"]');
+                pasosInputs.forEach((input, index) => {
+                    if (input.value.trim()) {
+                        obj.pasos.push({
+                            num_paso: index + 1,
+                            descripcion: input.value.trim()
+                        });
+                    }
+                });
+
+                try {
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(obj)
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        alert('Remedio guardado exitosamente');
+                        location.reload();
+                    } else {
+                        console.error('❌ Error serv:', data);
+                        alert('Error al guardar: ' + (data.error || 'Error desconocido'));
+                    }
+                } catch (err) {
+                    console.error('❌ Error red:', err);
+                    alert('Error de conexión: ' + err.message);
+                }
+            };
+
+
             // Cerrar modales al hacer clic fuera
+            // Cerrar modales al hacer clic fuera - DESHABILITADO PARA PREVENIR PÉRDIDA DE DATOS
+            /*
             document.getElementById('modal-editar').onclick = function (e) {
                 if (e.target === this) this.style.display = 'none';
             };
@@ -160,27 +455,69 @@
             document.getElementById('modal-responder-solicitud').onclick = function (e) {
                 if (e.target === this) this.style.display = 'none';
             };
+            document.getElementById('modal-ver-donacion').onclick = function (e) {
+                if (e.target === this) this.style.display = 'none';
+            };
+            */
 
             // Manejar envío de formularios
             document.addEventListener('submit', function (e) {
                 const form = e.target;
-                if (form.id === 'form-usuario' || form.id === 'form-planta' || form.id === 'form-solicitud') {
+                // Usar getAttribute porque si hay un input name="id", form.id devuelve ese input
+                const formId = form.getAttribute('id');
+                console.log('Submit detected from form ID:', formId);
+
+                if (['form-usuario', 'form-planta', 'form-uso'].includes(formId)) {
                     e.preventDefault();
+                    console.log('Prevented default submit for:', formId);
 
+                    // Lógica específica para form-uso (API REST)
+                    // Este bloque maneja tanto Agregar (POST) como Editar (PUT)
+                    if (formId === 'form-uso') {
+                        const idInput = document.getElementById('id_uso');
+                        const id = idInput ? idInput.value : null;
+
+                        // Si existe ID es edición (PUT), si no es creación (POST)
+                        const url = id ? `/api/usos/${id}` : '/api/usos';
+                        const method = id ? 'PUT' : 'POST';
+
+                        console.log(`[Form-Uso] Submitting to ${url} with method ${method}`);
+
+                        // Convertir FormData a JSON
+                        const formData = new FormData(form);
+                        const data = Object.fromEntries(formData.entries());
+
+                        fetch(url, {
+                            method: method,
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        })
+                            .then(r => r.json())
+                            .then(resp => {
+                                if (resp.id || resp.success) {
+                                    alert('Guardado exitosamente');
+                                    location.reload();
+                                } else {
+                                    alert('Error: ' + (resp.error || 'Error desconocido'));
+                                }
+                            })
+                            .catch(err => {
+                                console.error(err);
+                                alert('Error de conexión');
+                            });
+                        return; // IMPORTANTE: Detenemos aquí para que no siga procesando
+                    }
+
+                    // Lógica para otros formularios (Views/Existing Logic)
                     const url = form.action;
-
                     let options = { method: 'POST' };
 
-                    // Si es formulario de plantas (tiene archivo), usar FormData
                     if (form.id === 'form-planta') {
                         options.body = new FormData(form);
                     } else {
-                        // Para usuarios y solicitudes, usar JSON
                         const formData = new FormData(form);
                         const data = Object.fromEntries(formData.entries());
-                        options.headers = {
-                            'Content-Type': 'application/json'
-                        };
+                        options.headers = { 'Content-Type': 'application/json' };
                         options.body = JSON.stringify(data);
                     }
 

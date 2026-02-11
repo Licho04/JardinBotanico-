@@ -17,12 +17,44 @@ router.get('/', async (req, res) => {
         console.log(`🌍 [REQUEST] Access to / from IP: ${req.ip} | User: ${req.session?.usuario?.usuario || 'Guest'}`);
 
         // Obtener todas las plantas (Vista previa: nombre e imagen)
+        // Obtener todas las plantas (Vista previa: nombre e imagen)
         const query = `
-            SELECT pf.nombre_propio as nombre, pf.imagen_path as imagen
+            SELECT 
+                pf.nombre_propio as nombre, 
+                pf.imagen_path as imagen,
+                pi.fotos_crecimiento
             FROM planta_fisica pf
+            LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
             ORDER BY pf.nombre_propio
         `;
         const plantas = await db.allAsync(query);
+
+        // Procesar imágenes para la vista de lista (Igual que en controller)
+        if (plantas) {
+            plantas.forEach(p => {
+                // Siempre intentamos sacar la foto de la galería si existe, para asegurar que sea la más reciente
+                if (!p.imagen || p.imagen === '' || p.fotos_crecimiento) {
+                    if (p.fotos_crecimiento) {
+                        try {
+                            const galeria = JSON.parse(p.fotos_crecimiento);
+                            if (Array.isArray(galeria) && galeria.length > 0) {
+                                // Flatten if objects (legacy) and Filter empty strings
+                                const validImages = galeria
+                                    .map(g => (typeof g === 'object' && g.imagen_path) ? g.imagen_path : g)
+                                    .filter(img => typeof img === 'string' && img.trim().length > 0);
+
+                                // Use the last VALID image
+                                if (validImages.length > 0) {
+                                    p.imagen = validImages[validImages.length - 1];
+                                }
+                            }
+                        } catch (e) {
+                            // Ignorar error de parseo
+                        }
+                    }
+                }
+            });
+        }
 
         res.render('index', {
             plantas: plantas || [],
@@ -73,7 +105,60 @@ router.post('/plantas/info', async (req, res) => {
         // planta.propiedades, planta.distribucion_geografica, etc.
         // planta_info tiene: descripcion, propiedades_curativas, distribucion_geografica.
         // Mapeamos lo necesario:
-        planta.propiedades = planta.propiedades_curativas; // Alias
+        // Mapeo de compatibilidad
+        planta.propiedades = planta.propiedades_curativas;
+
+        // Obtener relaciones para la vista detallada
+        const nombreCientifico = planta.nombre_cientifico;
+
+        if (nombreCientifico) {
+            // Ya no obtenemos relaciones directas de planta (obsoletas)
+            planta.contraindicaciones = [];
+            planta.efectos_secundarios = [];
+            planta.usos = [];
+
+            // Obtener Galería de Crecimiento
+            // Obtener Galería de Crecimiento
+            if (planta.fotos_crecimiento) {
+                try {
+                    let parsed = JSON.parse(planta.fotos_crecimiento);
+                    // Asegurar que sea array de strings
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        // Si por error hay objetos viejos
+                        if (typeof parsed[0] === 'object' && parsed[0].imagen_path) {
+                            parsed = parsed.map(f => f.imagen_path);
+                        }
+                        // Filtrar vacíos
+                        parsed = parsed.filter(f => typeof f === 'string' && f.trim().length > 0);
+                        planta.galeria = parsed;
+                    } else {
+                        planta.galeria = [];
+                    }
+                } catch (e) {
+                    planta.galeria = [];
+                }
+            } else {
+                planta.galeria = [];
+            }
+
+            // Obtener Remedios
+            const remedios = await db.allAsync("SELECT * FROM remedios WHERE nombre_cientifico = ?", [nombreCientifico]);
+
+            // Obtener detalles completos para cada remedio
+            if (remedios.length > 0) {
+                for (let r of remedios) {
+                    r.pasos = await db.allAsync("SELECT * FROM pasos WHERE id_remedio = ? ORDER BY num_paso", [r.id]);
+                    r.contraindicaciones = await db.allAsync("SELECT * FROM contraindicaciones WHERE id_remedio = ?", [r.id]);
+                    r.efectos_secundarios = await db.allAsync("SELECT * FROM efectos_secundarios WHERE id_remedio = ?", [r.id]);
+                    r.usos = await db.allAsync(`
+                        SELECT u.nombre, u.tipo 
+                        FROM usos u 
+                        JOIN remedios_usos ru ON u.id = ru.id_uso 
+                        WHERE ru.id_remedio = ?`, [r.id]);
+                }
+            }
+            planta.remedios = remedios;
+        }
 
         // Renderizar solo el contenido de la planta
         res.render('partials/info-planta', { planta }, (err, html) => {
@@ -118,8 +203,18 @@ router.get('/usuario/mis-solicitudes', requireAuth, async (req, res) => {
         const usuario = req.session.usuario;
 
         const solicitudes = await db.allAsync(
-            'SELECT * FROM solicitudes WHERE usuario = ? ORDER BY fecha DESC',
-            [usuario.usuario]
+            `SELECT 
+                id_donacion as id, 
+                correo_usuario as usuario,
+                nombre_comun as nombre_planta, -- Alias for view compatibility
+                distribucion_geografica as ubicacion, -- Alias for view compatibility
+                fecha_donacion as fecha,
+                estado,
+                detalles as respuesta
+             FROM donaciones 
+             WHERE correo_usuario = ? 
+             ORDER BY fecha_donacion DESC`,
+            [usuario.correo]
         );
 
         res.render('usuario/mis-solicitudes', {

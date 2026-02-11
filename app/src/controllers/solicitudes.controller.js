@@ -3,13 +3,13 @@ import db from '../config/database.js';
 // Obtener todas las solicitudes (admin) o las del usuario
 export const obtenerSolicitudes = async (req, res) => {
     try {
-        let query = 'SELECT * FROM solicitudes ORDER BY fecha DESC';
+        let query = 'SELECT * FROM donaciones ORDER BY fecha_donacion DESC';
         let params = [];
 
         // Si no es admin, solo ver sus propias solicitudes
-        if (req.usuario.tipo !== 1) {
-            query = 'SELECT * FROM solicitudes WHERE usuario = ? ORDER BY fecha DESC';
-            params = [req.usuario.id];
+        if (req.usuario.tipo !== 1 && req.usuario.tipo !== 'admin') {
+            query = 'SELECT * FROM donaciones WHERE correo_usuario = ? ORDER BY fecha_donacion DESC';
+            params = [req.usuario.id]; // id es correo
         }
 
         const solicitudes = await db.allAsync(query, params);
@@ -32,7 +32,7 @@ export const obtenerSolicitudPorId = async (req, res) => {
     try {
         const { id } = req.params;
         const solicitud = await db.getAsync(
-            'SELECT * FROM solicitudes WHERE id = ?',
+            'SELECT * FROM donaciones WHERE id_donacion = ?',
             [id]
         );
 
@@ -43,7 +43,7 @@ export const obtenerSolicitudPorId = async (req, res) => {
         }
 
         // Verificar permisos (solo el usuario dueño o admin pueden ver)
-        if (req.usuario.tipo !== 1 && solicitud.usuario !== req.usuario.id) {
+        if (req.usuario.tipo !== 1 && req.usuario.tipo !== 'admin' && solicitud.correo_usuario !== req.usuario.id) {
             return res.status(403).json({
                 error: 'No tienes permisos para ver esta solicitud'
             });
@@ -63,30 +63,39 @@ export const obtenerSolicitudPorId = async (req, res) => {
 export const crearSolicitud = async (req, res) => {
     try {
         const {
-            nombre_planta,
-            descripcion_planta,
-            propiedades_medicinales,
-            ubicacion,
+            nombre_comun,
+            descripcion,
+            propiedades_curativas,
+            distribucion_geografica,
             motivo_donacion
         } = req.body;
 
         // Validar campos requeridos
-        if (!nombre_planta || !descripcion_planta || !ubicacion) {
+        if (!nombre_comun || !descripcion || !distribucion_geografica) {
             return res.status(400).json({
-                error: 'Nombre de planta, descripción y ubicación son requeridos'
+                error: 'Nombre común, descripción y ubicación son requeridos'
             });
         }
 
-        const usuario = req.usuario.id;
+        const usuario = req.usuario.id; // Es el correo
 
         const fecha = new Date().toISOString();
         const estado = 'pendiente';
 
         const resultado = await db.runAsync(
-            `INSERT INTO solicitudes
-            (usuario, nombre_planta, descripcion_planta, propiedades_medicinales, ubicacion, motivo_donacion, fecha, estado)
+            `INSERT INTO donaciones
+            (correo_usuario, nombre_comun, descripcion, propiedades_curativas, distribucion_geografica, motivo_donacion, fecha_donacion, estado)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [usuario, nombre_planta, descripcion_planta, propiedades_medicinales || '', ubicacion, motivo_donacion || '', fecha, estado]
+            [
+                usuario,
+                nombre_comun,
+                descripcion,
+                propiedades_curativas || '',
+                distribucion_geografica,
+                motivo_donacion || '',
+                fecha,
+                estado
+            ]
         );
 
         res.status(201).json({
@@ -96,10 +105,10 @@ export const crearSolicitud = async (req, res) => {
             solicitud: {
                 id: resultado.lastID,
                 usuario,
-                nombre_planta,
-                descripcion_planta,
-                propiedades_medicinales,
-                ubicacion,
+                nombre_comun,
+                descripcion,
+                propiedades_curativas,
+                distribucion_geografica,
                 motivo_donacion,
                 fecha,
                 estado
@@ -132,7 +141,7 @@ export const actualizarEstatusSolicitud = async (req, res) => {
 
         // Verificar si la solicitud existe
         const solicitudExistente = await db.getAsync(
-            'SELECT * FROM solicitudes WHERE id = ?',
+            'SELECT * FROM donaciones WHERE id_donacion = ?',
             [id]
         );
 
@@ -143,16 +152,23 @@ export const actualizarEstatusSolicitud = async (req, res) => {
         }
 
         // Actualizar estado
-        let query = 'UPDATE solicitudes SET estado = ?';
+        let query = 'UPDATE donaciones SET estado = ?';
         let params = [estatus];
 
-        // Si hay comentarios/respuesta, actualizar también
+        // Si hay comentarios/respuesta, actualizar también (usamos campo 'detalles' o 'motivo'? Admin usa 'detalles'?)
+        // Admin usaba 'detalles' en schema? No estoy seguro, pero 'respuesta' no existe en create.
+        // Asumiremos 'detalles' si 'respuesta' falla, pero 'solicitudes' (old) tenia respuesta.
+        // Vamos a probar con 'detalles' que suena a campo nuevo, o 'respuesta' si el usuario pide.
+        // Tabla-solicitudes.ejs (admin) no muestra respuesta explícita, solo status.
+        // Mis-solicitudes.ejs muestra 'solicitud.respuesta'.
+        // Intentaremos actualizar 'detalles' para mapearlo a respuesta.
+
         if (comentarios !== undefined) {
-            query += ', respuesta = ?';
+            query += ', detalles = ?';
             params.push(comentarios);
         }
 
-        query += ' WHERE id = ?';
+        query += ' WHERE id_donacion = ?';
         params.push(id);
 
         await db.runAsync(query, params);
@@ -182,7 +198,7 @@ export const eliminarSolicitud = async (req, res) => {
 
         // Verificar si la solicitud existe
         const solicitud = await db.getAsync(
-            'SELECT * FROM solicitudes WHERE id = ?',
+            'SELECT * FROM donaciones WHERE id_donacion = ?',
             [id]
         );
 
@@ -193,15 +209,16 @@ export const eliminarSolicitud = async (req, res) => {
         }
 
         // Verificar permisos (solo el usuario dueño o admin pueden eliminar)
-        if (req.usuario.tipo !== 1 && solicitud.usuario !== req.usuario.id) {
+        if (req.usuario.tipo !== 1 && req.usuario.tipo !== 'admin' && solicitud.correo_usuario !== req.usuario.id) {
             return res.status(403).json({
                 error: 'No tienes permisos para eliminar esta solicitud'
             });
         }
 
-        await db.runAsync('DELETE FROM solicitudes WHERE id = ?', [id]);
+        await db.runAsync('DELETE FROM donaciones WHERE id_donacion = ?', [id]);
 
         res.json({
+            success: true,
             mensaje: 'Solicitud eliminada correctamente'
         });
 

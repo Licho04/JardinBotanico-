@@ -1,15 +1,17 @@
-<h2><%= accion === 'agregar' ? 'Agregar nueva planta' : 'Modificar planta' %></h2>
-<form id="form-planta" action="<%= accion === 'agregar' ? '/administracion/plantas' : '/administracion/plantas/' + planta.id + '/actualizar' %>" 
-      method="POST" enctype="multipart/form-data">
+<h2>
+    <%= accion==='agregar' ? 'Agregar nueva planta' : 'Modificar planta' %>
+</h2>
+<form id="form-planta"
+    action="<%= accion === 'agregar' ? '/administracion/plantas' : '/administracion/plantas/' + planta.id + '/actualizar' %>"
+    method="POST" enctype="multipart/form-data">
     <label>
         Nombre común:
-        <input type="text" name="nombre" value="<%= planta ? planta.nombre : '' %>" 
-               required placeholder="Ej: Albahaca">
+        <input type="text" name="nombre" value="<%= planta ? planta.nombre : '' %>" required placeholder="Ej: Albahaca">
     </label>
     <label>
         Nombre científico:
-        <input type="text" name="nombre_cientifico" value="<%= planta ? planta.nombre_cientifico : '' %>" 
-               placeholder="Ej: Ocimum basilicum">
+        <input type="text" name="nombre_cientifico" value="<%= planta ? planta.nombre_cientifico : '' %>"
+            placeholder="Ej: Ocimum basilicum">
     </label>
     <label>
         Descripción:
@@ -20,61 +22,119 @@
         <textarea name="propiedades"><%= planta ? planta.propiedades : '' %></textarea>
     </label>
     <label>
-        Zona geográfica:
-        <input type="text" name="zona_geografica" value="<%= planta ? planta.zona_geografica : '' %>" 
-               placeholder="Ej: Región tropical">
+        Distribución geográfica:
+        <input type="text" name="zona_geografica"
+            value="<%= planta ? (planta.distribucion_geografica || planta.zona_geografica) : '' %>"
+            placeholder="Ej: Región tropical">
     </label>
     <label>
-        Usos (Aplicaciones terapéuticas):
-        <textarea name="usos"><%= planta ? planta.usos : '' %></textarea>
+        Género:
+        <input type="text" name="genero" value="<%= planta ? planta.genero : '' %>" placeholder="Ej: Ocimum">
     </label>
+    <label>
+        Morfología:
+        <textarea name="morfologia"
+            placeholder="Descripción de la forma, hojas, tallo..."><%= planta ? planta.morfologia : '' %></textarea>
+    </label>
+    <label>
+        Bibliografía:
+        <textarea name="bibliografia" placeholder="Ej: Libro de Botánica, pág. 45"
+            rows="2"><%= planta ? planta.bibliografia : '' %></textarea>
+    </label>
+    <!-- Usos, Parte, Dosis, Formas, Contra, Efectos ELIMINADOS por refactorización -->
+    <h3 style="margin-top: 20px; color: #2c5e2e; border-bottom: 2px solid #eee; padding-bottom: 5px;">Detalles
+        Adicionales</h3>
 
-    <h3 style="margin-top: 20px; color: #2c5e2e; border-bottom: 2px solid #eee; padding-bottom: 5px;">Detalles Farmacológicos</h3>
-    
     <label>
         Principio Activo:
-        <input type="text" name="principio_activo" value="<%= planta ? planta.principio_activo : '' %>" 
-               placeholder="Ej: Mentol, Eucaliptol">
+        <input type="text" name="principio_activo" value="<%= planta ? planta.principio_activo : '' %>"
+            placeholder="Ej: Mentol, Eucaliptol">
     </label>
-    <label>
-        Parte de la planta utilizada:
-        <input type="text" name="parte_utilizada" value="<%= planta ? planta.parte_utilizada : '' %>" 
-               placeholder="Ej: Hojas, Raíz, Flores">
-    </label>
-    <label>
-        Dosis recomendada:
-        <textarea name="dosis" placeholder="Ej: 2 tazas al día..."><%= planta ? planta.dosis : '' %></textarea>
-    </label>
-    <label>
-        Formas farmacéuticas:
-        <input type="text" name="formas_farmaceuticas" value="<%= planta ? planta.formas_farmaceuticas : '' %>" 
-               placeholder="Ej: Infusión, Extracto, Cápsulas">
-    </label>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <label>
-            Contraindicaciones:
-            <textarea name="contraindicaciones" style="background: #fff5f5;"><%= planta ? planta.contraindicaciones : '' %></textarea>
-        </label>
-        <label>
-            Efectos secundarios:
-            <textarea name="efectos_secundarios" style="background: #fff5f5;"><%= planta ? planta.efectos_secundarios : '' %></textarea>
-        </label>
-    </div>
-    <label>
-        Imagen:
-        <input type="file" name="imagen" accept="image/*">
-        <% if (planta && planta.imagen) { %>
-            <small>Imagen actual: <%= planta.imagen %></small>
-        <% } %>
-    </label>
-    <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
-        <button type="submit">
-            <i class="fas fa-save"></i> <%= accion === 'agregar' ? 'Crear' : 'Actualizar' %>
-        </button>
-        <button type="button" onclick="document.getElementById('modal-editar-planta').style.display='none'">
-            <i class="fas fa-times"></i> Cancelar
-        </button>
-    </div>
-</form>
 
+    <!-- Resto de campos movidos a Remedios -->
+    <!-- Imagen Principal eliminada por solicitud (Usuario prefiere solo Galería) -->
+
+    <label>
+        Galería de Crecimiento (Múltiples fotos):
+        <input type="file" name="galeria" accept="image/*" multiple>
+        <small style="color: #666;">Selecciona varias imágenes para simular el crecimiento.</small>
+
+        <% if (planta && planta.galeria && planta.galeria.length> 0) { %>
+            <div id="gallery-manager"
+                style="margin-top:10px; display:flex; flex-direction:column; gap:10px; max-height: 300px; overflow-y: auto; padding: 5px;">
+                <% planta.galeria.forEach((foto, index)=> { %>
+                    <!-- foto es el filename (string) -->
+                    <div class="gallery-item"
+                        style="display: flex; align-items: center; gap: 10px; background: #fff; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <i class="fas fa-image" style="color: #888;"></i>
+
+                        <a href="/recursos/imagenes/<%= foto %>" target="_blank">
+                            <img src="/recursos/imagenes/<%= foto %>"
+                                style="height:50px; width: 50px; object-fit: cover; border-radius:4px;">
+                        </a>
+
+                        <div style="flex: 1; min-width: 0;">
+                            <div
+                                style="font-size: 0.85rem; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <%= foto %>
+                            </div>
+                        </div>
+
+                        <!-- Input oculto para enviar el orden final -->
+                        <input type="hidden" name="imagenes_orden[]" value="<%= foto %>">
+
+                        <div style="display: flex; gap: 2px;">
+                            <button type="button" onclick="moverImagen(this, -1)"
+                                style="padding: 5px 8px; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer; border-radius: 4px 0 0 4px; color: #4a5568;"
+                                title="Mover arriba">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button type="button" onclick="moverImagen(this, 1)"
+                                style="padding: 5px 8px; border: 1px solid #ccc; border-left: none; background: #f8f9fa; cursor: pointer; border-radius: 0 4px 4px 0; color: #4a5568;"
+                                title="Mover abajo">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                        </div>
+
+                        <button type="button" onclick="eliminarImagen(this)"
+                            style="padding: 5px 10px; border: 1px solid #ef4444; background: #fee2e2; color: #b91c1c; cursor: pointer; border-radius: 4px; margin-left: 5px;"
+                            title="Eliminar de la galería">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <% }); %>
+            </div>
+
+            <% } %>
+    </label>
+
+    <% if (accion==='editar' ) { %>
+        <div
+            style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #c8e6c9;">
+            <h4 style="margin-top: 0; color: #2e7d32;">Remedios Naturales</h4>
+            <p>Gestiona los remedios preparados con esta planta (pasos, ingredientes, etc).</p>
+            <a href="/administracion/plantas/<%= planta.id %>/remedios" class="btn btn-secondary"
+                style="background: #2e7d32; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">
+                <i class="fas fa-prescription-bottle-alt"></i> Gestionar Remedios
+            </a>
+        </div>
+        <% } else { %>
+            <div
+                style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px; border: 1px dashed #ccc;">
+                <h4 style="margin-top: 0; color: #666;">Remedios Naturales</h4>
+                <p style="margin-bottom: 0; color: #555;">
+                    <i class="fas fa-info-circle"></i>
+                    Podrás agregar remedios, usos y contraindicaciones una vez que <strong>guardes</strong> esta planta.
+                </p>
+            </div>
+            <% } %>
+                <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+                    <button type="submit">
+                        <i class="fas fa-save"></i>
+                        <%= accion==='agregar' ? 'Crear' : 'Actualizar' %>
+                    </button>
+                    <button type="button" onclick="document.getElementById('modal-editar-planta').style.display='none'">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+</form>

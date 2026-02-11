@@ -1,43 +1,70 @@
-<h2><i class="fas fa-seedling"></i> Solicitudes de donación</h2>
-<table border="1" cellpadding="8" cellspacing="0" style="width:100%;border-collapse:collapse;">
-    <tr>
-        <th>ID</th>
-        <th>Usuario</th>
-        <th>Planta</th>
-        <th>Ubicación</th>
-        <th>Fecha</th>
-        <th>Estado</th>
-        <th>Acciones</th>
-    </tr>
-    <% if (solicitudes && solicitudes.length > 0) { %>
-        <% solicitudes.forEach(function(solicitud) { %>
-        <tr>
-            <td><%= solicitud.id %></td>
-            <td><%= solicitud.usuario %></td>
-            <td><%= solicitud.nombre_planta %></td>
-            <td><%= solicitud.ubicacion %></td>
-            <td><%= new Date(solicitud.fecha).toLocaleDateString('es-MX') %></td>
-            <td>
-                <span style="padding:5px 10px;border-radius:15px;font-size:0.9rem;
-                    background:<%= solicitud.estado === 'aprobada' ? '#d4edda' : (solicitud.estado === 'rechazada' ? '#f8d7da' : '#fff3cd') %>;
-                    color:<%= solicitud.estado === 'aprobada' ? '#155724' : (solicitud.estado === 'rechazada' ? '#721c24' : '#856404') %>;">
-                    <%= solicitud.estado || 'pendiente' %>
-                </span>
-            </td>
-            <td>
-                <button class="btn-modificar" onclick="responderSolicitud(<%= solicitud.id %>)">
-                    <i class="fas fa-reply"></i> Responder
-                </button>
-                <button class="btn-eliminar" onclick="eliminarSolicitud(<%= solicitud.id %>)">
-                    <i class="fas fa-trash"></i> Eliminar
-                </button>
-            </td>
-        </tr>
-        <% }); %>
-    <% } else { %>
-        <tr>
-            <td colspan="7" style="text-align:center;padding:20px;">No hay solicitudes</td>
-        </tr>
-    <% } %>
-</table>
+<div class="table-container">
+    <div class="table-header">
+        <h2><i class="fas fa-seedling"></i> Solicitudes de donación</h2>
+    </div>
 
+    <table class="admin-table">
+        <thead>
+            <tr>
+
+                <th>Usuario</th>
+                <th>Planta</th>
+                <th>Ubicación</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Detalles</th> <!-- New Column -->
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (solicitudes && solicitudes.length> 0) { %>
+                <% solicitudes.forEach(function(solicitud) { let estadoClass='estado-pendiente' ; if
+                    (solicitud.estado==='aprobada' ) estadoClass='estado-aprobada' ; if (solicitud.estado==='rechazada'
+                    ) estadoClass='estado-rechazada' ; %>
+                    <tr>
+
+                        <td>
+                            <%= solicitud.correo_usuario %>
+                        </td>
+                        <td>
+                            <%= solicitud.nombre_comun || solicitud.nombre_planta %>
+                        </td>
+                        <td>
+                            <%= solicitud.distribucion_geografica || solicitud.ubicacion %>
+                        </td>
+                        <td>
+                            <%= new Date(solicitud.fecha_donacion || solicitud.fecha).toLocaleDateString('es-MX') %>
+                        </td>
+                        <td>
+                            <span class="estado-badge <%= estadoClass %>">
+                                <%= solicitud.estado || 'pendiente' %>
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <button class="btn-view"
+                                onclick="verDetallesDonacion('<%= JSON.stringify(solicitud).replace(/'/g, " \\'") %>')"
+                                title="Ver Completo" style="background: #2196F3; color: white;">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                        <td class="actions-cell">
+                            <button class="btn-edit" onclick="responderSolicitud('<%= solicitud.id_donacion %>')"
+                                title="Responder">
+                                <i class="fas fa-reply"></i>
+                            </button>
+                            <button class="btn-delete" onclick="eliminarSolicitud('<%= solicitud.id_donacion %>')"
+                                title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="6" style="text-align:center;padding:20px;color: #666;">No hay solicitudes
+                                </td>
+                            </tr>
+                            <% } %>
+        </tbody>
+    </table>
+</div>

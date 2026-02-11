@@ -2,14 +2,47 @@
     <div class="cientifico-destacado">
         <h3><i class="fas fa-microscope"></i> Información Taxonómica</h3>
     </div>
+    <style>
+        /* Estilos movidos a styles.css para mejor rendimiento y mantenibilidad */
+    </style>
 
     <h2>
         <%= planta.nombre %>
     </h2>
 
-    <% if(planta.imagen) { %>
-        <div class="imagen-planta">
-            <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>" class="imagen-principal">
+    <!-- Imagen Principal eliminada. Se usa solo Galería. -->
+
+    <% if (planta.galeria && planta.galeria.length> 0) { %>
+        <div class="galeria-crecimiento-container" style="margin: 20px 0;">
+            <h3 style="color: #2f855a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                <i class="fas fa-seedling"></i> Galería de Crecimiento
+            </h3>
+
+            <div class="carousel-container" id="plantGalleryCarousel" style="height: 300px;">
+                <% planta.galeria.forEach((foto, index)=> { %>
+                    <div class="carousel-slide <%= index === 0 ? 'active' : '' %>"
+                        style="background-image: url('/recursos/imagenes/<%= foto %>'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
+                        onclick="openLightbox(<%= index %>)" title="Clic para ampliar imagen">
+                        <div class="carousel-caption">
+                            <p>
+                                Clic para ampliar
+                            </p>
+                        </div>
+                    </div>
+                    <% }); %>
+
+                        <button class="carousel-btn prev-btn" onclick="moveGallerySlide(-1)">&#10094;</button>
+                        <button class="carousel-btn next-btn" onclick="moveGallerySlide(1)">&#10095;</button>
+
+                        <div class="carousel-indicators">
+                            <% planta.galeria.forEach((_, index)=> { %>
+                                <div class="indicator <%= index === 0 ? 'active' : '' %>"
+                                    onclick="currentGallerySlide(<%= index %>)"></div>
+                                <% }); %>
+                        </div>
+            </div>
+
+            <!-- Script movido a index.ejs para funcionar con AJAX -->
         </div>
         <% } %>
 
@@ -20,7 +53,7 @@
                 <%= planta.descripcion || '' %>
             </p>
             <p><strong><i class="fas fa-globe-americas"></i> Distribución geográfica:</strong>
-                <%= planta.zona_geografica || '' %>
+                <%= planta.distribucion_geografica || planta.zona_geografica || 'No especificada' %>
             </p>
 
             <div
@@ -28,57 +61,165 @@
                 <p><strong><i class="fas fa-flask"></i> Principio Activo:</strong>
                     <%= planta.principio_activo || 'No especificado' %>
                 </p>
-                <p><strong><i class="fas fa-leaf"></i> Parte Utilizada:</strong>
-                    <%= planta.parte_utilizada || '' %>
-                </p>
-                <p><strong><i class="fas fa-prescription-bottle-alt"></i> Formas Farmacéuticas:</strong>
-                    <%= planta.formas_farmaceuticas || '' %>
-                </p>
             </div>
 
             <p><strong><i class="fas fa-pills"></i> Propiedades farmacológicas:</strong>
                 <%= planta.propiedades || '' %>
             </p>
-            <p><strong><i class="fas fa-heart"></i> Aplicaciones terapéuticas:</strong>
-                <%= planta.usos || '' %>
-            </p>
+            <!-- Usos globales removidos -->
 
-            <% if(planta.dosis) { %>
-                <p><strong><i class="fas fa-clock"></i> Dosis recomendada:</strong>
-                    <%= planta.dosis %>
-                </p>
-                <% } %>
+            <!-- Secciones globales de Usos/Contra/Efectos ELIMINADAS. Ahora están en Remedios. -->
 
-                    <% if(planta.contraindicaciones || planta.efectos_secundarios) { %>
-                        <div
-                            style="margin-top: 15px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                            <% if(planta.contraindicaciones) { %>
+            <% if(planta.remedios && planta.remedios.length> 0) { %>
+                <div style="margin-top: 30px; border-top: 2px solid #e2e8f0; padding-top: 20px;">
+                    <h3 style="color: #2f855a; margin-bottom: 20px;">
+                        <i class="fas fa-mortar-pestle"></i> Remedios y Preparaciones
+                    </h3>
+
+                    <div class="remedios-grid" style="display: grid; gap: 20px;">
+                        <% planta.remedios.forEach(remedio=> { %>
+                            <div class="remedio-card"
+                                style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                                <h4
+                                    style="color: #2c5282; margin-top: 0; border-bottom: 1px solid #edf2f7; padding-bottom: 10px;">
+                                    <%= remedio.nombre %>
+                                </h4>
+                                <p style="font-style: italic; color: #718096; margin-bottom: 15px;">
+                                    <%= remedio.descripcion %>
+                                </p>
+
                                 <div
-                                    style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #feb2b2;">
-                                    <strong style="color: #c53030;"><i class="fas fa-ban"></i>
-                                        Contraindicaciones:</strong>
-                                    <p style="margin: 5px 0 0 0; font-size: 0.95em;">
-                                        <%= planta.contraindicaciones %>
-                                    </p>
+                                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; font-size: 0.9em;">
+                                    <div><strong>Parte:</strong>
+                                        <%= remedio.parte || 'N/A' %>
+                                    </div>
+                                    <div><strong>Formato:</strong>
+                                        <%= remedio.formato || 'N/A' %>
+                                    </div>
+                                    <div><strong>Dosis:</strong>
+                                        <%= remedio.dosis_cantidad %>
+                                            <%= remedio.dosis_unidad %>
+                                    </div>
+                                    <div><strong>Tiempo:</strong>
+                                        <%= remedio.tiempo_efectividad || 'N/A' %>
+                                    </div>
                                 </div>
-                                <% } %>
-                                    <% if(planta.efectos_secundarios) { %>
-                                        <div
-                                            style="background: #fffaf0; padding: 10px; border-radius: 4px; border: 1px solid #fbd38d;">
-                                            <strong style="color: #c05621;"><i class="fas fa-exclamation-circle"></i>
-                                                Efectos Secundarios:</strong>
-                                            <p style="margin: 5px 0 0 0; font-size: 0.95em;">
-                                                <%= planta.efectos_secundarios %>
-                                            </p>
+
+                                <!-- USOS DEL REMEDIO -->
+                                <% if (remedio.usos && remedio.usos.length> 0) { %>
+                                    <div style="margin-bottom: 15px;">
+                                        <strong><i class="fas fa-heart"></i> Usos:</strong>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+                                            <% remedio.usos.forEach(uso=> { %>
+                                                <span
+                                                    style="background: #e6fffa; color: #2c7a7b; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; border: 1px solid #b2f5ea;">
+                                                    <%= uso.nombre %>
+                                                </span>
+                                                <% }); %>
                                         </div>
-                                        <% } %>
-                        </div>
-                        <% } %>
+                                    </div>
+                                    <% } %>
+
+                                        <!-- CONTRAINDICACIONES DEL REMEDIO -->
+                                        <% if (remedio.contraindicaciones && remedio.contraindicaciones.length>
+                                            0) { %>
+                                            <div
+                                                style="background: #fff5f5; padding: 10px; border-radius: 4px; border-left: 3px solid #c53030; margin-bottom: 10px; font-size: 0.9em;">
+                                                <strong style="color: #c53030;"><i class="fas fa-ban"></i>
+                                                    Contraindicaciones:</strong>
+                                                <ul style="margin: 5px 0 0 20px; color: #742a2a;">
+                                                    <% remedio.contraindicaciones.forEach(c=> { %>
+                                                        <li>
+                                                            <%= c.descripcion %>
+                                                        </li>
+                                                        <% }); %>
+                                                </ul>
+                                            </div>
+                                            <% } %>
+
+                                                <!-- EFECTOS SECUNDARIOS DEL REMEDIO -->
+                                                <% if (remedio.efectos_secundarios &&
+                                                    remedio.efectos_secundarios.length> 0) { %>
+                                                    <div
+                                                        style="background: #fffaf0; padding: 10px; border-radius: 4px; border-left: 3px solid #dd6b20; margin-bottom: 10px; font-size: 0.9em;">
+                                                        <strong style="color: #c05621;"><i
+                                                                class="fas fa-exclamation-triangle"></i>
+                                                            Efectos
+                                                            Secundarios:</strong>
+                                                        <ul style="margin: 5px 0 0 20px; color: #7b341e;">
+                                                            <% remedio.efectos_secundarios.forEach(e=> {
+                                                                %>
+                                                                <li>
+                                                                    <%= e.descripcion %>
+                                                                </li>
+                                                                <% }); %>
+                                                        </ul>
+                                                    </div>
+                                                    <% } %>
+
+                                                        <% if (remedio.checar_medico) { %>
+                                                            <div
+                                                                style="background: #ebf8ff; color: #2b6cb0; padding: 8px; border-radius: 4px; font-size: 0.85em; margin-bottom: 15px; display: inline-block;">
+                                                                <i class="fas fa-user-md"></i> Consultar
+                                                                al
+                                                                médico antes de usar
+                                                            </div>
+                                                            <% } %>
+
+                                                                <button class="btn-ver-pasos"
+                                                                    onclick="togglePasos(this)"
+                                                                    style="background: #48bb78; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9em; width: 100%;">
+                                                                    <i class="fas fa-list-ol"></i> Ver
+                                                                    Instrucciones de Preparación
+                                                                </button>
+
+                                                                <div class="pasos-container"
+                                                                    style="display: none; margin-top: 15px; background: #f7fafc; padding: 15px; border-radius: 4px; border: 1px solid #edf2f7;">
+                                                                    <h5
+                                                                        style="margin-top: 0; color: #2d3748; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;">
+                                                                        Instrucciones paso a paso:
+                                                                    </h5>
+                                                                    <% if (remedio.pasos && remedio.pasos.length> 0) {
+                                                                        %>
+                                                                        <ol
+                                                                            style="padding-left: 20px; color: #4a5568; margin: 0;">
+                                                                            <% remedio.pasos.forEach(paso=>
+                                                                                { %>
+                                                                                <li style="margin-bottom: 8px;">
+                                                                                    <%= paso.descripcion %>
+                                                                                </li>
+                                                                                <% }); %>
+                                                                        </ol>
+                                                                        <% } else { %>
+                                                                            <p class="text-muted"
+                                                                                style="font-style: italic;">
+                                                                                No
+                                                                                hay pasos registrados.
+                                                                            </p>
+                                                                            <% } %>
+                                                                </div>
+                            </div>
+                            <% }); %>
+                    </div>
+                </div>
+                <% } %>
 </div>
 
-<div class="alert-warning">
-    <h4><i class="fas fa-exclamation-triangle"></i> Nota Científica</h4>
-    <p>Esta información es de carácter educativo y científico. Para uso medicinal, consulte siempre con un profesional
-        de la salud.</p>
-</div>
-</div>
+
+
+<% if (planta.bibliografia) { %>
+    <div style="margin-top: 30px; padding: 15px; background: #fff; border-top: 1px solid #eee;">
+        <h4 style="color: #4a5568; margin-top: 0;"><i class="fas fa-book"></i> Bibliografía / Fuentes</h4>
+        <p style="font-style: italic; color: #718096; white-space: pre-wrap;">
+            <%= planta.bibliografia %>
+        </p>
+    </div>
+    <% } %>
+
+        <div class="alert-warning">
+            <h4><i class="fas fa-exclamation-triangle"></i> Nota Científica</h4>
+            <p>Esta información es de carácter educativo y científico. Para uso medicinal, consulte siempre con un
+                profesional
+                de la salud.</p>
+        </div>
+        </div>

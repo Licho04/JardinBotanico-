@@ -14,7 +14,8 @@ const initDatabase = () => {
             nombres_comunes TEXT,
             morfologia TEXT,
             bibliografia TEXT,
-            distribucion_geografica TEXT
+            distribucion_geografica TEXT,
+            fotos_crecimiento TEXT -- JSON Array de paths
         )
     `;
 
@@ -100,6 +101,84 @@ const initDatabase = () => {
             });
         });
         checkAndCreate('donaciones', crearTablaDonaciones);
+
+        // --- FASE 5 & 6: Remedios y Nuevas Relaciones ---
+
+        // 6. Remedios
+        const crearTablaRemedios = `
+            CREATE TABLE IF NOT EXISTS remedios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT,
+                descripcion TEXT,
+                checar_medico INTEGER DEFAULT 1, -- Boolean (1=True, 0=False)
+                tiempo_efectividad TEXT DEFAULT 'N/A',
+                parte TEXT,
+                formato TEXT,
+                dosis_cantidad REAL,
+                dosis_unidad TEXT,
+                nombre_cientifico TEXT, -- FK
+                FOREIGN KEY (nombre_cientifico) REFERENCES planta_info(nombre_cientifico)
+            )
+        `;
+        checkAndCreate('remedios', crearTablaRemedios);
+
+        // 7. Pasos (Weak Entity de Remedios)
+        const crearTablaPasos = `
+            CREATE TABLE IF NOT EXISTS pasos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_remedio INTEGER,
+                num_paso INTEGER,
+                descripcion TEXT,
+                FOREIGN KEY (id_remedio) REFERENCES remedios(id) ON DELETE CASCADE
+            )
+        `;
+        checkAndCreate('pasos', crearTablaPasos);
+
+        // 8. Contraindicaciones (1:N con Remedios)
+        const crearTablaContraindicaciones = `
+            CREATE TABLE IF NOT EXISTS contraindicaciones (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                descripcion TEXT,
+                id_remedio INTEGER,
+                FOREIGN KEY (id_remedio) REFERENCES remedios(id) ON DELETE CASCADE
+            )
+        `;
+        checkAndCreate('contraindicaciones', crearTablaContraindicaciones);
+
+        // 9. Efectos Secundarios (1:N con Remedios)
+        const crearTablaEfectos = `
+            CREATE TABLE IF NOT EXISTS efectos_secundarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                descripcion TEXT,
+                id_remedio INTEGER,
+                FOREIGN KEY (id_remedio) REFERENCES remedios(id) ON DELETE CASCADE
+            )
+        `;
+        checkAndCreate('efectos_secundarios', crearTablaEfectos);
+
+        // 10. Usos (Catálogo)
+        const crearTablaUsos = `
+            CREATE TABLE IF NOT EXISTS usos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT,
+                descripcion TEXT,
+                tipo TEXT
+            )
+        `;
+        checkAndCreate('usos', crearTablaUsos);
+
+        // 11. Remedios <-> Usos (M:N)
+        const crearTablaRemediosUsos = `
+            CREATE TABLE IF NOT EXISTS remedios_usos (
+                id_remedio INTEGER,
+                id_uso INTEGER,
+                PRIMARY KEY (id_remedio, id_uso),
+                FOREIGN KEY (id_remedio) REFERENCES remedios(id) ON DELETE CASCADE,
+                FOREIGN KEY (id_uso) REFERENCES usos(id) ON DELETE CASCADE
+            )
+        `;
+        checkAndCreate('remedios_usos', crearTablaRemediosUsos);
+
     });
 };
 

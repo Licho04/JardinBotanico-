@@ -1,42 +1,58 @@
-<h2><i class="fas fa-leaf"></i> Lista de plantas</h2>
-<button onclick="agregarPlanta()" class="boton-nuevo-usuario" style="width:auto;display:inline-block;margin-bottom:16px;">
-    <i class="fas fa-plus"></i> Agregar nueva planta
-</button>
-<table border="1" cellpadding="8" cellspacing="0" style="width:100%;border-collapse:collapse;">
-    <tr>
-        <th>ID</th>
-        <th>Nombre</th>
-        <th>Nombre Científico</th>
-        <th>Imagen</th>
-        <th>Acciones</th>
-    </tr>
-    <% if (plantas && plantas.length > 0) { %>
-        <% plantas.forEach(function(planta) { %>
-        <tr>
-            <td><%= planta.id %></td>
-            <td><%= planta.nombre %></td>
-            <td><i><%= planta.nombre_cientifico || '' %></i></td>
-            <td>
-                <% if (planta.imagen) { %>
-                    <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>" style="width:50px;height:50px;object-fit:cover;">
-                <% } else { %>
-                    Sin imagen
-                <% } %>
-            </td>
-            <td>
-                <button class="btn-modificar" onclick="editarPlanta(<%= planta.id %>)">
-                    <i class="fas fa-edit"></i> Modificar
-                </button>
-                <button class="btn-eliminar" onclick="eliminarPlanta(<%= planta.id %>)">
-                    <i class="fas fa-trash"></i> Eliminar
-                </button>
-            </td>
-        </tr>
-        <% }); %>
-    <% } else { %>
-        <tr>
-            <td colspan="5" style="text-align:center;padding:20px;">No hay plantas registradas</td>
-        </tr>
-    <% } %>
-</table>
+<div class="table-container">
+    <div class="table-header">
+        <h2><i class="fas fa-leaf"></i> Lista de plantas</h2>
+        <div class="header-actions">
+            <button onclick="agregarPlanta()" class="btn-main">
+                <i class="fas fa-plus"></i> Agregar nueva planta
+            </button>
+        </div>
+    </div>
 
+    <table class="admin-table">
+        <thead>
+            <tr>
+
+                <th>Nombre</th>
+                <th>Nombre Científico</th>
+                <th>Imagen</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (plantas && plantas.length> 0) { %>
+                <% plantas.forEach(function(planta) { %>
+                    <tr>
+
+                        <td>
+                            <%= planta.nombre %>
+                        </td>
+                        <td><i>
+                                <%= planta.nombre_cientifico || '' %>
+                            </i></td>
+                        <td>
+                            <% if (planta.imagen) { %>
+                                <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>"
+                                    style="width:50px;height:50px;object-fit:cover;border-radius:8px;">
+                                <% } else { %>
+                                    <span style="color: #999; font-style: italic;">Sin imagen</span>
+                                    <% } %>
+                        </td>
+                        <td class="actions-cell">
+                            <button class="btn-edit" onclick="editarPlanta('<%= planta.id %>')" title="Modificar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-delete" onclick="eliminarPlanta('<%= planta.id %>')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="4" style="text-align:center;padding:20px;color: #666;">No hay plantas
+                                    registradas</td>
+                            </tr>
+                            <% } %>
+        </tbody>
+    </table>
+</div>

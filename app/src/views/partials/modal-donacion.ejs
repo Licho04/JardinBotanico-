@@ -1,4 +1,4 @@
-<% if (typeof usuario !=='undefined' && usuario && usuario.tipo==0) { %>
+<% if (typeof usuario !=='undefined' && usuario && (usuario.tipo==='usuario' || usuario.tipo==0)) { %>
     <div id="modal-solicitud-donacion" class="modal" style="display:none;">
         <div class="modal-content">
             <h2><i class="fas fa-seedling"></i> Solicitud de Donación Científica</h2>
@@ -9,21 +9,21 @@
             <form action="/api/solicitudes" method="post" onsubmit="enviarSolicitudDonacion(event, this)">
                 <label>
                     <i class="fas fa-leaf"></i> Nombre común de la planta:
-                    <input type="text" name="nombre_planta" required placeholder="Ej: Manzanilla, Romero, Albahaca...">
+                    <input type="text" name="nombre_comun" required placeholder="Ej: Manzanilla, Romero, Albahaca...">
                 </label>
                 <label>
                     <i class="fas fa-file-alt"></i> Descripción morfológica:
-                    <textarea name="descripcion_planta" required
+                    <textarea name="descripcion" required
                         placeholder="Describe las características físicas de la planta (tamaño, forma de hojas, flores, etc.)..."></textarea>
                 </label>
                 <label>
-                    <i class="fas fa-pills"></i> Propiedades medicinales conocidas:
-                    <textarea name="propiedades_medicinales" required
+                    <i class="fas fa-pills"></i> Propiedades curativas:
+                    <textarea name="propiedades_curativas" required
                         placeholder="Describe las propiedades medicinales y usos terapéuticos documentados..."></textarea>
                 </label>
                 <label>
-                    <i class="fas fa-map-marker-alt"></i> Ubicación geográfica:
-                    <input type="text" name="ubicacion" required
+                    <i class="fas fa-map-marker-alt"></i> Distribución Geográfica:
+                    <input type="text" name="distribucion_geografica" required
                         placeholder="Ej: Jardín particular, Parque local, Área natural protegida...">
                 </label>
                 <label>
@@ -53,9 +53,11 @@
                     modalSolicitud.style.display = 'flex';
                 };
 
+                /* DESHABILITADO: No cerrar al dar clic fuera para prevenir pérdida de datos
                 modalSolicitud.onclick = function (e) {
                     if (e.target === this) this.style.display = 'none';
                 };
+                */
             }
         });
 

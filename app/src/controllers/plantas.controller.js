@@ -68,13 +68,41 @@ export const obtenerPlantas = async (req, res) => {
                 pi.nombres_comunes,
                 pi.morfologia,
                 pi.bibliografia,
-                pi.genero
+                pi.genero,
+                pi.fotos_crecimiento
             FROM planta_fisica pf
             LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
             ORDER BY pf.nombre_propio
         `;
 
         const plantas = await db.allAsync(query);
+
+        // Procesar imágenes para la vista de lista
+        // Si no hay imagen_path (porque lo quitamos), usar la ÚLTIMA de la galería
+        plantas.forEach(p => {
+            // Siempre intentamos sacar la foto de la galería si existe, para asegurar que sea la más reciente
+            // O si p.imagen está vacía.
+            if (!p.imagen || p.imagen === '' || p.fotos_crecimiento) {
+                if (p.fotos_crecimiento) {
+                    try {
+                        const galeria = JSON.parse(p.fotos_crecimiento);
+                        if (Array.isArray(galeria) && galeria.length > 0) {
+                            // Flatten if objects (legacy) and Filter empty strings
+                            const validImages = galeria
+                                .map(g => (typeof g === 'object' && g.imagen_path) ? g.imagen_path : g)
+                                .filter(img => typeof img === 'string' && img.trim().length > 0);
+
+                            // Use the last VALID image
+                            if (validImages.length > 0) {
+                                p.imagen = validImages[validImages.length - 1];
+                            }
+                        }
+                    } catch (e) {
+                        // Ignorar error de parseo
+                    }
+                }
+            }
+        });
 
         res.json({
             total: plantas.length,
@@ -89,7 +117,7 @@ export const obtenerPlantas = async (req, res) => {
     }
 };
 
-// Obtener una planta por ID (JOIN)
+// Obtener una planta por ID (JOIN + Relaciones)
 export const obtenerPlantaPorId = async (req, res) => {
     try {
         const { id } = req.params;
@@ -107,12 +135,7 @@ export const obtenerPlantaPorId = async (req, res) => {
                 pi.nombres_comunes,
                 pi.morfologia,
                 pi.bibliografia,
-                pi.genero,
-                pi.parte_utilizada,
-                pi.dosis,
-                pi.contraindicaciones,
-                pi.efectos_secundarios,
-                pi.formas_farmaceuticas
+                pi.genero
             FROM planta_fisica pf
             LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
             WHERE pf.id_planta = ?
@@ -126,6 +149,54 @@ export const obtenerPlantaPorId = async (req, res) => {
             });
         }
 
+        // Obtener relaciones
+        // *REFACTOR*: Ahora pertenecen a Remedios, ya no a Planta.
+        // Mantenemos los arrays vacíos o los eliminamos del response si el frontend lo soporta.
+        // Para compatibilidad con view existente (si espera arrays), mandamos vacíos por ahora, 
+        // pero la data real vendrá dentro de 'remedios'.
+        planta.contraindicaciones = [];
+        planta.efectos_secundarios = [];
+        planta.usos = [];
+
+        // Obtener Remedios con sus detalles completos
+        const remedios = await db.allAsync("SELECT * FROM remedios WHERE nombre_cientifico = ?", [planta.nombre_cientifico]);
+
+        // Popular detalles de cada remedio
+        for (let r of remedios) {
+            r.contraindicaciones = await db.allAsync("SELECT * FROM contraindicaciones WHERE id_remedio = ?", [r.id]);
+            r.efectos_secundarios = await db.allAsync("SELECT * FROM efectos_secundarios WHERE id_remedio = ?", [r.id]);
+            r.usos = await db.allAsync(`
+                SELECT u.* FROM usos u 
+                JOIN remedios_usos ru ON u.id = ru.id_uso 
+                WHERE ru.id_remedio = ?`, [r.id]);
+            r.pasos = await db.allAsync("SELECT * FROM pasos WHERE id_remedio = ?", [r.id]);
+        }
+
+        planta.remedios = remedios;
+
+        // NORMALIZACIÓN DE GALERÍA (String Array)
+        // Aseguramos que siempre sea ['foto1.jpg', 'foto2.jpg'] sin vacíos
+        if (planta.fotos_crecimiento) {
+            try {
+                let parsed = JSON.parse(planta.fotos_crecimiento);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    // Si son objetos (Legacy), extraemos imagen_path
+                    if (typeof parsed[0] === 'object' && parsed[0].imagen_path) {
+                        parsed = parsed.map(f => f.imagen_path);
+                    }
+                    // Filtrar strings vacíos o nulos
+                    parsed = parsed.filter(f => typeof f === 'string' && f.trim().length > 0);
+                } else {
+                    parsed = [];
+                }
+                planta.galeria = parsed;
+            } catch (e) {
+                planta.galeria = [];
+            }
+        } else {
+            planta.galeria = [];
+        }
+
         res.json(planta);
     } catch (error) {
         console.error('Error al obtener planta:', error);
@@ -136,24 +207,21 @@ export const obtenerPlantaPorId = async (req, res) => {
     }
 };
 
-// Crear nueva planta (Transacción Implícita: Info -> Fisica)
+// Crear nueva planta (Transacción con Relaciones)
 export const crearPlanta = async (req, res) => {
     try {
         const {
-            nombre, // Será nombre_propio
+            nombre, // maps to nombres_comunes in planta_info AND nombre_propio in planta_fisica
             nombre_cientifico,
             descripcion,
             propiedades,
-            zona_geografica, // TODO: Ver dónde guardar esto en el nuevo modelo (quizás morfología)
-            usos, // TODO: Tabla aparte 'usos' (pendiente)
             principio_activo,
-            parte_utilizada,
-            dosis,
-            contraindicaciones,
-            efectos_secundarios,
-            formas_farmaceuticas,
+            genero,
+            morfologia,
+            zona_geografica, // maps to distribucion_geografica
             fecha_sembrada,
-            situacion
+            situacion,
+            bibliografia
         } = req.body;
 
         if (!nombre || !nombre_cientifico) {
@@ -162,13 +230,25 @@ export const crearPlanta = async (req, res) => {
             });
         }
 
-        const imagen = req.file ? req.file.filename : '';
+        // Manejo de archivos (Solo Galería)
+        const galeriaFotos = (req.files && req.files['galeria']) ? req.files['galeria'] : [];
 
-        // 1. Insertar o Actualizar PlantaInfo (Upsert simple)
-        // Si ya existe la info científica, no duplicamos, solo nos aseguramos que esté ahí.
+        await db.run('BEGIN TRANSACTION');
+
+        // 1. Insertar o Actualizar PlantaInfo Base
+        // Serializar galería a JSON (Array de Objetos)
+        // Serializar galería a JSON (Array de Strings)
+        let fotosCrecimiento = [];
+
+        if (galeriaFotos.length > 0) {
+            fotosCrecimiento = galeriaFotos.map(f => f.filename).filter(f => f && f.trim().length > 0);
+        }
+
+        const fotosCrecimientoJSON = JSON.stringify(fotosCrecimiento);
+
         const infoQuery = `
             INSERT OR IGNORE INTO planta_info 
-            (nombre_cientifico, descripcion, principio_activo, propiedades_curativas, nombres_comunes, parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas)
+            (nombre_cientifico, descripcion, principio_activo, propiedades_curativas, nombres_comunes, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
@@ -177,15 +257,17 @@ export const crearPlanta = async (req, res) => {
             descripcion || '',
             principio_activo || '',
             propiedades || '',
-            nombre || '', // Se usa como nombre común base
-            parte_utilizada || '',
-            dosis || '',
-            contraindicaciones || '',
-            efectos_secundarios || '',
-            formas_farmaceuticas || ''
+            nombre || '',
+            bibliografia || '',
+            fotosCrecimientoJSON,
+            genero || '',
+            morfologia || '',
+            zona_geografica || ''
         ]);
 
-        // 2. Crear la Planta Fisica (Inventario)
+        // 2, 3, 4. Relaciones movidas a Remedios
+
+        // 5. Crear la Planta Fisica
         const fisicaQuery = `
             INSERT INTO planta_fisica
             (nombre_propio, fecha_sembrada, situacion, imagen_path, nombre_cientifico)
@@ -194,23 +276,31 @@ export const crearPlanta = async (req, res) => {
 
         const resultado = await db.runAsync(fisicaQuery, [
             nombre,
-            fecha_sembrada || new Date().toISOString().split('T')[0], // Default hoy
+            fecha_sembrada || new Date().toISOString().split('T')[0],
             situacion || 'Sana',
-            imagen,
+            '', // Imagen principal eliminada (vacía)
             nombre_cientifico
         ]);
 
+        const idPlanta = resultado.lastID;
+
+        // 6. Fotos de Galería ya se guardaron en PlantaInfo como JSON
+
+        await db.run('COMMIT');
+
         res.status(201).json({
+            success: true,
             mensaje: 'Planta creada correctamente',
             planta: {
-                id: resultado.lastID, // ID del inventario físico
+                id: idPlanta,
                 nombre,
                 nombre_cientifico,
-                imagen
+                imagen: ''
             }
         });
 
     } catch (error) {
+        await db.run('ROLLBACK');
         console.error('Error al crear planta:', error);
         res.status(500).json({
             error: 'Error al crear planta',
@@ -219,85 +309,101 @@ export const crearPlanta = async (req, res) => {
     }
 };
 
-// Actualizar planta (Actualiza ambas tablas)
+// Actualizar planta (Actualiza todo)
 export const actualizarPlanta = async (req, res) => {
     try {
         const { id } = req.params; // ID de planta_fisica
+        console.log('--- ACTUALIZAR PLANTA DEBUG ---');
+        console.log('ID:', id);
+        console.log('Body:', JSON.stringify(req.body, null, 2)); // Debug body
+        console.log('Files:', req.files ? Object.keys(req.files) : 'No files');
         const {
             nombre,
             nombre_cientifico,
             descripcion,
             propiedades,
             principio_activo,
-            parte_utilizada,
-            dosis,
-            contraindicaciones,
-            efectos_secundarios,
-            formas_farmaceuticas,
+            genero,
+            morfologia,
+            zona_geografica,
             fecha_sembrada,
-            situacion
+            situacion,
+            bibliografia
         } = req.body;
 
-        // Verificar si existe la planta física
         const plantaFisica = await db.getAsync('SELECT * FROM planta_fisica WHERE id_planta = ?', [id]);
+        if (!plantaFisica) return res.status(404).json({ error: 'Planta física no encontrada' });
 
-        if (!plantaFisica) {
-            return res.status(404).json({ error: 'Planta fÃ­sica no encontrada' });
+        // Imagen principal ignorada/eliminada logicamente
+
+        await db.run('BEGIN TRANSACTION');
+
+        // 1. Actualizar Info Científica
+        // Recuperar fotos existentes segun el orden enviado por el formulario
+        let fotosExistentes = []; // Será Array de Strings
+
+        // NORMALIZAR DB ACTUAL PRIMERO (para búsquedas si fuera necesario, aunque ahora solo recibimos strings del form)
+        // En este caso, el formulario envía hidden inputs con el FILENAME directo.
+        // Solo necesitamos confiar en el orden que envía el form.
+
+        if (req.body.imagenes_orden) {
+            // Si el formulario envió orden, usamos eso (maneja reordenamiento y borrado)
+            // Express puede devolver un string si es solo uno, o array si son varios.
+            const orden = Array.isArray(req.body.imagenes_orden) ? req.body.imagenes_orden : [req.body.imagenes_orden];
+            // Filtrar vacíos
+            fotosExistentes = orden.filter(f => f && typeof f === 'string' && f.trim().length > 0);
+        } else {
+            // Si no hay key 'imagenes_orden', significa que se borraron todas O que no había ninguna.
+            fotosExistentes = [];
         }
 
-        const imagen = req.file ? req.file.filename : plantaFisica.imagen_path;
-
-        // Gestión de imagen antigua
-        if (req.file && plantaFisica.imagen_path) {
-            let rutaImagenAnterior;
-            if (process.env.DATA_PATH) {
-                rutaImagenAnterior = path.join(process.env.DATA_PATH, 'imagenes', plantaFisica.imagen_path);
-            } else {
-                rutaImagenAnterior = path.join(__dirname, '../../../recursos/imagenes', plantaFisica.imagen_path);
-            }
-            if (fs.existsSync(rutaImagenAnterior)) fs.unlinkSync(rutaImagenAnterior);
+        if (req.files && req.files['galeria']) {
+            const nuevasFotos = req.files['galeria'].map(f => f.filename);
+            fotosExistentes = [...fotosExistentes, ...nuevasFotos];
         }
 
-        // 1. Actualizar Info Científica (Si cambió algo)
-        // NOTA: Esto afectará a TODAS las plantas fisicas de esta especie. Es el comportamiento adecuado para una relación 1:N.
+        const fotosCrecimientoJSON = JSON.stringify(fotosExistentes);
+
         const updateInfoQuery = `
-            UPDATE planta_info SET
-            descripcion = ?, propiedades_curativas = ?, principio_activo = ?,
-            parte_utilizada = ?, dosis = ?, contraindicaciones = ?, efectos_secundarios = ?, formas_farmaceuticas = ?
-            WHERE nombre_cientifico = ?
+            INSERT INTO planta_info (nombre_cientifico, descripcion, propiedades_curativas, principio_activo, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(nombre_cientifico) DO UPDATE SET
+            descripcion=excluded.descripcion,
+            propiedades_curativas=excluded.propiedades_curativas,
+            principio_activo=excluded.principio_activo,
+            bibliografia=excluded.bibliografia,
+            fotos_crecimiento=excluded.fotos_crecimiento,
+            genero=excluded.genero,
+            morfologia=excluded.morfologia,
+            distribucion_geografica=excluded.distribucion_geografica
         `;
 
+        // Usamos el NUEVO nombre cientifico (o el mismo si no cambió)
         await db.runAsync(updateInfoQuery, [
+            nombre_cientifico, // Nuevo nombre
             descripcion, propiedades, principio_activo,
-            parte_utilizada, dosis, contraindicaciones, efectos_secundarios, formas_farmaceuticas,
-            plantaFisica.nombre_cientifico // Usamos el nombre científico original para encontrar el registro
+            bibliografia, fotosCrecimientoJSON,
+            genero || '', morfologia || '', zona_geografica || ''
         ]);
 
-        // 2. Actualizar Planta Física
-        const updateFisicaQuery = `
-            UPDATE planta_fisica SET
-            nombre_propio = ?, fecha_sembrada = ?, situacion = ?, imagen_path = ?
-            WHERE id_planta = ?
-        `;
+        // 2, 3. Relaciones movidas a Remedios
 
-        await db.runAsync(updateFisicaQuery, [
-            nombre,
-            fecha_sembrada || plantaFisica.fecha_sembrada,
-            situacion || plantaFisica.situacion,
-            imagen,
-            id
-        ]);
+        // 4. Actualizar Planta Física (incluyendo cambio de FK nombre_cientifico)
+        await db.runAsync(
+            `UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ?, nombre_cientifico = ? WHERE id_planta = ?`,
+            [nombre, fecha_sembrada || plantaFisica.fecha_sembrada, situacion || plantaFisica.situacion, nombre_cientifico, id]
+        );
 
-        res.json({
-            mensaje: 'Planta actualizada correctamente'
-        });
+        // 5. Fotos de galería ya actualizadas en PlantaInfo
+
+        await db.run('COMMIT');
+
+        res.json({ success: true, mensaje: 'Planta actualizada correctamente' });
 
     } catch (error) {
+        await db.run('ROLLBACK');
         console.error('Error al actualizar planta:', error);
-        res.status(500).json({
-            error: 'Error al actualizar planta',
-            detalle: error.message
-        });
+        res.status(500).json({ error: 'Error al actualizar planta', detalle: error.message });
     }
 };
 
@@ -328,7 +434,7 @@ export const eliminarPlanta = async (req, res) => {
         // Opcional: Podríamos verificar si quedan plantas de ese nombre_cientifico y borrar planta_info si count=0.
         // Por ahora lo dejamos para preservar la info científica.
 
-        res.json({ mensaje: 'Planta eliminada correctamente' });
+        res.json({ success: true, mensaje: 'Planta eliminada correctamente' });
 
     } catch (error) {
         console.error('Error al eliminar planta:', error);

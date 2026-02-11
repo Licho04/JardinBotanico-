@@ -2,7 +2,8 @@ import express from 'express';
 import db from '../../config/database.js';
 import bcrypt from 'bcrypt';
 import { requireAdmin } from '../../middleware/auth.middleware.js';
-import { upload } from '../../controllers/plantas.controller.js';
+
+import { upload, crearPlanta, actualizarPlanta, eliminarPlanta } from '../../controllers/plantas.controller.js';
 
 const router = express.Router();
 
@@ -19,19 +20,56 @@ router.get('/administracion/admin', requireAdmin, async (req, res) => {
             data.usuarios = usuarios || [];
         } else if (vista === 'plantas') {
             // Unir física e info
+            // Unir física e info
             const query = `
-                SELECT pf.id_planta as id, pf.nombre_propio as nombre, pf.situacion, pi.nombre_cientifico 
+                SELECT 
+                    pf.id_planta as id, 
+                    pf.nombre_propio as nombre, 
+                    pf.situacion, 
+                    pf.imagen_path as imagen,
+                    pi.nombre_cientifico,
+                    pi.fotos_crecimiento
                 FROM planta_fisica pf
                 LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
                 ORDER BY pf.nombre_propio
             `;
             const plantas = await db.allAsync(query);
+
+            // Procesar imágenes para la vista de lista (Igual que en controller/index)
+            if (plantas) {
+                plantas.forEach(p => {
+                    // Siempre intentamos sacar la foto de la galería si existe
+                    if (!p.imagen || p.imagen === '' || p.fotos_crecimiento) {
+                        if (p.fotos_crecimiento) {
+                            try {
+                                const galeria = JSON.parse(p.fotos_crecimiento);
+                                if (Array.isArray(galeria) && galeria.length > 0) {
+                                    // Flatten if objects (legacy) and Filter empty strings
+                                    const validImages = galeria
+                                        .map(g => (typeof g === 'object' && g.imagen_path) ? g.imagen_path : g)
+                                        .filter(img => typeof img === 'string' && img.trim().length > 0);
+
+                                    // Use the last VALID image
+                                    if (validImages.length > 0) {
+                                        p.imagen = validImages[validImages.length - 1];
+                                    }
+                                }
+                            } catch (e) {
+                                // Ignorar error de parseo
+                            }
+                        }
+                    }
+                });
+            }
             data.plantas = plantas || [];
         } else if (vista === 'solicitudes') { // Ahora donaciones
             const solicitudes = await db.allAsync(
                 'SELECT * FROM donaciones ORDER BY fecha_donacion DESC'
             );
             data.solicitudes = solicitudes || [];
+        } else if (vista === 'usos') {
+            const usos = await db.allAsync('SELECT * FROM usos ORDER BY nombre');
+            data.usos = usos || [];
         }
 
         res.render('administracion/admin', data);
@@ -178,7 +216,8 @@ router.delete('/administracion/usuarios/:usuario', requireAdmin, async (req, res
 // ========== CRUD PLANTAS ==========
 
 // Obtener formulario para agregar planta
-router.get('/administracion/plantas/agregar', requireAdmin, (req, res) => {
+router.get('/administracion/plantas/agregar', requireAdmin, async (req, res) => {
+    // Ya no necesitamos Usos aquí
     res.render('administracion/partials/form-planta', {
         planta: null,
         accion: 'agregar'
@@ -186,39 +225,10 @@ router.get('/administracion/plantas/agregar', requireAdmin, (req, res) => {
 });
 
 // Crear planta
-router.post('/administracion/plantas', requireAdmin, upload.single('imagen'), async (req, res) => {
-    try {
-        const {
-            nombre, descripcion, propiedades, nombre_cientifico, zona_geografica//, ...
-        } = req.body;
-        const imagen = req.file ? req.file.filename : null;
-
-        if (!nombre) {
-            return res.status(400).json({ error: 'El nombre es requerido' });
-        }
-
-        // Lógica simplificada: Insertar en planta_info y luego en planta_fisica
-        // 1. Planta Info (Si no existe, crearla o ignorar)
-        // Usamos nombre científico si lo hay, sino generamos uno temporal basado en el nombre
-        const pkCientifico = nombre_cientifico || `${nombre} (Pendiente)`;
-
-        await db.runAsync(`
-            INSERT OR IGNORE INTO planta_info (nombre_cientifico, descripcion, propiedades_curativas, nombres_comunes, distribucion_geografica)
-            VALUES (?, ?, ?, ?, ?)
-        `, [pkCientifico, descripcion || '', propiedades || '', nombre, zona_geografica || '']);
-
-        // 2. Planta Fisica
-        await db.runAsync(`
-            INSERT INTO planta_fisica (nombre_propio, situacion, imagen_path, nombre_cientifico)
-            VALUES (?, 'Sana', ?, ?)
-        `, [nombre, imagen, pkCientifico]);
-
-        res.json({ success: true, mensaje: 'Planta creada correctamente' });
-    } catch (error) {
-        console.error('Error al crear planta:', error);
-        res.status(500).json({ error: 'Error al crear planta' });
-    }
-});
+router.post('/administracion/plantas', requireAdmin, upload.fields([
+    { name: 'imagen', maxCount: 1 },
+    { name: 'galeria', maxCount: 10 }
+]), crearPlanta);
 
 // Obtener formulario para editar planta
 router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) => {
@@ -236,6 +246,18 @@ router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) 
             return res.status(404).json({ error: 'Planta no encontrada' });
         }
 
+        // Obtener galería de fotos (JSON a Array)
+        if (planta.fotos_crecimiento) {
+            try {
+                planta.galeria = JSON.parse(planta.fotos_crecimiento);
+            } catch (e) {
+                console.error('Error parsing fotos_crecimiento:', e);
+                planta.galeria = [];
+            }
+        } else {
+            planta.galeria = [];
+        }
+
         // Alias para compatibilidad con vista
         planta.propiedades = planta.propiedades_curativas;
         planta.zona_geografica = planta.distribucion_geografica;
@@ -250,56 +272,17 @@ router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) 
     }
 });
 
-// Actualizar planta (Simplificado: solo actualiza planta_fisica e info básica)
-const actualizarPlanta = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { nombre, descripcion, propiedades } = req.body; // ... otros campos
+router.put('/administracion/plantas/:id', requireAdmin, upload.fields([
+    { name: 'imagen', maxCount: 1 },
+    { name: 'galeria', maxCount: 10 }
+]), actualizarPlanta);
 
-        // Primero obtener el nombre_cientifico asociado
-        const pf = await db.getAsync('SELECT nombre_cientifico FROM planta_fisica WHERE id_planta = ?', [id]);
+router.post('/administracion/plantas/:id/actualizar', requireAdmin, upload.fields([
+    { name: 'imagen', maxCount: 1 },
+    { name: 'galeria', maxCount: 10 }
+]), actualizarPlanta);
 
-        if (pf) {
-            // Actualizar Info
-            await db.runAsync('UPDATE planta_info SET descripcion = ?, propiedades_curativas = ? WHERE nombre_cientifico = ?',
-                [descripcion || '', propiedades || '', pf.nombre_cientifico]);
-
-            // Actualizar Fisica
-            let query = 'UPDATE planta_fisica SET nombre_propio = ?';
-            let params = [nombre];
-
-            if (req.file) {
-                query += ', imagen_path = ?';
-                params.push(req.file.filename);
-            }
-
-            query += ' WHERE id_planta = ?';
-            params.push(id);
-
-            await db.runAsync(query, params);
-        }
-
-        res.json({ success: true, mensaje: 'Planta actualizada correctamente' });
-    } catch (error) {
-        console.error('Error al actualizar planta:', error);
-        res.status(500).json({ error: 'Error al actualizar planta' });
-    }
-};
-
-router.put('/administracion/plantas/:id', requireAdmin, upload.single('imagen'), actualizarPlanta);
-router.post('/administracion/plantas/:id/actualizar', requireAdmin, upload.single('imagen'), actualizarPlanta);
-
-// Eliminar planta
-router.delete('/administracion/plantas/:id', requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        await db.runAsync('DELETE FROM planta_fisica WHERE id_planta = ?', [id]);
-        res.json({ success: true, mensaje: 'Planta eliminada correctamente' });
-    } catch (error) {
-        console.error('Error al eliminar planta:', error);
-        res.status(500).json({ error: 'Error al eliminar planta' });
-    }
-});
+router.delete('/administracion/plantas/:id', requireAdmin, eliminarPlanta);
 
 // ========== CRUD DONACIONES (antes Solicitudes) ==========
 
@@ -338,9 +321,10 @@ const actualizarSolicitud = async (req, res) => {
             return res.status(400).json({ error: 'Estado es requerido' });
         }
 
+        // Actualizar estado y detalles (respuesta)
         await db.runAsync(
-            'UPDATE donaciones SET estado = ? WHERE id_donacion = ?',
-            [estado, id]
+            'UPDATE donaciones SET estado = ?, detalles = ? WHERE id_donacion = ?',
+            [estado, respuesta || '', id]
         );
 
         res.json({ success: true, mensaje: 'Solicitud actualizada correctamente' });
@@ -363,6 +347,103 @@ router.delete('/administracion/solicitudes/:id', requireAdmin, async (req, res) 
         console.error('Error al eliminar solicitud:', error);
         res.status(500).json({ error: 'Error al eliminar solicitud' });
     }
+});
+
+// ========== CRUD REMEDIOS ==========
+
+// Ver lista de remedios de una planta
+router.get('/administracion/plantas/:id/remedios', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const usuario = req.session.usuario;
+
+        // Obtener planta base
+        const planta = await db.getAsync('SELECT * FROM planta_fisica WHERE id_planta = ?', [id]);
+        if (!planta) return res.redirect('/administracion/admin?vista=plantas');
+
+        // Obtener remedios
+        const remedios = await db.allAsync('SELECT * FROM remedios WHERE nombre_cientifico = ?', [planta.nombre_cientifico]);
+
+        res.render('administracion/admin', {
+            usuario,
+            vista: 'remedios',
+            planta,
+            remedios
+        });
+    } catch (error) {
+        console.error('Error al cargar remedios:', error);
+        res.status(500).send('Error interno');
+    }
+});
+
+// Obtener formulario para agregar remedio
+router.get('/administracion/remedios/agregar', requireAdmin, async (req, res) => {
+    const { planta_id } = req.query;
+    const planta = await db.getAsync('SELECT * FROM planta_fisica WHERE id_planta = ?', [planta_id]);
+    const usos = await db.allAsync('SELECT * FROM usos ORDER BY nombre');
+
+    res.render('administracion/partials/form-remedio', {
+        remedio: null,
+        plantaId: planta_id,
+        plantaNombreCientifico: planta ? planta.nombre_cientifico : '',
+        usos
+    });
+});
+
+// Obtener formulario para editar remedio
+router.get('/administracion/remedios/:id/editar', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const remedio = await db.getAsync('SELECT * FROM remedios WHERE id = ?', [id]);
+    const usos = await db.allAsync('SELECT * FROM usos ORDER BY nombre');
+
+    if (remedio) {
+        // Obtener pasos
+        remedio.pasos = await db.allAsync('SELECT * FROM pasos WHERE id_remedio = ? ORDER BY num_paso', [id]);
+
+        // Obtener relaciones para el formulario
+        const contra = await db.allAsync("SELECT descripcion FROM contraindicaciones WHERE id_remedio = ?", [id]);
+        remedio.contraindicaciones = contra.map(c => c.descripcion).join(', ');
+
+        const efectos = await db.allAsync("SELECT descripcion FROM efectos_secundarios WHERE id_remedio = ?", [id]);
+        remedio.efectos_secundarios = efectos.map(e => e.descripcion).join(', ');
+
+        const usosRel = await db.allAsync("SELECT id_uso FROM remedios_usos WHERE id_remedio = ?", [id]);
+        remedio.usosIds = usosRel.map(u => u.id_uso);
+    }
+
+    res.render('administracion/partials/form-remedio', {
+        remedio,
+        plantaId: null, // No necesario en edición
+        plantaNombreCientifico: remedio ? remedio.nombre_cientifico : '',
+        usos
+    });
+});
+
+// ========== CRUD USOS ==========
+
+// Obtener formulario para agregar uso
+router.get('/administracion/usos/agregar', requireAdmin, (req, res) => {
+    res.render('administracion/partials/form-uso', {
+        uso: null,
+        accion: 'agregar'
+    });
+});
+
+// Obtener formulario para editar uso
+router.get('/administracion/usos/:id/editar', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    console.log(`Resource: Edit Uso Requested. ID: ${id}`);
+    const uso = await db.getAsync('SELECT * FROM usos WHERE id = ?', [id]);
+
+    if (!uso) {
+        console.log('Uso not found');
+        return res.status(404).send('Uso no encontrado');
+    }
+
+    res.render('administracion/partials/form-uso', {
+        uso,
+        accion: 'editar'
+    });
 });
 
 export default router;

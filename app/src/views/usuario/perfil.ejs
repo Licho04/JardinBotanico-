@@ -221,7 +221,7 @@
                         <p>Recibe alertas sobre nuevas plantas y actualizaciones</p>
                     </div>
 
-                    <% if (usuario && usuario.tipo==0) { %>
+                    <% if (usuario && (usuario.tipo==='usuario' || usuario.tipo==0)) { %>
                         <div class="caracteristica">
                             <h3><i class="fas fa-seedling"></i> Mis Solicitudes</h3>
                             <p>Revisa el estado de tus solicitudes de donación de plantas</p>

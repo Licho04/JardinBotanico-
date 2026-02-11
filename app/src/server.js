@@ -10,6 +10,8 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.routes.js';
 import plantasRoutes from './routes/plantas.routes.js';
 import solicitudesRoutes from './routes/solicitudes.routes.js';
+import remediosRoutes from './routes/api/remedios.routes.js';
+import usosRoutes from './routes/api/usos.routes.js';
 
 // Importar rutas de vistas
 import indexRoutes from './routes/views/index.routes.js';
@@ -38,6 +40,10 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middlewares
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+});
 app.use(cors()); // Permitir peticiones desde cualquier origen
 app.use(express.json()); // Parser de JSON
 app.use(express.urlencoded({ extended: true })); // Parser de formularios
@@ -75,6 +81,8 @@ app.use('/', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/plantas', plantasRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
+app.use('/api/remedios', remediosRoutes);
+app.use('/api/usos', usosRoutes);
 
 // Ruta raíz de API (para verificar que la API funciona)
 app.get('/api', (req, res) => {

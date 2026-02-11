@@ -1,26 +1,38 @@
 <h2><i class="fas fa-reply"></i> Responder Solicitud</h2>
 <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px;">
-    <p><strong>Usuario:</strong> <%= solicitud.usuario %></p>
-    <p><strong>Planta:</strong> <%= solicitud.nombre_planta %></p>
-    <p><strong>Descripción:</strong> <%= solicitud.descripcion_planta %></p>
-    <p><strong>Ubicación:</strong> <%= solicitud.ubicacion %></p>
-    <p><strong>Fecha:</strong> <%= new Date(solicitud.fecha).toLocaleDateString('es-MX') %></p>
-    <p><strong>Estado actual:</strong> <%= solicitud.estado || 'pendiente' %></p>
+    <p><strong>Usuario:</strong>
+        <%= solicitud.correo_usuario %>
+    </p>
+    <p><strong>Planta:</strong>
+        <%= solicitud.nombre_comun || solicitud.nombre_planta %>
+    </p>
+    <p><strong>Descripción:</strong>
+        <%= solicitud.descripcion || solicitud.descripcion_planta %>
+    </p>
+    <p><strong>Ubicación:</strong>
+        <%= solicitud.distribucion_geografica || solicitud.ubicacion %>
+    </p>
+    <p><strong>Fecha:</strong>
+        <%= new Date(solicitud.fecha_donacion || solicitud.fecha).toLocaleDateString('es-MX') %>
+    </p>
+    <p><strong>Estado actual:</strong>
+        <%= solicitud.estado || 'pendiente' %>
+    </p>
 </div>
-<form id="form-solicitud" action="/administracion/solicitudes/<%= solicitud.id %>/actualizar" 
-      method="POST">
+<form id="form-solicitud" onsubmit="enviarRespuesta(event, '<%= solicitud.id_donacion %>')">
     <label>
         Estado:
         <select name="estado" required>
-            <option value="pendiente" <%= solicitud.estado === 'pendiente' ? 'selected' : '' %>>Pendiente</option>
-            <option value="aprobada" <%= solicitud.estado === 'aprobada' ? 'selected' : '' %>>Aprobada</option>
-            <option value="rechazada" <%= solicitud.estado === 'rechazada' ? 'selected' : '' %>>Rechazada</option>
-            <option value="en proceso" <%= solicitud.estado === 'en proceso' ? 'selected' : '' %>>En proceso</option>
+            <option value="pendiente" <%=solicitud.estado==='pendiente' ? 'selected' : '' %>>Pendiente</option>
+            <option value="aprobada" <%=solicitud.estado==='aprobada' ? 'selected' : '' %>>Aprobada</option>
+            <option value="rechazada" <%=solicitud.estado==='rechazada' ? 'selected' : '' %>>Rechazada</option>
+            <option value="en proceso" <%=solicitud.estado==='en proceso' ? 'selected' : '' %>>En proceso</option>
         </select>
     </label>
     <label>
         Respuesta/Comentarios:
-        <textarea name="respuesta" rows="4" placeholder="Escribe tu respuesta o comentarios..."><%= solicitud.respuesta || '' %></textarea>
+        <textarea name="respuesta" rows="4"
+            placeholder="Escribe tu respuesta o comentarios..."><%= solicitud.detalles || '' %></textarea>
     </label>
     <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
         <button type="submit">
@@ -31,4 +43,3 @@
         </button>
     </div>
 </form>
-

@@ -30,7 +30,8 @@ router.get('/auth/login', (req, res) => {
 // Procesar login
 router.post('/auth/login', async (req, res) => {
     try {
-        const { identificador, password } = req.body;
+        const { usuario, password } = req.body;
+        const identificador = usuario;
 
         if (!identificador || !password) {
             return res.render('auth/login', {

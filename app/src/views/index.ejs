@@ -30,14 +30,22 @@
                             <div class="imagen-placeholder">
                                 <% if(planta.imagen) { %>
                                     <img src="/recursos/imagenes/<%= planta.imagen %>" alt="<%= planta.nombre %>"
-                                        style="width:50px;height:50px;object-fit:cover;border-radius:8px;">
+                                        style="width:100%;height:100%;object-fit:cover;">
                                     <% } else { %>
                                         🌱
                                         <% } %>
                             </div>
-                            <span class="nombre">
-                                <%= planta.nombre %>
-                            </span>
+                            <div class="info-container">
+                                <span class="nombre">
+                                    <%= planta.nombre %>
+                                </span>
+                                <% if(planta.nombre_cientifico) { %>
+                                    <span class="cientifico">
+                                        <%= planta.nombre_cientifico %>
+                                    </span>
+                                    <% } %>
+                            </div>
+                            <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--gris-medio);"></i>
                         </div>
                         <% }); %>
                 </div>
@@ -45,17 +53,36 @@
 
             <section class="descripcion" id="info-planta">
                 <div class="descripcion-texto" id="info-planta-content">
-                    <div class="alert-info">
-                        <h3><i class="fas fa-microscope"></i> Información Científica</h3>
-                        <p>Selecciona una planta del catálogo para consultar su información científica detallada,
-                            incluyendo:</p>
-                        <ul style="margin: 12px 0; padding-left: 20px;">
-                            <li>Nombre científico</li>
-                            <li>Propiedades medicinales</li>
-                            <li>Distribución geográfica</li>
-                            <li>Usos tradicionales y modernos</li>
-                        </ul>
-                    </div>
+
+                    <% if (plantas && plantas.length> 0) { %>
+                        <div class="bienvenida-jardin">
+                            <i class="fas fa-leaf"></i>
+                            <h3>Jardín de Plantas Medicinales</h3>
+                            <p>Explora nuestra colección digital de plantas medicinales. Selecciona una planta del menú
+                                lateral para descubrir sus secretos.</p>
+
+                            <ul class="bienvenida-list">
+                                <li>
+                                    <i class="fas fa-flask"></i>
+                                    <span>Propiedades</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-mortar-pestle"></i>
+                                    <span>Remedios</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-ban"></i>
+                                    <span>Cuidados</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <% } else { %>
+                            <div class="alert-info">
+                                <h3><i class="fas fa-microscope"></i> Información Científica</h3>
+                                <p>Selecciona una planta del catálogo para consultar su información.</p>
+                            </div>
+                            <% } %>
+
                 </div>
             </section>
         </main>
@@ -99,11 +126,118 @@
                             xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                             xhr.onload = function () {
                                 document.getElementById('info-planta-content').innerHTML = xhr.responseText;
+                                // Reiniciar carrusel al cargar nueva planta
+                                setTimeout(initCarousel, 100);
                             };
                             xhr.send('nombre=' + encodeURIComponent(nombre));
                         };
                     });
+
+                    // Lógica del Carrusel (Global)
+                    var slideIndex = 0;
+
+                    function initCarousel() {
+                        slideIndex = 0; // Reset
+                        showGallerySlide(0);
+                    }
+
+                    window.showGallerySlide = function (n) {
+                        const slides = document.querySelectorAll('#plantGalleryCarousel .carousel-slide');
+                        const dots = document.querySelectorAll('#plantGalleryCarousel .indicator');
+
+                        if (slides.length === 0) return;
+
+                        // Esconder todo
+                        slides.forEach(slide => slide.classList.remove('active'));
+                        dots.forEach(dot => dot.classList.remove('active'));
+
+                        slideIndex = n;
+                        if (slideIndex >= slides.length) slideIndex = 0;
+                        if (slideIndex < 0) slideIndex = slides.length - 1;
+
+                        if (slides[slideIndex]) slides[slideIndex].classList.add('active');
+                        if (dots[slideIndex]) dots[slideIndex].classList.add('active');
+                    }
+
+                    window.moveGallerySlide = function (n) {
+                        showGallerySlide(slideIndex + n);
+                    }
+
+                    window.currentGallerySlide = function (n) {
+                        showGallerySlide(n);
+                    }
+
+                    // Función para alternar pasos de remedios (Global para que funcione con AJAX)
+                    window.togglePasos = function (btn) {
+                        const container = btn.nextElementSibling;
+                        if (container.style.display === 'none') {
+                            container.style.display = 'block';
+                            btn.innerHTML = '<i class="fas fa-chevron-up"></i> Ocultar Pasos';
+                        } else {
+                            container.style.display = 'none';
+                            btn.innerHTML = '<i class="fas fa-list-ol"></i> Ver Instrucciones de Preparación';
+                        }
+                    }
+
+                    /* ===== LÓGICA LIGHTBOX (GALERÍA PANTALLA COMPLETA) ===== */
+                    let lightboxImages = [];
+                    let lightboxIndex = 0;
+
+                    window.openLightbox = function (index) {
+                        // Recolectar imágenes del carrusel actual
+                        const slides = document.querySelectorAll('#plantGalleryCarousel .carousel-slide');
+                        if (slides.length === 0) return;
+
+                        lightboxImages = Array.from(slides).map(slide => {
+                            // Extraer URL del background-image: url("/path/to/img.jpg")
+                            const bg = slide.style.backgroundImage;
+                            return bg.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '');
+                        });
+
+                        lightboxIndex = index;
+                        updateLightboxImage();
+                        document.getElementById('lightbox-modal').style.display = 'flex';
+                    }
+
+                    window.closeLightbox = function () {
+                        document.getElementById('lightbox-modal').style.display = 'none';
+                    }
+
+                    window.moveLightboxSlide = function (step) {
+                        lightboxIndex += step;
+                        if (lightboxIndex >= lightboxImages.length) lightboxIndex = 0;
+                        if (lightboxIndex < 0) lightboxIndex = lightboxImages.length - 1;
+                        updateLightboxImage();
+                    }
+
+                    function updateLightboxImage() {
+                        const img = document.getElementById('lightbox-img');
+                        const caption = document.getElementById('lightbox-caption');
+                        img.src = lightboxImages[lightboxIndex];
+                        caption.textContent = `Imagen ${lightboxIndex + 1} de ${lightboxImages.length}`;
+                    }
+
+                    // Cerrar con Escape
+                    document.addEventListener('keydown', function (e) {
+                        if (document.getElementById('lightbox-modal').style.display === 'flex') {
+                            if (e.key === 'Escape') closeLightbox();
+                            if (e.key === 'ArrowLeft') moveLightboxSlide(-1);
+                            if (e.key === 'ArrowRight') moveLightboxSlide(1);
+                        }
+                    });
                 </script>
+
+                <!-- LIGHTBOX MODAL -->
+                <div id="lightbox-modal" class="lightbox">
+                    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+                    <button class="lightbox-btn lightbox-prev" onclick="moveLightboxSlide(-1)">&#10094;</button>
+                    <div class="lightbox-content">
+                        <img id="lightbox-img" src="" alt="Galería extendida">
+                        <div id="lightbox-caption"></div>
+                    </div>
+                    <button class="lightbox-btn lightbox-next" onclick="moveLightboxSlide(1)">&#10095;</button>
+                </div>
+
 </body>
 
 </html>

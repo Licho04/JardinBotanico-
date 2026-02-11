@@ -1298,3 +1298,442 @@ select:focus-visible {
     margin: 16px 0;
     color: #e65100;
 }
+
+/* ===== ESTADOS DE SOLICITUDES ===== */
+.estado-badge {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.estado-aprobada {
+    background: #d4edda;
+    color: #155724;
+}
+
+.estado-rechazada {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.estado-pendiente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* ===== BOTONES ESTÁNDAR PARA PANELES ADMIN ===== */
+.btn-main {
+    background: linear-gradient(135deg, var(--verde-oscuro) 0%, var(--verde-vibrante) 100%);
+    color: var(--blanco);
+    padding: 10px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: var(--sombra-suave);
+}
+
+.btn-main:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra-media);
+    opacity: 0.95;
+}
+
+.btn-secondary {
+    background: var(--gris-claro);
+    color: var(--verde-oscuro);
+    padding: 10px 20px;
+    border: 2px solid var(--gris-medio);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--blanco);
+    border-color: var(--verde-claro);
+    transform: translateY(-2px);
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+/* Ajustes para Botones de Acción en Tablas */
+.btn-edit {
+    background: #FFC107;
+    color: #333;
+    border: none;
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.btn-delete {
+    background: #F44336;
+    color: white;
+    border: none;
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.btn-edit:hover,
+.btn-delete:hover {
+    transform: scale(1.1);
+}
+
+/* ===== MEJORAS VISUALES (INDEX & INFO) ===== */
+
+/* CARRUSEL GALERÍA (Refactorizado) */
+.carousel-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 400px;
+    /* Altura fija para consistencia */
+    border-radius: 16px;
+    box-shadow: var(--sombra-media);
+    margin-bottom: 24px;
+    background: #f0f0f0;
+}
+
+.carousel-slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.5s ease-in-out;
+}
+
+.carousel-slide.active {
+    display: block;
+    animation: fadeEffect 0.5s;
+}
+
+.carousel-caption {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding: 30px 20px 20px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    color: white;
+    text-align: center;
+}
+
+.carousel-caption p {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    z-index: 10;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-btn:hover {
+    background: white;
+    color: var(--verde-oscuro);
+    box-shadow: var(--sombra-suave);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.prev-btn {
+    left: 16px;
+}
+
+.next-btn {
+    right: 16px;
+}
+
+.carousel-indicators {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.indicator {
+    width: 10px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.indicator.active {
+    background: white;
+    transform: scale(1.2);
+}
+
+@keyframes fadeEffect {
+    from {
+        opacity: 0.4;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* LISTA DE PLANTAS (Sidebar Mejorado) */
+.elemento.planta-item {
+    padding: 12px;
+    background: white;
+    border: 1px solid var(--gris-medio);
+    gap: 16px;
+    align-items: center;
+}
+
+.elemento.planta-item:hover {
+    border-color: var(--verde-vibrante);
+    background: #f0fdf4;
+    transform: translateX(5px);
+}
+
+.elemento.planta-item.selected {
+    background: var(--verde-oscuro);
+    border-color: var(--verde-oscuro);
+    transform: translateX(5px);
+    box-shadow: var(--sombra-media);
+}
+
+.elemento.planta-item.selected .nombre {
+    color: white !important;
+}
+
+.elemento.planta-item.selected .cientifico {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.elemento.planta-item .imagen-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: var(--sombra-suave);
+    background: #e2e8f0;
+    display: flex;
+    /* Center emoji fallback */
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.elemento.planta-item .info-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.elemento.planta-item .nombre {
+    font-size: 1.05rem;
+    margin-bottom: 2px;
+    color: var(--verde-oscuro);
+}
+
+.elemento.planta-item .cientifico {
+    font-size: 0.85rem;
+    color: var(--texto-secundario);
+    font-style: italic;
+    display: block;
+    /* Ensure it starts on new line */
+}
+
+/* BIENVENIDA (Placeholder Index) */
+.bienvenida-jardin {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--verde-oscuro);
+    background: linear-gradient(to bottom, #f0fdf4, white);
+    border-radius: 20px;
+    border: 2px dashed var(--verde-claro);
+}
+
+.bienvenida-jardin i {
+    font-size: 5rem;
+    margin-bottom: 24px;
+    color: var(--verde-vibrante);
+    opacity: 0.8;
+}
+
+.bienvenida-jardin h3 {
+    font-size: 2.2rem;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.bienvenida-jardin p {
+    font-size: 1.2rem;
+    color: var(--texto-secundario);
+    max-width: 600px;
+    margin: 0 auto 30px;
+    line-height: 1.6;
+}
+
+.bienvenida-list {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+}
+
+.bienvenida-list li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: var(--verde-oscuro);
+    padding: 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--sombra-suave);
+    width: 150px;
+    transition: transform 0.3s;
+}
+
+.bienvenida-list li:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--sombra-media);
+}
+
+.bienvenida-list li i {
+    font-size: 2rem;
+    margin-bottom: 0;
+    color: var(--verde-vibrante);
+}
+
+/* LIGHTBOX (Visualización de Fotos) */
+.lightbox {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    /* Por encima de todo */
+    padding-top: 50px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.95);
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 85vh;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 85vh;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border: 2px solid white;
+}
+
+#lightbox-caption {
+    margin-top: 10px;
+    color: #ccc;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    z-index: 3010;
+}
+
+.lightbox-close:hover {
+    color: var(--verde-vibrante);
+}
+
+.lightbox-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    color: white;
+    font-size: 50px;
+    /* Flechas grandes */
+    border: none;
+    cursor: pointer;
+    padding: 20px;
+    transition: all 0.2s;
+    z-index: 3010;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-btn:hover {
+    color: var(--verde-vibrante);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.lightbox-prev {
+    left: 20px;
+}
+
+.lightbox-next {
+    right: 20px;
+}
