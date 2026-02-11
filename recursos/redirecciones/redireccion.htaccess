@@ -1,0 +1,13 @@
+# REDIRECCIONAMIENTO .htaccess
+# Reemplaza "https://jardinbotanico-0qiz.onrender.com" con tu URL real
+
+# Opción 1: Redirección usando mod_rewrite (Más flexible)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} ^tudominio.universidad.edu$ [NC]
+    RewriteRule ^(.*)$ https://jardinbotanico-0qiz.onrender.com/$1 [R=301,L]
+</IfModule>
+
+# Opción 2: Redirección Simple (Si la opción 1 falla)
+# Descomenta la siguiente línea si prefieres usar esta:
+# Redirect 301 / https://jardinbotanico-0qiz.onrender.com/
