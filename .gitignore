@@ -24,7 +24,13 @@ app/*.db
 
 # Base de datos SQLite
 api/database.sqlite
-*.sqlite
+# *.sqlite (Comentado para permitir subida de la DB principal)
+
+# Respaldos y Temporales
+respaldo_*.sqlite
+database_restore.sqlite
+*.bak
+*.sqlite-journal
 
 # Archivos de sistema
 .DS_Store

@@ -315,8 +315,7 @@ export const actualizarPlanta = async (req, res) => {
         const { nombre_cientifico } = req.params; // Viene de la URL
         const nombreDecoded = decodeURIComponent(nombre_cientifico);
 
-        console.log('--- ACTUALIZAR PLANTA DEBUG ---');
-        console.log('Target Científico:', nombreDecoded);
+
 
         // Para mantener compatibilidad con el form que envía datos mixtos,
         // necesitamos saber qué planta física actualizar si hay varias.

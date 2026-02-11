@@ -70,10 +70,10 @@ export const createRemedio = async (req, res) => {
         usos // Array IDs
     } = req.body;
 
-    console.log("📥 [CREATE REMEDIO] Payload Rcvd:", JSON.stringify(req.body, null, 2));
+
 
     if (!nombre_cientifico) {
-        console.error("❌ [CREATE REMEDIO] Falta nombre_cientifico");
+        console.error("❌ Falta nombre_cientifico");
         return res.status(400).json({ error: "Nombre científico es requerido" });
     }
 

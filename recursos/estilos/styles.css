@@ -1758,3 +1758,10 @@ select:focus-visible {
     text-decoration: none;
     transform: scale(1.1);
 }
+
+
+/* ===== QR CODE CENTERING ===== */
+#qr-code-container img {
+    margin: 0 auto !important;
+    display: block !important;
+}

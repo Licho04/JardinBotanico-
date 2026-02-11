@@ -257,14 +257,14 @@
             }
 
             function editarUso(id) {
-                console.log('Clicked editarUso with ID:', id);
+
                 fetch(`/administracion/usos/${id}/editar`)
                     .then(r => {
-                        console.log('Fetch response status:', r.status);
+
                         return r.text();
                     })
                     .then(html => {
-                        console.log('Modal content received');
+
                         document.getElementById('modal-content').innerHTML = html;
                         document.getElementById('modal-editar').style.display = 'flex';
                     })
@@ -470,11 +470,11 @@
                 const form = e.target;
                 // Usar getAttribute porque si hay un input name="id", form.id devuelve ese input
                 const formId = form.getAttribute('id');
-                console.log('Submit detected from form ID:', formId);
+
 
                 if (['form-usuario', 'form-planta', 'form-uso'].includes(formId)) {
                     e.preventDefault();
-                    console.log('Prevented default submit for:', formId);
+
 
                     // Lógica específica para form-uso (API REST)
                     // Este bloque maneja tanto Agregar (POST) como Editar (PUT)
@@ -486,7 +486,7 @@
                         const url = id ? `/api/usos/${id}` : '/api/usos';
                         const method = id ? 'PUT' : 'POST';
 
-                        console.log(`[Form-Uso] Submitting to ${url} with method ${method}`);
+
 
                         // Convertir FormData a JSON
                         const formData = new FormData(form);
@@ -591,7 +591,7 @@
 
                 // Generar QR
                 try {
-                    qrCodeObj = new QRCode(container, {
+                    new QRCode(container, {
                         text: deepLink,
                         width: 256,
                         height: 256,
@@ -600,12 +600,23 @@
                         correctLevel: QRCode.CorrectLevel.H
                     });
 
-                    modal.style.display = 'block';
+                    // Forzar centrado de la imagen generada
+                    setTimeout(() => {
+                        const qrImg = container.querySelector('img');
+                        if (qrImg) {
+                            qrImg.style.display = 'block';
+                            qrImg.style.margin = '0 auto';
+                        }
+                    }, 100);
+
+                    modal.style.display = "flex";
                 } catch (e) {
                     console.error('Error generando QR:', e);
-                    alert('Error al generar el código QR. Verifique conexión a internet para cargar la librería.');
+                    alert('Error al generar QR. Intenta recargar la página.');
                 }
             }
+
+
 
             function imprimirQR() {
                 const contenido = document.getElementById('qr-code-container').innerHTML;

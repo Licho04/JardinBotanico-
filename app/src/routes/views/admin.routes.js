@@ -96,11 +96,11 @@ router.get('/administracion/usuarios/agregar', requireAdmin, (req, res) => {
 // Crear usuario
 router.post('/administracion/usuarios', requireAdmin, async (req, res) => {
     try {
-        console.log('📝 [CREATE USER] Request Body:', req.body);
+
         const { usuario, nombre, mail, password, tipo } = req.body;
 
         if (!usuario || !mail || !password) {
-            console.error('❌ [CREATE USER] Campos faltantes:', { usuario: !!usuario, mail: !!mail, password: !!password });
+            console.error('❌ Campos faltantes:', { usuario: !!usuario, mail: !!mail, password: !!password });
             return res.status(400).json({ error: 'Campos requeridos faltantes' });
         }
 
@@ -119,10 +119,10 @@ router.post('/administracion/usuarios', requireAdmin, async (req, res) => {
             [usuario, nombre || '', mail, passwordHash, tipo === '1' || tipo === 'admin' ? 'admin' : 'usuario']
         );
 
-        console.log('✅ [CREATE USER] Usuario creado exitosamente:', usuario);
+
         res.json({ success: true, mensaje: 'Usuario creado correctamente' });
     } catch (error) {
-        console.error('❌ [CREATE USER] Error:', error);
+        console.error('❌ Error:', error);
         res.status(500).json({ error: 'Error al crear usuario' });
     }
 });
@@ -182,7 +182,7 @@ router.post('/administracion/usuarios/:usuario/actualizar', requireAdmin, actual
 router.delete('/administracion/usuarios/:usuario', requireAdmin, async (req, res) => {
     try {
         const { usuario } = req.params;
-        console.log(`🗑️ [DELETE USER] Intentando eliminar usuario: ${usuario}`);
+
 
         // No permitir eliminar el propio usuario admin
         if (usuario === req.session.usuario.usuario) {
@@ -195,12 +195,12 @@ router.delete('/administracion/usuarios/:usuario', requireAdmin, async (req, res
 
         if (userToDelete) {
             const resDon = await db.runAsync('DELETE FROM donaciones WHERE correo_usuario = ?', [userToDelete.correo]);
-            console.log(`- Donaciones eliminadas: ${resDon.changes}`);
+
         }
 
         // Eliminar usuario
         const resUser = await db.runAsync('DELETE FROM usuarios WHERE usuario = ?', [usuario]);
-        console.log(`- Usuario eliminado: ${resUser.changes}`);
+
 
         if (resUser.changes === 0) {
             throw new Error("Usuario no encontrado o no se pudo eliminar");
@@ -208,7 +208,7 @@ router.delete('/administracion/usuarios/:usuario', requireAdmin, async (req, res
 
         res.json({ success: true, mensaje: 'Usuario eliminado correctamente' });
     } catch (error) {
-        console.error('❌ [DELETE USER] Error:', error);
+        console.error('❌ Error:', error);
         res.status(500).json({ error: 'Error al eliminar usuario: ' + error.message });
     }
 });
@@ -432,11 +432,11 @@ router.get('/administracion/usos/agregar', requireAdmin, (req, res) => {
 // Obtener formulario para editar uso
 router.get('/administracion/usos/:id/editar', requireAdmin, async (req, res) => {
     const { id } = req.params;
-    console.log(`Resource: Edit Uso Requested. ID: ${id}`);
+
     const uso = await db.getAsync('SELECT * FROM usos WHERE id = ?', [id]);
 
     if (!uso) {
-        console.log('Uso not found');
+
         return res.status(404).send('Uso no encontrado');
     }
 
@@ -485,9 +485,7 @@ router.post('/administracion/restore', requireAdmin, uploadDB.single('database')
         const newDBPath = req.file.path;
         const backupPath = currentDBPath + '.bak';
 
-        console.log(`[DB RESTORE] Iniciando restauración...`);
-        console.log(`- Actual: ${currentDBPath}`);
-        console.log(`- Nuevo: ${newDBPath}`);
+
 
         // 1. Cerrar conexión actual (Intentar, aunque sqlite3 no tiene método close síncrono fácil en wrapper)
         // En este wrapper db es una instancia.
@@ -521,7 +519,7 @@ router.post('/administracion/restore', requireAdmin, uploadDB.single('database')
             // Borrar temporal
             fs.unlinkSync(newDBPath);
 
-            console.log('[DB RESTORE] Base de datos reemplazada correctamente.');
+
 
             // En Render, lo ideal sería reiniciar el proceso.
             // Podemos forzar un exit, Render reiniciará.
@@ -535,12 +533,12 @@ router.post('/administracion/restore', requireAdmin, uploadDB.single('database')
 
             // Forzar reinicio tras responder
             setTimeout(() => {
-                console.log('🔄 [DB RESTORE] Reiniciando servidor para cargar nueva BD...');
+
                 process.exit(0);
             }, 1000);
 
         } catch (err) {
-            console.error('[DB RESTORE] Error al reemplazar archivo:', err);
+            console.error('Error al reemplazar archivo:', err);
             res.status(500).send(`Error al reemplazar base de datos: ${err.message}. (Posiblemente bloqueada)`);
         }
 

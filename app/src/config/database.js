@@ -22,22 +22,15 @@ if (process.env.DATA_PATH) {
     const targetPath = path.join(process.env.DATA_PATH, 'database.sqlite');
     const sourcePath = path.join(__dirname, '../../database.sqlite'); // Archivo local en root/app/database.sqlite
 
-    console.log('🔍 [DB DEBUG] DATA_PATH detectado:', process.env.DATA_PATH);
-    console.log('🔍 [DB DEBUG] Target Path:', targetPath);
-    console.log('🔍 [DB DEBUG] Source Path:', sourcePath);
-
     // Si no existe la BD en el disco persistente pero sí en el repo, copiarla
     const existeTarget = fs.existsSync(targetPath);
     const existeSource = fs.existsSync(sourcePath);
 
-    console.log('🔍 [DB DEBUG] Existe Target?:', existeTarget);
-    console.log('🔍 [DB DEBUG] Existe Source?:', existeSource);
-
     if (existeSource) {
         let realizarCopia = false;
 
-        if (!existeTarget || true) { // <--- FORZAMOS LA COPIA
-            console.log('📦 [FORCE UPDATE] Base de datos local sobrescribiendo producción...');
+        if (!existeTarget) {
+            console.log('📦 Base de datos no encontrada en disco. Preparando migración...');
             realizarCopia = true;
         } else {
             console.log('✅ Base de datos existente detectada en disco persistente. No se necesita migración.');
@@ -62,7 +55,7 @@ if (process.env.DATA_PATH) {
 
     DB_PATH = targetPath;
 } else {
-    console.log('⚠️ [DB DEBUG] DATA_PATH no está definido. Usando base de datos local (efímera en producción).');
+    console.log('⚠️ DATA_PATH no está definido. Usando base de datos local (efímera en producción).');
 }
 
 // Crear conexión a la base de datos

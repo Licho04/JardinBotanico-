@@ -82,7 +82,7 @@
             })
                 .then(r => r.json())
                 .then(res => {
-                    console.log('📝 [DONACION DEBUG] Respuesta del servidor:', res);
+
                     if (res.id || res.success || res.mensaje) {
                         alert('Solicitud enviada correctamente');
                         document.getElementById('modal-solicitud-donacion').style.display = 'none';
