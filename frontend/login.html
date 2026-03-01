@@ -57,7 +57,7 @@
     </div>
 
     <script>
-        const API_URL = '/api';
+        const API_URL = 'https://jardinbotanico-0qiz.onrender.com/api';
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -69,11 +69,21 @@
             errDiv.style.display = 'none';
 
             try {
-                // [MODO PRUEBA UI] Bypassing auth check
-                console.log("Modo de prueba de interfaz: forzando login de admin");
-                localStorage.setItem('token', 'fake-jwt-token-for-ui-testing');
-                localStorage.setItem('usuario', JSON.stringify({ usuario: 'admin', tipo: 1, correo: 'admin@ujat.mx' }));
-                window.location.href = '/admin.html';
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    // Guardar token y redirigir
+                    localStorage.setItem('token', result.token);
+                    window.location.href = result.usuario.tipo == 1 || result.usuario.tipo === 'admin' ? '/admin.html' : '/index.html';
+                } else {
+                    errMsg.textContent = result.error || 'Error al iniciar sesión';
+                    errDiv.style.display = 'block';
+                }
             } catch (error) {
                 errMsg.textContent = 'Error de conexión con el servidor.';
                 errDiv.style.display = 'block';

@@ -190,7 +190,7 @@
     <!-- SCRIPTS CORE -->
     <script>
         // CONFIGURACIÓN API (Relativa para funcionar en local y producción)
-        const API_URL = '/api';
+        const API_URL = 'https://jardinbotanico-0qiz.onrender.com/api';
         let usuarioActual = null;
         let listaPlantasGlobal = [];
 
@@ -203,10 +203,23 @@
 
         // 1. AUTENTICACIÓN
         async function verificarSesion() {
-            // [MODO PRUEBA UI] Bypassing auth check
-            console.log("Modo de prueba de interfaz: Forzando sesión activa (admin)");
-            usuarioActual = { usuario: 'admin', tipo: 1 };
-            actualizarUIUsuario(usuarioActual);
+            try {
+                // Asumimos que la API manejará cookies (credentials: 'include') o usaremos Bearer tokens (localStorage)
+                // Para simplificar la migración, intentaremos obtener el usuario actual mediante un endpoint GET /api/auth/me
+                const token = localStorage.getItem('token');
+
+                if (!token) return; // No está logueado
+
+                const res = await fetch(`${API_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    usuarioActual = await res.json();
+                    actualizarUIUsuario(usuarioActual);
+                } else {
+                    localStorage.removeItem('token');
+                }
+            } catch (e) { console.error('Error al verificar sesión:', e); }
         }
 
         function actualizarUIUsuario(user) {
@@ -236,14 +249,15 @@
 
         // 2. CATÁLOGO DE PLANTAS
         async function cargarCatálogo() {
-            // [MODO PRUEBA UI] Mock catalogs
-            const mockPlantas = [
-                { nombre_cientifico: 'Matricaria chamomilla', nombres_comunes: 'Manzanilla', fotos_crecimiento: '["https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image-300x225.png"]' },
-                { nombre_cientifico: 'Eucalyptus globulus', nombres_comunes: 'Eucalipto', fotos_crecimiento: '["https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image-300x225.png"]' },
-                { nombre_cientifico: 'Aloe vera', nombres_comunes: 'Sábila', fotos_crecimiento: '[]' }
-            ];
-            listaPlantasGlobal = mockPlantas;
-            renderizarListaPlantas(mockPlantas);
+            try {
+                const res = await fetch(`${API_URL}/plantas`);
+                const data = await res.json();
+                const plantas = data.plantas || data; // Handle pagination or metadata wrapper
+                listaPlantasGlobal = plantas;
+                renderizarListaPlantas(plantas);
+            } catch (e) {
+                document.getElementById('lista-plantas').innerHTML = '<p style="color:red; text-align:center;">Error al cargar el catálogo.</p>';
+            }
         }
 
         function renderizarListaPlantas(plantas) {
@@ -261,8 +275,8 @@
                 try {
                     const fotos = JSON.parse(planta.fotos_crecimiento || '[]');
                     if (fotos.length > 0) {
-                        // [MODO PRUEBA UI] - Absolute path for mockup if relative fails, or directly inject the URL
-                        imgHtml = `<img src="${fotos[0]}" style="width:100%;height:100%;object-fit:cover;">`;
+                        // El path de las imágenes debe apuntar al servidor backend relativo
+                        imgHtml = `<img src="https://jardinbotanico-0qiz.onrender.com/recursos/imagenes/${fotos[0]}" style="width:100%;height:100%;object-fit:cover;">`;
                     }
                 } catch (e) { }
 
@@ -294,19 +308,18 @@
             document.querySelectorAll('.planta-item').forEach(el => el.classList.remove('selected'));
             if (divElement) divElement.classList.add('selected');
 
-            // [MODO PRUEBA UI] Mock Detail
-            const p = listaPlantasGlobal.find(pl => pl.nombre_cientifico === nombreCientifico) || {};
-            const mockDetalle = Object.assign({}, p, {
-                descripcion: 'Planta herbácea anual, con hojas divididas y flores con corola blanca y centro amarillo.',
-                morfologia: 'Tallo erguido y ramificado',
-                distribucion_geografica: 'Nativa de Europa y regiones templadas',
-                propiedades_curativas: 'Antiinflamatoria, antiespasmódica, digestiva',
-                principio_activo: 'Camazuleno',
-                remedios: [
-                    { id: 1, nombre: 'Infusión relajante', parte: 'Flores', formato: 'Té', preparacion_pasos: '[{"num_paso":1,"descripcion":"Hervir agua"},{"num_paso":2,"descripcion":"Agregar flores"}]', descripcion: 'Relaja los músculos.', usos_medicinales: ['Digestivo', 'Calmante'] }
-                ]
-            });
-            renderizarDetallePlanta(mockDetalle);
+            // Fetch
+            try {
+                const res = await fetch(`${API_URL}/plantas/${encodeURIComponent(nombreCientifico)}`);
+                const plantaDetalle = await res.json();
+
+                // Ahora debemos construir el HTML del detalle de la planta usando JS (anteriormente info-planta.ejs parcial)
+                renderizarDetallePlanta(plantaDetalle);
+
+            } catch (e) {
+                console.error("Detalle fallo", e);
+                document.getElementById('info-planta-content').innerHTML = '<p style="color:red;">Error al cargar detalles de la planta.</p>';
+            }
         }
 
         // Esta función construirá dinámicamente el HTML que antes renderizaba EJS
@@ -321,7 +334,7 @@
             if (fotos.length > 0) {
                 let slides = fotos.map((f, index) => `
                     <div class="carousel-slide ${index === 0 ? 'active' : ''}" 
-                        style="background-image: url('${f}'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
+                        style="background-image: url('https://jardinbotanico-0qiz.onrender.com/recursos/imagenes/${f}'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
                         onclick="openLightbox(${index})" title="Clic para ampliar imagen">
                         <div class="carousel-caption">
                             <p>Clic para ampliar</p>

@@ -85,20 +85,27 @@
 
     <!-- MAIN APP SCRIPT -->
     <script>
-        let API_URL = '/api';
-
-        // Check if backend is available locally for development
-        /*
-        fetch('http://localhost:3000/api/auth/me', { method: 'GET' })
-            .then(res => { if (res.ok) API_URL = 'http://localhost:3000/api'; })
-            .catch(() => { console.log('Usando API de Producción'); });
-        */
+        let API_URL = 'https://jardinbotanico-0qiz.onrender.com/api';
 
         // --- 1. AUTENTICACIÓN ADMIN ---
         async function verificarAdmin() {
-            // [MODO PRUEBA UI] Bypassing auth check
-            console.log("Modo de prueba de interfaz: saltando autorización de admin");
-            return true;
+            const token = localStorage.getItem('token');
+            if (!token) return window.location.href = '/login.html';
+
+            try {
+                const res = await fetch(`${API_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error("No authed");
+                const user = await res.json();
+                if (user.tipo != 1 && user.tipo !== 'admin') {
+                    alert("Acceso denegado. No eres administrador.");
+                    window.location.href = '/index.html';
+                }
+            } catch (e) {
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
+            }
         }
 
         function cerrarSesion() {
@@ -120,33 +127,28 @@
             content.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando datos...</p>';
 
             try {
-                // [MODO PRUEBA UI] Datos simulados (mocks) para que la interfaz se dibuje sin DB
+                const token = localStorage.getItem('token');
+                const authHeader = { 'Authorization': `Bearer ${token}` };
+
                 if (vista === 'usos') {
-                    const mockUsos = [
-                        { id: 1, nombre: 'Astringente', tipo: 'Medicinal', descripcion: 'Contrae los tejidos' },
-                        { id: 2, nombre: 'Digestivo', tipo: 'General', descripcion: 'Ayuda a la digestión' }
-                    ];
-                    renderTablaUsos(mockUsos);
+                    const res = await fetch(`${API_URL}/usos`, { headers: authHeader });
+                    const data = await res.json();
+                    renderTablaUsos(data.usos || data);
                 }
                 else if (vista === 'plantas') {
-                    const mockPlantas = [
-                        { nombre_cientifico: 'Matricaria chamomilla', nombres_comunes: 'Manzanilla', total_remedios: 2 },
-                        { nombre_cientifico: 'Aloe vera', nombres_comunes: 'Sábila', total_remedios: 0 }
-                    ];
-                    renderTablaPlantas(mockPlantas);
+                    const res = await fetch(`${API_URL}/plantas`, { headers: authHeader });
+                    const data = await res.json();
+                    renderTablaPlantas(data.plantas || data);
                 }
                 else if (vista === 'usuarios') {
-                    const mockUsuarios = [
-                        { usuario: 'admin', nombre: 'Admin Master', correo: 'admin@ujat.mx', tipo: 1 },
-                        { usuario: 'test', nombre: 'Usuario Prueba', correo: 'test@gmail.com', tipo: 0 }
-                    ];
-                    renderTablaUsuarios(mockUsuarios);
+                    const res = await fetch(`${API_URL}/usuarios`, { headers: authHeader });
+                    const data = await res.json();
+                    renderTablaUsuarios(data.usuarios || data);
                 }
                 else if (vista === 'solicitudes') {
-                    const mockSolicitudes = [
-                        { id_donacion: 1, correo_usuario: 'test@gmail.com', nombre_comun: 'Moringa', ubicacion: 'Cunduacán', fecha_donacion: '2026-03-01', estado: 'pendiente' }
-                    ];
-                    renderTablaSolicitudes(mockSolicitudes);
+                    const res = await fetch(`${API_URL}/solicitudes`, { headers: authHeader });
+                    const data = await res.json();
+                    renderTablaSolicitudes(data.solicitudes || data);
                 }
             } catch (e) {
                 content.innerHTML = `<p style="color:red;">Error al cargar vista: ${e.message}</p>`;
@@ -318,18 +320,8 @@
 
         // --- 5. LÓGICA DE MODALES Y FORMULARIOS ---
         async function cargarFormulario(url) {
-            // [MODO PRUEBA UI] Mocking html injection
-            try {
-                const res = await fetch(url);
-                return await res.text();
-            } catch (e) {
-                return `
-                <div style="padding:20px;">
-                    <h3>[Modo Interfaz Dummy]</h3>
-                    <p>No se pudo cargar el archivo parcial ${url} estáticamente desde el archivo local sin un servidor local corriendo.</p>
-                </div>
-                `;
-            }
+            const res = await fetch(url);
+            return await res.text();
         }
 
         // USOS
@@ -424,7 +416,7 @@
                     fotos.forEach(foto => {
                         gContainer.innerHTML += `
                             <div class="gallery-item" style="display:flex; align-items:center; gap:10px; padding:5px; border:1px solid #ccc;">
-                                <img src="/recursos/imagenes/${foto}" style="width:40px;height:40px;object-fit:cover;">
+                                <img src="https://jardinbotanico-0qiz.onrender.com/recursos/imagenes/${foto}" style="width:40px;height:40px;object-fit:cover;">
                                 <span>${foto}</span>
                                 <input type="hidden" name="imagenes_orden[]" value="${foto}">
                                 <button type="button" onclick="this.parentElement.remove()">❌</button>
