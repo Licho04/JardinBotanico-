@@ -27,13 +27,27 @@ router.get('/:nombre_cientifico', obtenerPlantaPorId);
  * POST /api/plantas
  * Crear nueva planta (requiere autenticación y permisos de admin)
  */
-router.post('/', verificarToken, verificarAdmin, upload.single('imagen'), crearPlanta);
+router.post('/', verificarToken, verificarAdmin, upload.fields([
+    { name: 'imagen', maxCount: 1 },
+    { name: 'galeria', maxCount: 10 }
+]), crearPlanta);
 
 /**
  * PUT /api/plantas/:nombre_cientifico
  * Actualizar planta (requiere autenticación y permisos de admin)
  */
-router.put('/:nombre_cientifico', verificarToken, verificarAdmin, upload.single('imagen'), actualizarPlanta);
+router.put('/:nombre_cientifico', verificarToken, verificarAdmin, upload.fields([
+    { name: 'imagen', maxCount: 1 },
+    { name: 'galeria', maxCount: 10 }
+]), actualizarPlanta);
+
+/**
+ * POST /api/plantas/:nombre_cientifico/actualizar (Fallback para FormData simple sin PUT)
+ */
+router.post('/:nombre_cientifico/actualizar', verificarToken, verificarAdmin, upload.fields([
+    { name: 'imagen', maxCount: 1 },
+    { name: 'galeria', maxCount: 10 }
+]), actualizarPlanta);
 
 /**
  * DELETE /api/plantas/:nombre_cientifico

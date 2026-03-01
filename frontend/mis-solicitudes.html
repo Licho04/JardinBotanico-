@@ -1,0 +1,217 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Solicitudes - Jardín de Plantas Medicinales</title>
+    <link rel="icon" type="image/png" href="/recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="/recursos/estilos/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+    <header class="encabezado">
+        <div class="encabezado-izquierda">
+            <img src="/recursos/imagenes/logo_transparente.png" alt="Logo Plantas Medicinales" class="logo">
+            <div>
+                <h1 class="titulo">Jardín de Plantas Medicinales</h1>
+            </div>
+        </div>
+        <nav class="navegacion">
+            <a href="/">Inicio</a>
+            <a href="/historia.html">Historia</a>
+            <a href="/login.html" class="btn-sesion" id="link-login">Iniciar Sesión</a>
+
+            <div class="menu-hamburguesa" id="user-menu" style="display: none;">
+                <button id="btn-menu">&#9776;</button>
+                <div id="menu-opciones" style="display: none;">
+                    <a href="/perfil.html">Perfil</a>
+                    <a href="/admin.html" id="link-admin" style="display:none;">Administrador</a>
+                    <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div style="flex: 1;">
+        <main class="solicitudes-container"
+            style="margin-top: 40px; margin-bottom: 40px; max-width: 800px; margin-left: auto; margin-right: auto; padding: 0 20px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+                <h1 style="color: var(--verde-oscuro); font-size: 2rem;">
+                    <i class="fas fa-seedling" style="color: var(--verde-vibrante);"></i> Mis Solicitudes
+                </h1>
+                <p style="color: var(--texto-secundario);">Historial de tus donaciones de plantas</p>
+
+                <a href="/perfil.html"
+                    style="color: #4b6e3c; text-decoration: none; display: inline-block; margin-top: 10px;">
+                    <i class="fas fa-arrow-left"></i> Volver a mi perfil
+                </a>
+            </div>
+
+            <div id="contenedor-solicitudes">
+                <p style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Cargando tus
+                    solicitudes...</p>
+            </div>
+        </main>
+    </div>
+
+    <footer class="pie-pagina" style="margin-top: auto;">
+        <div class="informacion-contacto">
+            <p><strong>Jardín de Plantas Medicinales - UJAT</strong></p>
+            <p>Teléfono: (993) 358 15 00 | Email: info@ujat.mx</p>
+            <p
+                style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7);">
+                © 2025 Jardín de Plantas Medicinales. Todos los derechos reservados.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = '/api';
+        let usuarioActual = null;
+
+        function checkAuth() {
+            try {
+                const userObj = localStorage.getItem('usuario');
+                const token = localStorage.getItem('token');
+
+                if (!token || !userObj) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                usuarioActual = JSON.parse(userObj);
+                document.getElementById('link-login').style.display = 'none';
+                document.getElementById('user-menu').style.display = 'flex';
+
+                if (usuarioActual.tipo == '1' || usuarioActual.tipo === 'admin') {
+                    document.getElementById('link-admin').style.display = 'block';
+                }
+
+                cargarMisSolicitudes(token, usuarioActual.correo || usuarioActual.usuario);
+
+            } catch (e) {
+                console.error('Error verificando sesión:', e);
+                window.location.href = '/login.html';
+            }
+        }
+
+        async function cargarMisSolicitudes(token, correo) {
+            try {
+                // Suponiendo que la API recibe peticiones de todo administracion, pero un user normal
+                // puede que no tenga endpoint de "mis solicitudes" explícito, 
+                // vamos a buscar en admin GET /api/solicitudes y filtrar en frontend o backend
+                // Si la API tiene endpoint /solicitudes/usuario/:correo lo usamos, 
+                // pero si no, usamos GET /api/solicitudes y filtramos.
+                const res = await fetch(`${API_URL}/solicitudes`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+
+                const responseData = await res.json();
+                let solicitudes = responseData.solicitudes || responseData || [];
+
+                // Si la API regresó todas (admin behavior), filtramos. 
+                // Si ya devolvió filtradas, filter no hará nada destructivo.
+                if (Array.isArray(solicitudes)) {
+                    solicitudes = solicitudes.filter(s => s.correo_usuario === correo || s.usuario === correo);
+                } else {
+                    solicitudes = [];
+                }
+
+                renderSolicitudes(solicitudes);
+            } catch (err) {
+                document.getElementById('contenedor-solicitudes').innerHTML = `
+                    <p style="text-align:center; color: red;">Error cargando tus solicitudes.</p>
+                `;
+            }
+        }
+
+        function renderSolicitudes(solicitudes) {
+            const container = document.getElementById('contenedor-solicitudes');
+
+            if (!solicitudes || solicitudes.length === 0) {
+                container.innerHTML = `
+                    <div class="sin-solicitudes">
+                        <i class="fas fa-inbox" style="font-size: 4rem; color: var(--gris-medio); margin-bottom: 20px; display: block;"></i>
+                        <h3 style="color: var(--texto-principal);">No tienes solicitudes activas</h3>
+                        <p>¡Anímate a donar una planta al jardín botánico!</p>
+                        <a href="/" class="btn-volver" style="margin-top: 24px;">
+                            <i class="fas fa-plus-circle"></i> Nueva Solicitud
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
+
+            solicitudes.forEach(solicitud => {
+                let claseEstado = 'estado-pendiente';
+                let estadoTxt = (solicitud.estado || 'pendiente').toLowerCase();
+                if (estadoTxt === 'aprobada') claseEstado = 'estado-aprobado';
+                if (estadoTxt === 'rechazada') claseEstado = 'estado-rechazado';
+
+                html += `
+                <div class="solicitud-item">
+                    <div class="solicitud-header">
+                        <h3 class="solicitud-titulo">
+                            ${solicitud.nombre_comun || solicitud.nombre_planta}
+                        </h3>
+                        <span class="${claseEstado}">
+                            ${(solicitud.estado || 'PENDIENTE').toUpperCase()}
+                        </span>
+                    </div>
+
+                    <div class="solicitud-detalle">
+                        <strong><i class="far fa-calendar-alt"></i> Fecha:</strong>
+                        ${new Date(solicitud.fecha || solicitud.fecha_donacion).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </div>
+
+                    <div class="solicitud-detalle">
+                        <strong><i class="fas fa-map-marker-alt"></i> Ubicación propuesta:</strong>
+                        ${solicitud.distribucion_geografica || solicitud.ubicacion || 'No especificada'}
+                    </div>
+                `;
+
+                if (solicitud.detalles || solicitud.respuesta) {
+                    html += `
+                    <div class="alert-info" style="margin-top: 16px;">
+                        <strong><i class="fas fa-comment-alt"></i> Respuesta del administrador:</strong>
+                        <p style="margin-top: 8px;">
+                            ${solicitud.detalles || solicitud.respuesta}
+                        </p>
+                    </div>
+                    `;
+                }
+
+                html += `</div>`;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            window.location.href = '/login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+
+            // Configurar menú de usuario
+            const btnMenu = document.getElementById('btn-menu');
+            if (btnMenu) {
+                btnMenu.onclick = function () {
+                    const menu = document.getElementById('menu-opciones');
+                    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+                    if (menu.style.display === 'flex') menu.style.flexDirection = 'column';
+                };
+            }
+        });
+    </script>
+</body>
+
+</html>

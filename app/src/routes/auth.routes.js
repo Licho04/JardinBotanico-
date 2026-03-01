@@ -1,5 +1,5 @@
 import express from 'express';
-import { registro, login } from '../controllers/auth.controller.js';
+import { registro, login, verificarToken, me } from '../controllers/auth.controller.js';
 
 const router = express.Router();
 
@@ -14,5 +14,11 @@ router.post('/registro', registro);
  * Iniciar sesión
  */
 router.post('/login', login);
+
+/**
+ * GET /api/auth/me
+ * Retorna la información del usuario autenticado
+ */
+router.get('/me', verificarToken, me);
 
 export default router;

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jardín de Plantas Medicinales</title>
+    <link rel="icon" type="image/png" href="recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="recursos/estilos/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <!-- HEADER -->
+    <header class="encabezado">
+        <div class="encabezado-izquierda">
+            <img src="recursos/imagenes/logo_transparente.png" alt="Logo Plantas Medicinales" class="logo">
+            <div>
+                <h1 class="titulo">Jardín de Plantas Medicinales</h1>
+            </div>
+        </div>
+        <nav class="navegacion">
+            <a href="/">Inicio</a>
+            <a href="/historia.html">Historia</a>
+
+            <a href="/login.html" class="btn-sesion" id="link-login">Iniciar Sesión</a>
+
+            <div class="menu-hamburguesa" id="user-menu" style="display: none;">
+                <button id="btn-menu">&#9776;</button>
+                <div id="menu-opciones" style="display: none;">
+                    <a href="/perfil.html">Perfil</a>
+                    <a href="/mis-solicitudes.html" id="link-mis-solicitudes" style="display:none;">Mis Solicitudes</a>
+                    <a href="#" id="btn-solicitud-donacion" style="display:none;">Solicitar Donación</a>
+                    <a href="/admin.html" id="link-admin" style="display:none;">Administrador</a>
+                    <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="contenido-principal">
+        <section class="barra-lateral">
+            <div class="cientifico-destacado">
+                <h3>Catálogo Científico</h3>
+                <p>Explora nuestra colección de plantas medicinales con información científica detallada.</p>
+            </div>
+
+            <form class="busqueda" onsubmit="return false;">
+                <input type="text" placeholder="Buscar planta medicinal..." id="busqueda-input">
+            </form>
+
+            <div class="lista-elementos" id="lista-plantas">
+                <!-- Las plantas se inyectarán aquí mediante JS -->
+                <p style="text-align:center; padding: 20px;">Cargando catálogo...</p>
+            </div>
+        </section>
+
+        <section class="descripcion" id="info-planta">
+            <div class="descripcion-texto" id="info-planta-content">
+                <div class="bienvenida-jardin">
+                    <i class="fas fa-leaf"></i>
+                    <h3>Jardín de Plantas Medicinales</h3>
+                    <p>Explora nuestra colección digital de plantas medicinales. Selecciona una planta del menú lateral
+                        para descubrir sus secretos.</p>
+                    <ul class="bienvenida-list">
+                        <li><i class="fas fa-flask"></i><span>Propiedades</span></li>
+                        <li><i class="fas fa-mortar-pestle"></i><span>Remedios</span></li>
+                        <li><i class="fas fa-ban"></i><span>Cuidados</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="pie-pagina">
+        <div class="footer-grid">
+            <div class="footer-column">
+                <h4 class="footer-heading">
+                    <i class="fas fa-leaf"></i> Jardín de Plantas Medicinales
+                </h4>
+                <p class="footer-text">
+                    Catálogo científico especializado en plantas medicinales y sus propiedades terapéuticas.
+                </p>
+                <div class="footer-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Km 1 Carretera Cunduacan-Jalpa de Méndez, 86690 Cunduacán, Tab.</span>
+                </div>
+            </div>
+
+            <div class="footer-column">
+                <h4 class="footer-heading">
+                    <i class="fas fa-microscope"></i> Investigación Científica
+                </h4>
+                <ul class="footer-list">
+                    <li><i class="fas fa-seedling"></i>Botánica Medicinal</li>
+                    <li><i class="fas fa-pills"></i>Farmacognosia</li>
+                    <li><i class="fas fa-dna"></i>Fitoterapia</li>
+                    <li><i class="fas fa-leaf"></i>Etnobotánica</li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h4 class="footer-heading">
+                    <i class="fas fa-link"></i> Enlaces Institucionales
+                </h4>
+                <ul class="footer-list footer-links">
+                    <li><a href="https://www.ujat.mx/">Sitio Web UJAT</a></li>
+                    <li><a href="https://www.ujat.mx/alumnos">Portal Académico</a></li>
+                    <li><a href="https://www.ujat.mx/db/19110">Biblioteca Virtual</a></li>
+                    <li><a href="https://www.ujat.mx/dinvestigacion">Investigación UJAT</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="redes-sociales">
+            <!-- Iconos de redes... -->
+            <a href="https://www.facebook.com/ujat.mx" class="icono-red-social"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://twitter.com/UJAT" class="icono-red-social"><i class="fab fa-twitter"></i></a>
+            <a href="http://www.youtube.com/user/UJATmx" class="icono-red-social"><i class="fab fa-youtube"></i></a>
+            <a href="https://www.instagram.com/ujat/" class="icono-red-social"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.ujat.mx/Contenido/Interior/348" class="icono-red-social"><i
+                    class="fas fa-envelope"></i></a>
+            <a href="https://www.ujat.tv/" class="icono-red-social"><i class="fas fa-tv"></i></a>
+        </div>
+
+        <div class="informacion-contacto">
+            <p><strong>Jardín de Plantas Medicinales - UJAT</strong></p>
+            <p>Av. Universidad s/n, Zona de la Cultura, Col. Magisterial, Villahermosa, Centro, Tabasco, México. C.P.
+                86040</p>
+            <p>Teléfono: (993) 358 15 00 | Email: info@ujat.mx</p>
+            <p
+                style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7);">
+                © 2025 Jardín de Plantas Medicinales. Todos los derechos reservados.
+            </p>
+        </div>
+    </footer>
+
+    <!-- MODAL DONACION -->
+    <div id="modal-solicitud-donacion" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-seedling"></i> Solicitud de Donación Científica</h2>
+            <div class="alert-info">
+                <p><strong>Contribución Científica:</strong> Tu donación ayudará a enriquecer nuestro catálogo
+                    científico y promover la investigación.</p>
+            </div>
+            <form onsubmit="enviarSolicitudDonacion(event, this)">
+                <label>
+                    <i class="fas fa-leaf"></i> Nombre común de la planta:
+                    <input type="text" name="nombre_comun" required placeholder="Ej: Manzanilla...">
+                </label>
+                <label>
+                    <i class="fas fa-file-alt"></i> Descripción morfológica:
+                    <textarea name="descripcion" required></textarea>
+                </label>
+                <label>
+                    <i class="fas fa-pills"></i> Propiedades curativas:
+                    <textarea name="propiedades_curativas" required></textarea>
+                </label>
+                <label>
+                    <i class="fas fa-map-marker-alt"></i> Distribución Geográfica:
+                    <input type="text" name="distribucion_geografica" required>
+                </label>
+                <label>
+                    <i class="fas fa-heart"></i> Motivo de la donación:
+                    <textarea name="motivo_donacion" required></textarea>
+                </label>
+                <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+                    <button type="submit"><i class="fas fa-paper-plane"></i> Enviar</button>
+                    <button type="button"
+                        onclick="document.getElementById('modal-solicitud-donacion').style.display='none'"><i
+                            class="fas fa-times"></i> Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX MODAL -->
+    <div id="lightbox-modal" class="lightbox">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <button class="lightbox-btn lightbox-prev" onclick="moveLightboxSlide(-1)">&#10094;</button>
+        <div class="lightbox-content">
+            <img id="lightbox-img" src="" alt="Galería extendida">
+            <div id="lightbox-caption"></div>
+        </div>
+        <button class="lightbox-btn lightbox-next" onclick="moveLightboxSlide(1)">&#10095;</button>
+    </div>
+
+    <!-- SCRIPTS CORE -->
+    <script>
+        // CONFIGURACIÓN API (Relativa para funcionar en local y producción)
+        const API_URL = '/api';
+        let usuarioActual = null;
+        let listaPlantasGlobal = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            configurarMenuHamburguesa();
+            await verificarSesion();
+            await cargarCatálogo();
+            verificarDeepLink();
+        });
+
+        // 1. AUTENTICACIÓN
+        async function verificarSesion() {
+            // [MODO PRUEBA UI] Bypassing auth check
+            console.log("Modo de prueba de interfaz: Forzando sesión activa (admin)");
+            usuarioActual = { usuario: 'admin', tipo: 1 };
+            actualizarUIUsuario(usuarioActual);
+        }
+
+        function actualizarUIUsuario(user) {
+            document.getElementById('link-login').style.display = 'none';
+            document.getElementById('user-menu').style.display = 'block';
+
+            if (usuarioActual.tipo == '1' || usuarioActual.tipo === 'admin') {
+                document.getElementById('link-admin').style.display = 'block';
+            } else {
+                let btnDonacion = document.getElementById('btn-solicitud-donacion');
+                if (btnDonacion) btnDonacion.style.display = 'block';
+                let linkMisSols = document.getElementById('link-mis-solicitudes');
+                if (linkMisSols) linkMisSols.style.display = 'block';
+                if (btnDonacion) { // Ensure btnDonacion exists before assigning onclick
+                    btnDonacion.onclick = (e) => {
+                        e.preventDefault();
+                        document.getElementById('modal-solicitud-donacion').style.display = 'flex';
+                    };
+                }
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+
+        // 2. CATÁLOGO DE PLANTAS
+        async function cargarCatálogo() {
+            // [MODO PRUEBA UI] Mock catalogs
+            const mockPlantas = [
+                { nombre_cientifico: 'Matricaria chamomilla', nombres_comunes: 'Manzanilla', fotos_crecimiento: '["https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image-300x225.png"]' },
+                { nombre_cientifico: 'Eucalyptus globulus', nombres_comunes: 'Eucalipto', fotos_crecimiento: '["https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image-300x225.png"]' },
+                { nombre_cientifico: 'Aloe vera', nombres_comunes: 'Sábila', fotos_crecimiento: '[]' }
+            ];
+            listaPlantasGlobal = mockPlantas;
+            renderizarListaPlantas(mockPlantas);
+        }
+
+        function renderizarListaPlantas(plantas) {
+            const container = document.getElementById('lista-plantas');
+            container.innerHTML = '';
+
+            plantas.forEach(planta => {
+                const div = document.createElement('div');
+                div.className = 'elemento planta-item';
+                div.dataset.nombre = planta.nombre_propio || planta.nombre_comun || ''; // Ajustar según API real
+                div.dataset.cientifico = planta.nombre_cientifico || '';
+
+                // Obtener primera imagen de fotos_crecimiento si existe
+                let imgHtml = '🌱';
+                try {
+                    const fotos = JSON.parse(planta.fotos_crecimiento || '[]');
+                    if (fotos.length > 0) {
+                        // [MODO PRUEBA UI] - Absolute path for mockup if relative fails, or directly inject the URL
+                        imgHtml = `<img src="${fotos[0]}" style="width:100%;height:100%;object-fit:cover;">`;
+                    }
+                } catch (e) { }
+
+                div.innerHTML = `
+                    <div class="imagen-placeholder">${imgHtml}</div>
+                    <div class="info-container">
+                        <span class="nombre">${planta.nombres_comunes || 'Desconocido'}</span>
+                        <span class="cientifico">${planta.nombre_cientifico || ''}</span>
+                    </div>
+                    <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--gris-medio);"></i>
+                `;
+
+                div.onclick = () => cargarDetallePlanta(planta.nombre_cientifico, div);
+                container.appendChild(div);
+            });
+        }
+
+        document.getElementById('busqueda-input').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const plantas = document.querySelectorAll('.planta-item');
+            plantas.forEach(p => {
+                const nombre = p.querySelector('.nombre').textContent.toLowerCase();
+                p.style.display = nombre.includes(term) ? 'flex' : 'none';
+            });
+        });
+
+        async function cargarDetallePlanta(nombreCientifico, divElement) {
+            // UI Update
+            document.querySelectorAll('.planta-item').forEach(el => el.classList.remove('selected'));
+            if (divElement) divElement.classList.add('selected');
+
+            // [MODO PRUEBA UI] Mock Detail
+            const p = listaPlantasGlobal.find(pl => pl.nombre_cientifico === nombreCientifico) || {};
+            const mockDetalle = Object.assign({}, p, {
+                descripcion: 'Planta herbácea anual, con hojas divididas y flores con corola blanca y centro amarillo.',
+                morfologia: 'Tallo erguido y ramificado',
+                distribucion_geografica: 'Nativa de Europa y regiones templadas',
+                propiedades_curativas: 'Antiinflamatoria, antiespasmódica, digestiva',
+                principio_activo: 'Camazuleno',
+                remedios: [
+                    { id: 1, nombre: 'Infusión relajante', parte: 'Flores', formato: 'Té', preparacion_pasos: '[{"num_paso":1,"descripcion":"Hervir agua"},{"num_paso":2,"descripcion":"Agregar flores"}]', descripcion: 'Relaja los músculos.', usos_medicinales: ['Digestivo', 'Calmante'] }
+                ]
+            });
+            renderizarDetallePlanta(mockDetalle);
+        }
+
+        // Esta función construirá dinámicamente el HTML que antes renderizaba EJS
+        function renderizarDetallePlanta(p) {
+            const container = document.getElementById('info-planta-content');
+
+            // Carrusel
+            let fotos = [];
+            try { fotos = JSON.parse(p.fotos_crecimiento || '[]'); } catch (e) { }
+
+            let carruselHtml = '';
+            if (fotos.length > 0) {
+                let slides = fotos.map((f, index) => `
+                    <div class="carousel-slide ${index === 0 ? 'active' : ''}" 
+                        style="background-image: url('${f}'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
+                        onclick="openLightbox(${index})" title="Clic para ampliar imagen">
+                        <div class="carousel-caption">
+                            <p>Clic para ampliar</p>
+                        </div>
+                    </div>`).join('');
+                let dots = fotos.map((f, i) => `<span class="indicator ${i === 0 ? 'active' : ''}" onclick="currentGallerySlide(${i})"></span>`).join('');
+
+                carruselHtml = `
+                    <div class="galeria-crecimiento-container" style="margin: 20px 0;">
+                        <h3 style="color: #2f855a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                            <i class="fas fa-seedling"></i> Galería de Crecimiento
+                        </h3>
+                        <div class="carousel-container" id="plantGalleryCarousel" style="height: 300px;">
+                            ${slides}
+                            <button class="carousel-btn prev-btn" onclick="moveGallerySlide(-1)">&#10094;</button>
+                            <button class="carousel-btn next-btn" onclick="moveGallerySlide(1)">&#10095;</button>
+                            <div class="carousel-indicators">${dots}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Información General
+            let html = `
+                <div class="info-planta-header">
+                    ${carruselHtml}
+                    <div style="flex:1;">
+                        <h2 class="titulo-planta">${p.nombres_comunes || 'N/A'} <span class="cientifico-destacado">${p.nombre_cientifico}</span></h2>
+                        <div class="tags-planta">
+                            <span class="tag"><i class="fas fa-tag"></i> ${p.genero || 'Género Desconocido'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-grid">
+                    <div class="tarjeta-info">
+                        <h3><i class="fas fa-info-circle"></i> Descripción</h3>
+                        <p>${p.descripcion || 'Sin descripción.'}</p>
+                    </div>
+                    <div class="tarjeta-info">
+                        <h3><i class="fas fa-leaf"></i> Morfología</h3>
+                        <p>${p.morfologia || 'Sin morfología.'}</p>
+                    </div>
+                </div>
+            `;
+            // Remedios
+            let remediosHtml = '';
+            let remedios = p.remedios || [];
+            if (remedios.length > 0) {
+                remediosHtml += `
+                <div style="margin-top: 30px; border-top: 2px solid #e2e8f0; padding-top: 20px;">
+                    <h3 style="color: #2f855a; margin-bottom: 20px;">
+                        <i class="fas fa-mortar-pestle"></i> Remedios y Preparaciones
+                    </h3>
+                    <div class="remedios-grid" style="display: grid; gap: 20px;">
+                `;
+
+                remedios.forEach(remedio => {
+                    remediosHtml += `
+                    <div class="remedio-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                        <h4 style="color: #2c5282; margin-top: 0; border-bottom: 1px solid #edf2f7; padding-bottom: 10px;">${remedio.nombre}</h4>
+                        <p style="font-style: italic; color: #718096; margin-bottom: 15px;">${remedio.descripcion}</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; font-size: 0.9em;">
+                            <div><strong>Parte:</strong> ${remedio.parte || 'N/A'}</div>
+                            <div><strong>Formato:</strong> ${remedio.formato || 'N/A'}</div>
+                            <div><strong>Dosis:</strong> ${remedio.dosis_cantidad} ${remedio.dosis_unidad}</div>
+                            <div><strong>Tiempo:</strong> ${remedio.tiempo_efectividad || 'N/A'}</div>
+                        </div>
+                    `;
+
+                    if (remedio.usos && remedio.usos.length > 0) {
+                        remediosHtml += `<div style="margin-bottom: 15px;"><strong><i class="fas fa-heart"></i> Usos:</strong><div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">`;
+                        remedio.usos.forEach(uso => {
+                            remediosHtml += `<span style="background: #e6fffa; color: #2c7a7b; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; border: 1px solid #b2f5ea;">${uso.nombre}</span>`;
+                        });
+                        remediosHtml += `</div></div>`;
+                    }
+
+                    if (remedio.contraindicaciones && remedio.contraindicaciones.length > 0) {
+                        remediosHtml += `<div style="background: #fff5f5; padding: 10px; border-radius: 4px; border-left: 3px solid #c53030; margin-bottom: 10px; font-size: 0.9em;">
+                            <strong style="color: #c53030;"><i class="fas fa-ban"></i> Contraindicaciones:</strong>
+                            <ul style="margin: 5px 0 0 20px; color: #742a2a;">`;
+                        remedio.contraindicaciones.forEach(c => { remediosHtml += `<li>${c.descripcion}</li>`; });
+                        remediosHtml += `</ul></div>`;
+                    }
+
+                    if (remedio.efectos_secundarios && remedio.efectos_secundarios.length > 0) {
+                        remediosHtml += `<div style="background: #fffaf0; padding: 10px; border-radius: 4px; border-left: 3px solid #dd6b20; margin-bottom: 10px; font-size: 0.9em;">
+                            <strong style="color: #c05621;"><i class="fas fa-exclamation-triangle"></i> Efectos Secundarios:</strong>
+                            <ul style="margin: 5px 0 0 20px; color: #7b341e;">`;
+                        remedio.efectos_secundarios.forEach(e => { remediosHtml += `<li>${e.descripcion}</li>`; });
+                        remediosHtml += `</ul></div>`;
+                    }
+
+                    if (remedio.checar_medico) {
+                        remediosHtml += `<div style="background: #ebf8ff; color: #2b6cb0; padding: 8px; border-radius: 4px; font-size: 0.85em; margin-bottom: 15px; display: inline-block;">
+                            <i class="fas fa-user-md"></i> Consultar al médico antes de usar
+                         </div>`;
+                    }
+
+                    remediosHtml += `
+                        <button class="btn-ver-pasos" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'" style="background: #48bb78; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.9em; width: 100%;">
+                            <i class="fas fa-list-ol"></i> Ver Instrucciones de Preparación
+                        </button>
+                        <div class="pasos-container" style="display: none; margin-top: 15px; background: #f7fafc; padding: 15px; border-radius: 4px; border: 1px solid #edf2f7;">
+                            <h5 style="margin-top: 0; color: #2d3748; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px;">Instrucciones paso a paso:</h5>
+                    `;
+
+                    if (remedio.pasos && remedio.pasos.length > 0) {
+                        remediosHtml += `<ol style="padding-left: 20px; color: #4a5568; margin: 0;">`;
+                        remedio.pasos.forEach(paso => { remediosHtml += `<li style="margin-bottom: 8px;">${paso.descripcion}</li>`; });
+                        remediosHtml += `</ol>`;
+                    } else {
+                        remediosHtml += `<p class="text-muted" style="font-style: italic;">No hay pasos registrados.</p>`;
+                    }
+
+                    remediosHtml += `</div></div>`; // Cierra card del remedio
+                });
+                remediosHtml += `</div></div>`; // Cierra grid y container
+            }
+
+            let biblioHtml = '';
+            if (p.bibliografia) {
+                biblioHtml = `
+                    <div style="margin-top: 30px; padding: 15px; background: #fff; border-top: 1px solid #eee;">
+                        <h4 style="color: #4a5568; margin-top: 0;"><i class="fas fa-book"></i> Bibliografía / Fuentes</h4>
+                        <p style="font-style: italic; color: #718096; white-space: pre-wrap;">${p.bibliografia}</p>
+                    </div>
+                `;
+            }
+
+            html += remediosHtml + biblioHtml + `
+                <div class="alert-warning" style="margin-top: 20px;">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Nota Científica</h4>
+                    <p>Esta información es de carácter educativo y científico. Para uso medicinal, consulte siempre con un profesional de la salud.</p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+
+            // Inicializar carrusel
+            if (fotos.length > 0) {
+                setTimeout(initCarousel, 100);
+            }
+        }
+
+        // --- LÓGICA DE MENÚ Y DEEP LIKING ---
+        function configurarMenuHamburguesa() {
+            var btnMenu = document.getElementById('btn-menu');
+            if (btnMenu) {
+                btnMenu.onclick = function () {
+                    var menu = document.getElementById('menu-opciones');
+                    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+                    if (menu.style.display === 'flex') menu.style.flexDirection = 'column';
+                };
+            }
+        }
+
+        function verificarDeepLink() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const plantaParam = urlParams.get('planta');
+            if (plantaParam) {
+                const target = decodeURIComponent(plantaParam).toLowerCase();
+                setTimeout(() => {
+                    const items = document.querySelectorAll('.planta-item');
+                    for (let item of items) {
+                        if ((item.dataset.cientifico || '').toLowerCase() === target || (item.dataset.nombre || '').toLowerCase() === target) {
+                            item.click();
+                            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            break;
+                        }
+                    }
+                }, 500); // Esperar a que rendericen las plantas
+            }
+        }
+
+        // --- LÓGICA DONACIÓN ---
+        async function enviarSolicitudDonacion(e, form) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            data.fecha = new Date().toISOString();
+            data.correo_usuario = usuarioActual?.correo; // Adaptar 
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/solicitudes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const resp = await res.json();
+                if (res.ok) {
+                    alert('Solicitud enviada correctamente');
+                    document.getElementById('modal-solicitud-donacion').style.display = 'none';
+                    form.reset();
+                } else {
+                    alert('Error: ' + resp.error);
+                }
+            } catch (err) { alert('Error de red'); }
+        }
+
+        // --- LÓGICA CARRUSEL LIGHTBOX (Mantener igual que antes) ---
+        var slideIndex = 0;
+        function initCarousel() { slideIndex = 0; showGallerySlide(0); }
+        window.showGallerySlide = function (n) {
+            const slides = document.querySelectorAll('#plantGalleryCarousel .carousel-slide');
+            const dots = document.querySelectorAll('#plantGalleryCarousel .indicator');
+            if (slides.length === 0) return;
+            slides.forEach(slide => slide.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            slideIndex = n;
+            if (slideIndex >= slides.length) slideIndex = 0;
+            if (slideIndex < 0) slideIndex = slides.length - 1;
+            if (slides[slideIndex]) slides[slideIndex].classList.add('active');
+            if (dots[slideIndex]) dots[slideIndex].classList.add('active');
+        }
+        window.moveGallerySlide = function (n) { showGallerySlide(slideIndex + n); }
+        window.currentGallerySlide = function (n) { showGallerySlide(n); }
+
+        let lightboxImages = [];
+        let lightboxIndex = 0;
+        window.openLightbox = function (index) {
+            const slides = document.querySelectorAll('#plantGalleryCarousel .carousel-slide');
+            if (slides.length === 0) return;
+            lightboxImages = Array.from(slides).map(s => s.style.backgroundImage.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, ''));
+            lightboxIndex = index;
+            updateLightboxImage();
+            document.getElementById('lightbox-modal').style.display = 'flex';
+        }
+        window.closeLightbox = function () { document.getElementById('lightbox-modal').style.display = 'none'; }
+        window.moveLightboxSlide = function (step) {
+            lightboxIndex += step;
+            if (lightboxIndex >= lightboxImages.length) lightboxIndex = 0;
+            if (lightboxIndex < 0) lightboxIndex = lightboxImages.length - 1;
+            updateLightboxImage();
+        }
+        function updateLightboxImage() {
+            document.getElementById('lightbox-img').src = lightboxImages[lightboxIndex];
+            document.getElementById('lightbox-caption').textContent = `Imagen ${lightboxIndex + 1} de ${lightboxImages.length}`;
+        }
+    </script>
+</body>
+
+</html>

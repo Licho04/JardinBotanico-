@@ -12,12 +12,10 @@ import plantasRoutes from './routes/plantas.routes.js';
 import solicitudesRoutes from './routes/solicitudes.routes.js';
 import remediosRoutes from './routes/api/remedios.routes.js';
 import usosRoutes from './routes/api/usos.routes.js';
+import usuariosRoutes from './routes/api/usuarios.routes.js';
+import systemRoutes from './routes/api/system.routes.js';
 
-// Importar rutas de vistas
-import indexRoutes from './routes/views/index.routes.js';
-import authViewRoutes from './routes/views/auth.routes.js';
-import solicitudesViewRoutes from './routes/views/solicitudes.routes.js';
-import adminRoutes from './routes/views/admin.routes.js';
+// Importar rutas API (Vista rutas eliminadas por separación de frontend)
 
 // Importar inicialización de base de datos
 import './config/init-database.js';
@@ -35,9 +33,9 @@ app.set('trust proxy', 1);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configurar EJS como motor de plantillas
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+// Configurar EJS (Eliminado - Arquitectura Desacoplada)
+// app.set('view engine', 'ejs');
+// app.set('views', path.join(__dirname, 'views'));
 
 // Middlewares
 app.use((req, res, next) => {
@@ -68,21 +66,23 @@ if (process.env.DATA_PATH) {
     app.use('/recursos/imagenes', express.static(path.join(process.env.DATA_PATH, 'imagenes')));
 }
 
-// Servir el resto de recursos (CSS, JS, imágenes default) desde el proyecto
-app.use('/recursos', express.static(path.join(__dirname, '../../recursos')));
+// Servir archivos estáticos del Frontend
+const frontendPath = path.join(__dirname, '../../frontend');
+app.use(express.static(frontendPath));
 
-// Rutas de vistas (deben ir antes de las rutas API para evitar conflictos)
-app.use('/', indexRoutes);
-app.use('/', authViewRoutes);
-app.use('/', solicitudesViewRoutes);
-app.use('/', adminRoutes);
+// Servir la carpeta de recursos explícitamente si se usa en paths absolutos (opcional, como /recursos)
+app.use('/recursos', express.static(path.join(frontendPath, 'recursos')));
 
-// Rutas API (mantener compatibilidad con frontend PHP)
+// Rutas de vistas EJS eliminadas
+
+// Rutas API (mantener compatibilidad con frontend)
 app.use('/api/auth', authRoutes);
 app.use('/api/plantas', plantasRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
 app.use('/api/remedios', remediosRoutes);
 app.use('/api/usos', usosRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/system', systemRoutes);
 
 // Ruta raíz de API (para verificar que la API funciona)
 app.get('/api', (req, res) => {
@@ -105,13 +105,10 @@ app.use('/api/*', (req, res) => {
     });
 });
 
-// Manejo de errores 404 para vistas
+// Manejo de errores 404 para vistas del Frontend (Redirigir a index o custom 404 HTML)
 app.use((req, res) => {
-    res.status(404).render('error', {
-        mensaje: 'Página no encontrada',
-        usuario: req.session?.usuario || null,
-        isAuthenticated: !!req.session?.usuario
-    });
+    // Si la ruta no fue encontrada y no es API, enviamos el index.html (SPA Fallback)
+    res.status(404).sendFile(path.join(__dirname, '../../frontend/index.html'));
 });
 
 // Middleware de manejo de errores global
@@ -134,11 +131,10 @@ app.use((err, req, res, next) => {
         });
     }
 
-    // Renderizar error para vistas normales
-    res.status(500).render('error', {
-        mensaje: 'Ha ocurrido un error inesperado',
-        usuario: req.session?.usuario || null,
-        isAuthenticated: !!req.session?.usuario
+    // En configuración API devolvemos siempre JSON para errores
+    res.status(500).json({
+        error: 'Ha ocurrido un error inesperado en el servidor',
+        detalle: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
 });
 

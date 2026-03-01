@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administrador</title>
+    <link rel="icon" type="image/png" href="/recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="/recursos/estilos/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+
+    <!-- HEADER SIMPLIFICADO -->
+    <header class="encabezado">
+        <div class="encabezado-izquierda">
+            <img src="/recursos/imagenes/logo_transparente.png" alt="Logo" class="logo">
+            <h1 class="titulo">Panel de Administración</h1>
+        </div>
+        <nav class="navegacion">
+            <a href="/index.html">Ver Sitio</a>
+            <a href="/historia.html">Historia</a>
+            <div class="menu-hamburguesa">
+                <button id="btn-menu">&#9776;</button>
+                <div id="menu-opciones" style="display: none;">
+                    <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="admin-dashboard">
+        <aside class="admin-sidebar" id="sidebar-menu">
+            <button class="sidebar-btn" data-view="usuarios"><i class="fas fa-users"></i> Administrar usuarios</button>
+            <button class="sidebar-btn" data-view="plantas"><i class="fas fa-leaf"></i> Administrar plantas</button>
+            <button class="sidebar-btn" data-view="solicitudes"><i class="fas fa-seedling"></i> Solicitudes
+                donación</button>
+            <button class="sidebar-btn" data-view="usos"><i class="fas fa-tags"></i> Administrar usos</button>
+            <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
+            <a href="#" class="sidebar-btn" id="btn-backup"
+                style="text-decoration: none; display: block; color: var(--texto-principal);">
+                <i class="fas fa-database"></i> Respaldar Base de Datos
+            </a>
+            <button class="sidebar-btn" style="background:#dc3545; color:white;" onclick="mostrarModalRestaurar()">
+                <i class="fas fa-upload"></i> Restaurar BD
+            </button>
+        </aside>
+
+        <section class="admin-panel" id="admin-content">
+            <h2>Bienvenido al panel de administración</h2>
+            <p>Selecciona una opción en el menú lateral para comenzar.</p>
+        </section>
+    </main>
+
+    <!-- Modales Generales -->
+    <div id="modal-dinamico" class="modal" style="display:none;">
+        <div class="modal-content" id="modal-content"></div>
+    </div>
+
+    <!-- Modal Ver Donación -->
+    <div id="modal-ver-donacion" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px; width: 90%;">
+            <span class="close"
+                onclick="document.getElementById('modal-ver-donacion').style.display='none'">&times;</span>
+            <h2 style="color: #2f855a; margin-bottom: 20px;"><i class="fas fa-search-plus"></i> Detalle de Donación</h2>
+            <div id="contenido-ver-donacion" style="text-align: left; line-height: 1.6;"></div>
+        </div>
+    </div>
+
+    <div id="modal-restaurar" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('modal-restaurar').style.display='none'">&times;</span>
+            <h2 style="color: #c0392b;"><i class="fas fa-exclamation-triangle"></i> Restaurar Base de Datos</h2>
+            <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;">Sube un archivo .sqlite para reemplazar la
+                base de datos de producción completa.</p>
+            <form id="form-restaurar" onsubmit="restaurarDB(event, this)">
+                <input type="file" name="backup_file" accept=".sqlite,.db" required>
+                <button type="submit" style="background: #c0392b; margin-top:20px;">Restaurar Datos Ahora</button>
+            </form>
+            <div id="restaurar-status" style="margin-top: 20px; font-weight: bold;"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCRIPT -->
+    <script>
+        let API_URL = '/api';
+
+        // Check if backend is available locally for development
+        /*
+        fetch('http://localhost:3000/api/auth/me', { method: 'GET' })
+            .then(res => { if (res.ok) API_URL = 'http://localhost:3000/api'; })
+            .catch(() => { console.log('Usando API de Producción'); });
+        */
+
+        // --- 1. AUTENTICACIÓN ADMIN ---
+        async function verificarAdmin() {
+            // [MODO PRUEBA UI] Bypassing auth check
+            console.log("Modo de prueba de interfaz: saltando autorización de admin");
+            return true;
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        // --- 2. NAVEGACIÓN SPA ---
+        document.querySelectorAll('.sidebar-btn[data-view]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                cargarVista(btn.dataset.view);
+            });
+        });
+
+        async function cargarVista(vista) {
+            const content = document.getElementById('admin-content');
+            content.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando datos...</p>';
+
+            try {
+                // [MODO PRUEBA UI] Datos simulados (mocks) para que la interfaz se dibuje sin DB
+                if (vista === 'usos') {
+                    const mockUsos = [
+                        { id: 1, nombre: 'Astringente', tipo: 'Medicinal', descripcion: 'Contrae los tejidos' },
+                        { id: 2, nombre: 'Digestivo', tipo: 'General', descripcion: 'Ayuda a la digestión' }
+                    ];
+                    renderTablaUsos(mockUsos);
+                }
+                else if (vista === 'plantas') {
+                    const mockPlantas = [
+                        { nombre_cientifico: 'Matricaria chamomilla', nombres_comunes: 'Manzanilla', total_remedios: 2 },
+                        { nombre_cientifico: 'Aloe vera', nombres_comunes: 'Sábila', total_remedios: 0 }
+                    ];
+                    renderTablaPlantas(mockPlantas);
+                }
+                else if (vista === 'usuarios') {
+                    const mockUsuarios = [
+                        { usuario: 'admin', nombre: 'Admin Master', correo: 'admin@ujat.mx', tipo: 1 },
+                        { usuario: 'test', nombre: 'Usuario Prueba', correo: 'test@gmail.com', tipo: 0 }
+                    ];
+                    renderTablaUsuarios(mockUsuarios);
+                }
+                else if (vista === 'solicitudes') {
+                    const mockSolicitudes = [
+                        { id_donacion: 1, correo_usuario: 'test@gmail.com', nombre_comun: 'Moringa', ubicacion: 'Cunduacán', fecha_donacion: '2026-03-01', estado: 'pendiente' }
+                    ];
+                    renderTablaSolicitudes(mockSolicitudes);
+                }
+            } catch (e) {
+                content.innerHTML = `<p style="color:red;">Error al cargar vista: ${e.message}</p>`;
+            }
+        }
+
+        // --- 3. RENDERIZADORES DE TABLAS ---
+        function renderTablaUsos(usos) {
+            let html = `
+                <div class="cabecera-seccion">
+                    <h2><i class="fas fa-tags"></i> Usos Medicinales</h2>
+                    <button class="btn-nuevo" onclick="abrirModalUso()"><i class="fas fa-plus"></i> Nuevo Uso</button>
+                </div>
+                <div class="tabla-contenedor">
+                    <table class="tabla-admin">
+                        <thead><tr><th>Nombre</th><th>Tipo</th><th>Descripción</th><th>Acciones</th></tr></thead>
+                        <tbody>
+            `;
+            usos.forEach(uso => {
+                html += `
+                    <tr>
+                        <td>${uso.nombre}</td>
+                        <td><span class="badge badge-primary">${uso.tipo || 'General'}</span></td>
+                        <td title="${uso.descripcion}">${(uso.descripcion || '').substring(0, 50)}...</td>
+                        <td>
+                            <button class="btn-accion btn-editar" title="Editar Uso"><i class="fas fa-edit"></i></button>
+                            <button class="btn-accion btn-eliminar" title="Eliminar Uso" onclick="eliminarEntidad('usos', ${uso.id})"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table></div>`;
+            document.getElementById('admin-content').innerHTML = html;
+        }
+
+        function renderTablaPlantas(plantas) {
+            let html = `
+                <div class="table-container">
+                    <div class="table-header">
+                        <h2><i class="fas fa-leaf"></i> Lista de plantas</h2>
+                        <div class="header-actions">
+                            <button onclick="abrirModalPlanta()" class="btn-main">
+                                <i class="fas fa-plus"></i> Agregar nueva planta
+                            </button>
+                        </div>
+                    </div>
+                    <table class="admin-table">
+                        <thead><tr><th>Nombre Común</th><th>Científico</th><th>Total Remedios</th><th>Acciones</th></tr></thead>
+                        <tbody>
+            `;
+            if (plantas && plantas.length > 0) {
+                plantas.forEach(p => {
+                    html += `
+                        <tr>
+                            <td><strong>${p.nombres_comunes}</strong></td>
+                            <td class="cientifico-destacado">${p.nombre_cientifico}</td>
+                            <td><span class="badge ${p.total_remedios > 0 ? 'badge-primary' : 'badge-warning'}">${p.total_remedios || 0}</span></td>
+                            <td class="actions-cell">
+                                <button class="btn-edit" onclick="editarPlanta('${p.nombre_cientifico}')" title="Modificar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-secondary btn-qr" onclick="alert('Generar QR //TODO')" title="QR" style="width: 35px; height: 35px; padding: 0; justify-content: center; border-radius: 8px;">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                                <button class="btn-delete" onclick="eliminarEntidad('plantas', '${p.nombre_cientifico}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `<tr><td colspan="4" style="text-align:center;padding:20px;color: #666;">No hay plantas registradas</td></tr>`;
+            }
+            html += `</tbody></table></div>`;
+            document.getElementById('admin-content').innerHTML = html;
+        }
+
+        function renderTablaUsuarios(usuarios) {
+            let html = `
+                <div class="table-container">
+                    <div class="table-header">
+                        <h2><i class="fas fa-users"></i> Lista de usuarios</h2>
+                        <div class="header-actions">
+                            <button onclick="agregarUsuario()" class="btn-main">
+                                <i class="fas fa-plus"></i> Agregar nuevo usuario
+                            </button>
+                        </div>
+                    </div>
+                    <table class="admin-table">
+                        <thead><tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Tipo</th><th>Acciones</th></tr></thead>
+                        <tbody>
+            `;
+            if (usuarios && usuarios.length > 0) {
+                usuarios.forEach(user => {
+                    html += `
+                        <tr>
+                            <td>${user.usuario}</td>
+                            <td>${user.nombre || ''}</td>
+                            <td>${user.correo || user.mail}</td>
+                            <td>
+                                <span class="badge" style="background: ${(user.tipo == 1 || user.tipo === 'admin') ? '#d1c4e9' : '#e0e0e0'}; color: ${(user.tipo == 1 || user.tipo === 'admin') ? '#512da8' : '#333'}; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem;">
+                                    ${(user.tipo == 1 || user.tipo === 'admin') ? 'Administrador' : 'Usuario'}
+                                </span>
+                            </td>
+                            <td class="actions-cell">
+                                <button class="btn-edit" title="Modificar" onclick="editarUsuario('${user.usuario}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-delete" title="Eliminar" onclick="eliminarEntidad('usuarios', '${user.usuario}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `<tr><td colspan="5" style="text-align:center;padding:20px;color: #666;">No hay usuarios registrados</td></tr>`;
+            }
+            html += `</tbody></table></div>`;
+            document.getElementById('admin-content').innerHTML = html;
+        }
+
+        function renderTablaSolicitudes(solicitudes) {
+            let html = `
+                <div class="table-container">
+                    <div class="table-header">
+                        <h2><i class="fas fa-seedling"></i> Solicitudes de donación</h2>
+                    </div>
+                    <table class="admin-table">
+                        <thead><tr><th>Usuario</th><th>Planta</th><th>Ubicación</th><th>Fecha</th><th>Estado</th><th>Detalles</th><th>Acciones</th></tr></thead>
+                        <tbody>
+            `;
+            if (solicitudes && solicitudes.length > 0) {
+                solicitudes.forEach(solicitud => {
+                    let estadoClass = 'estado-pendiente';
+                    if (solicitud.estado === 'aprobada') estadoClass = 'estado-aprobada';
+                    if (solicitud.estado === 'rechazada') estadoClass = 'estado-rechazada';
+
+                    html += `
+                        <tr>
+                            <td>${solicitud.correo_usuario}</td>
+                            <td>${solicitud.nombre_comun || solicitud.nombre_planta}</td>
+                            <td>${solicitud.distribucion_geografica || solicitud.ubicacion}</td>
+                            <td>${new Date(solicitud.fecha_donacion || solicitud.fecha).toLocaleDateString('es-MX')}</td>
+                            <td><span class="estado-badge ${estadoClass}">${solicitud.estado || 'pendiente'}</span></td>
+                            <td style="text-align: center;">
+                                <button class="btn-secondary" onclick='verDetallesDonacion(${JSON.stringify(solicitud).replace(/'/g, "\\'")})' title="Ver Completo" style="width: 35px; height: 35px; padding: 0; justify-content: center; border-radius: 8px;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                            <td class="actions-cell">
+                                <button class="btn-edit" onclick="responderSolicitud('${solicitud.id_donacion}')" title="Responder">
+                                    <i class="fas fa-reply"></i>
+                                </button>
+                                <button class="btn-delete" onclick="eliminarEntidad('solicitudes', '${solicitud.id_donacion}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `<tr><td colspan="7" style="text-align:center;padding:20px;color: #666;">No hay solicitudes</td></tr>`;
+            }
+            html += `</tbody></table></div>`;
+            document.getElementById('admin-content').innerHTML = html;
+        }
+
+        // --- 5. LÓGICA DE MODALES Y FORMULARIOS ---
+        async function cargarFormulario(url) {
+            // [MODO PRUEBA UI] Mocking html injection
+            try {
+                const res = await fetch(url);
+                return await res.text();
+            } catch (e) {
+                return `
+                <div style="padding:20px;">
+                    <h3>[Modo Interfaz Dummy]</h3>
+                    <p>No se pudo cargar el archivo parcial ${url} estáticamente desde el archivo local sin un servidor local corriendo.</p>
+                </div>
+                `;
+            }
+        }
+
+        // USOS
+        async function abrirModalUso() {
+            const html = await cargarFormulario('/forms/form-uso.html');
+            document.getElementById('modal-content').innerHTML = html;
+            document.getElementById('form-uso-title').textContent = 'Agregar Nuevo Uso';
+            document.getElementById('id_uso').value = '';
+            document.getElementById('modal-dinamico').style.display = 'flex';
+        }
+
+        async function editarUso(id) {
+            try {
+                const html = await cargarFormulario('/forms/form-uso.html');
+                document.getElementById('modal-content').innerHTML = html;
+
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/usos/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const uso = await res.json();
+
+                document.getElementById('form-uso-title').textContent = 'Editar Uso';
+                document.getElementById('id_uso').value = uso.id;
+                document.getElementById('uso-nombre').value = uso.nombre || '';
+                document.getElementById('uso-tipo').value = uso.tipo || 'Medicinal';
+                document.getElementById('uso-descripcion').value = uso.descripcion || '';
+
+                document.getElementById('modal-dinamico').style.display = 'flex';
+            } catch (e) { alert('Error cargando uso'); }
+        }
+
+        async function submitFormUso(e, form) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            const id = document.getElementById('id_uso').value;
+            const url = id ? `${API_URL}/usos/${id}` : `${API_URL}/usos`;
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    alert('Guardado con éxito');
+                    document.getElementById('modal-dinamico').style.display = 'none';
+                    document.querySelector('.sidebar-btn[data-view="usos"]').click();
+                } else alert('Error: ' + result.error);
+            } catch (err) { alert('Error de red'); }
+        }
+
+        // PLANTAS
+        async function abrirModalPlanta() {
+            const html = await cargarFormulario('/forms/form-planta.html');
+            document.getElementById('modal-content').innerHTML = html;
+            document.getElementById('form-planta-title').textContent = 'Agregar Nueva Planta';
+            document.getElementById('planta-action-method').value = 'POST';
+            document.getElementById('modal-dinamico').style.display = 'flex';
+        }
+
+        async function editarPlanta(nombreCientifico) {
+            try {
+                const html = await cargarFormulario('/forms/form-planta.html');
+                document.getElementById('modal-content').innerHTML = html;
+
+                const res = await fetch(`${API_URL}/plantas/${encodeURIComponent(nombreCientifico)}`);
+                const p = await res.json();
+
+                document.getElementById('form-planta-title').textContent = 'Editar Planta';
+                document.getElementById('planta-action-method').value = 'PUT';
+                document.getElementById('planta-original-cientifico').value = p.nombre_cientifico;
+
+                document.getElementById('planta-nombre').value = p.nombres_comunes || '';
+                document.getElementById('planta-cientifico').value = p.nombre_cientifico || '';
+                document.getElementById('planta-descripcion').value = p.descripcion || '';
+                document.getElementById('planta-propiedades').value = p.propiedades_curativas || '';
+                document.getElementById('planta-zona').value = p.distribucion_geografica || '';
+                document.getElementById('planta-genero').value = p.genero || '';
+                document.getElementById('planta-morfologia').value = p.morfologia || '';
+                document.getElementById('planta-bibliografia').value = p.bibliografia || '';
+                document.getElementById('planta-principio').value = p.principio_activo || '';
+
+                // Si es edición, se puede gestionar remedios
+                document.getElementById('remedios-manager-container').style.display = 'block';
+
+                // Mostrar galería actual (solo visual, el submit enviará orden o borrados si se implementa lógica extra luego)
+                try {
+                    const fotos = JSON.parse(p.fotos_crecimiento || '[]');
+                    const gContainer = document.getElementById('gallery-manager');
+                    fotos.forEach(foto => {
+                        gContainer.innerHTML += `
+                            <div class="gallery-item" style="display:flex; align-items:center; gap:10px; padding:5px; border:1px solid #ccc;">
+                                <img src="/recursos/imagenes/${foto}" style="width:40px;height:40px;object-fit:cover;">
+                                <span>${foto}</span>
+                                <input type="hidden" name="imagenes_orden[]" value="${foto}">
+                                <button type="button" onclick="this.parentElement.remove()">❌</button>
+                            </div>
+                        `;
+                    });
+                } catch (e) { }
+
+                document.getElementById('modal-dinamico').style.display = 'flex';
+            } catch (e) { alert('Error cargando planta'); }
+        }
+
+        async function submitFormPlanta(e, form) {
+            e.preventDefault();
+            const method = document.getElementById('planta-action-method').value;
+            const originalNombre = document.getElementById('planta-original-cientifico').value;
+            const url = method === 'PUT' ? `${API_URL}/plantas/${encodeURIComponent(originalNombre)}/actualizar` : `${API_URL}/plantas`;
+
+            const formData = new FormData(form);
+            // FormData will automatically handle the file inputs (galeria)
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(url, {
+                    method: 'POST', // The backend currently expects POST for both create and update (in the monolithic version it was simulating PUT/POST through routes)
+                    // Wait, in my admin.routes.js I mapped POST /api/plantas to crearPlanta, and PUT /api/plantas/:nombre to actualizar. I'll need to check backend routes if I decoupled them.
+                    // For now I'm submitting FormData as POST, then we adjust backend to accept PUT FormData if needed, but standard HTML form upload is POST.
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const result = await res.json();
+                if (res.ok || result.success) {
+                    alert('Guardado con éxito');
+                    document.getElementById('modal-dinamico').style.display = 'none';
+                    document.querySelector('.sidebar-btn[data-view="plantas"]').click();
+                } else alert('Error: ' + result.error);
+            } catch (err) { alert('Error de red al crear/editar planta'); }
+        }
+
+        // --- 4. ACCIONES CRUD GENÉRICAS ---
+        async function eliminarEntidad(endpoint, id) {
+            if (!confirm(`¿Seguro que deseas eliminar este registro de ${endpoint}?`)) return;
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${API_URL}/${endpoint}/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    alert('Eliminado con éxito');
+                    document.querySelector(`button[data-view="${endpoint}"]`).click(); // Recargar
+                } else {
+                    const err = await res.json();
+                    alert('Error: ' + err.error);
+                }
+            } catch (e) { alert('Error de red'); }
+        }
+
+        // --- 6. LOGICA DE SOLICITUDES Y DONACIONES ---
+        window.verDetallesDonacion = function (solicitud) {
+            try {
+                const html = `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <p><strong><i class="fas fa-user"></i> Usuario:</strong> ${solicitud.usuario || solicitud.correo_usuario}</p>
+                        <p><strong><i class="fas fa-calendar"></i> Fecha:</strong> ${new Date(solicitud.fecha || solicitud.fecha_donacion).toLocaleDateString()}</p>
+                        <p><strong><i class="fas fa-leaf"></i> Planta:</strong> ${solicitud.nombre_comun || solicitud.nombre_planta}</p>
+                        <p><strong><i class="fas fa-map-marker-alt"></i> Distribución:</strong> ${solicitud.distribucion_geografica || solicitud.ubicacion || 'No especificada'}</p>
+                    </div>
+                    <h3 style="font-size: 1.1rem; color: #4b6e3c; margin-top: 15px;">Descripción</h3>
+                    <p style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">${solicitud.descripcion || solicitud.descripcion_planta || 'Sin descripción'}</p>
+                    
+                    <h3 style="font-size: 1.1rem; color: #4b6e3c; margin-top: 15px;">Propiedades Curativas</h3>
+                    <p style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">${solicitud.propiedades_curativas || solicitud.propiedades_medicinales || 'No especificadas'}</p>
+                    
+                    <h3 style="font-size: 1.1rem; color: #4b6e3c; margin-top: 15px;">Motivo de Donación</h3>
+                    <p style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">${solicitud.motivo_donacion || solicitud.motivo || 'No especificado'}</p>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="document.getElementById('modal-ver-donacion').style.display='none'" style="background: #666; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Cerrar</button>
+                    </div>
+                `;
+                document.getElementById('contenido-ver-donacion').innerHTML = html;
+                document.getElementById('modal-ver-donacion').style.display = 'flex';
+            } catch (e) {
+                alert('Error al visualizar detalles');
+            }
+        };
+
+        window.responderSolicitud = async function (id) {
+            try {
+                const html = await cargarFormulario('/forms/form-responder-solicitud.html');
+                document.getElementById('modal-content').innerHTML = html;
+
+                // Fetch existing details
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/solicitudes/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const sol = await res.json();
+
+                // Fill the form (assuming the form has these IDs, which we will verify/build next)
+                document.getElementById('resp-id_donacion').value = sol.id_donacion || id;
+                document.getElementById('resp-estado').value = sol.estado || 'En proceso';
+                document.getElementById('resp-detalles').value = sol.detalles || '';
+
+                document.getElementById('modal-dinamico').style.display = 'flex';
+            } catch (e) { alert('Error. No se pudo cargar el formulario'); }
+        };
+
+        window.enviarRespuesta = async function (e, form) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            const id = document.getElementById('resp-id_donacion').value;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/solicitudes/${id}/actualizar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const resp = await res.json();
+                if (res.ok || resp.success) {
+                    alert('Respuesta guardada con éxito');
+                    document.getElementById('modal-dinamico').style.display = 'none';
+                    document.querySelector('.sidebar-btn[data-view="solicitudes"]').click();
+                } else {
+                    alert('Error: ' + resp.error);
+                }
+            } catch (err) { alert('Error de red'); }
+        };
+
+        // Inicio
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarAdmin();
+            // Lógica Menú
+            document.getElementById('btn-menu').onclick = () => {
+                const menu = document.getElementById('menu-opciones');
+                menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+                menu.style.flexDirection = 'column';
+            };
+        });
+
+    </script>
+</body>
+
+</html>

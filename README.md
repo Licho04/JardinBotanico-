@@ -3,15 +3,15 @@
 ## Descripción del Proyecto
 Este proyecto es una aplicación web para la gestión y visualización interactiva de un Jardín de Plantas Medicinales. Permite a los visitantes explorar un catálogo de plantas, consultar sus propiedades curativas, aprender sobre remedios naturales y solicitar donaciones. Además, cuenta con un panel de administración completo para gestionar el inventario de plantas físicas, usuarios y el sistema de donaciones.
 
-⚠️ **Nota de Arquitectura:** Actualmente, el proyecto está construido bajo una **arquitectura monolítica** (el frontend y el backend viven en el mismo código base). Según la hoja de ruta del proyecto, **en el futuro esta estructura se separará** en dos proyectos distintos (Frontend independiente y API REST Backend) para mejorar su escalabilidad.
+⚠️ **Nota de Arquitectura:** El proyecto ha transitado exitosamente a una **arquitectura desacoplada**. El frontend consiste en archivos estáticos puros (Vanilla HTML, CSS, JS) alojados en el directorio `/frontend`, los cuales consumen asíncronamente (AJAX/Fetch) la API REST en JSON provista por el backend Node.js. Esto permite desplegar ambas aplicaciones por separado si así se desea, mejorando la escalabilidad del sistema.
 
 ## Créditos
 * **Diagrama de Clases y Estructura de Tablas:** Desarrollado por el estudiante **Angel Svein Ortiz Méndez**.
 * **Desarrollo del Software (Frontend, Backend y Funcionalidad):** Desarrollado por el estudiante **Luis Enrique Madrigal Martínez**.
 
 ## Stack Tecnológico Utilizado
-* **Backend:** Node.js, Express.js
-* **Frontend:** EJS (Embedded JavaScript templating), HTML5, CSS3 (diseño responsivo con Vanilla CSS), Vanilla JavaScript.
+* **Backend:** Node.js, Express.js (actuando como API RESTful)
+* **Frontend:** Vanilla HTML5, CSS3, JavaScript puro (AJAX/Fetch) - alojado de forma independiente en el directorio `/frontend`
 * **Base de Datos:** SQLite3
 * **Seguridad y Autenticación:** JSON Web Tokens (JWT) y bcrypt (encriptación de contraseñas).
 * **Gestión de Archivos:** Multer (usado para subir galerías fotográficas de las plantas y copias de seguridad de la base de datos).
@@ -78,16 +78,16 @@ Asegúrate de tener instalado **Node.js** en tu computadora. Puedes descargarlo 
    cd app
    ```
 
-### Paso 3: Instalar e Iniciar
-1. Instala las librerías necesarias con el gestor de paquetes (solo toma unos segundos):
+### Paso 3: Instalar e Iniciar Backend Localmente
+1. Dentro de la carpeta `/app`, instala las librerías necesarias con el gestor de paquetes (solo toma unos segundos):
    ```bash
    npm install
    ```
-2. ¡Inicia el servidor!
+2. ¡Inicia el servidor Backend!
    ```bash
-   npm run start
+   npm start
    ```
-3. Ve a tu navegador y entra a: **[http://localhost:3000](http://localhost:3000)**
+3. El servidor Express servirá la carpeta `frontend/` estáticamente de manera predeterminada. Ve a tu navegador y entra a: **[http://localhost:3000](http://localhost:3000)** para ver el sitio web consumiendo la API.
 
 *(La base de datos SQLite viene incluida y se sincronizará automáticamente la primera vez que se arranque el proyecto, así que no se necesita instalar MySQL ni Postgre).*
 

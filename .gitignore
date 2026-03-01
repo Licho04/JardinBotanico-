@@ -5,6 +5,7 @@
 !/.gitignore
 !/app/
 !/recursos/
+!/frontend/
 !/render.yaml
 !/README.md
 !/REQUERIMIENTOS_TECNICOS.md

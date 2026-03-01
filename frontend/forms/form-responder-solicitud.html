@@ -1,0 +1,27 @@
+﻿<h2><i class="fas fa-reply"></i> Responder Solicitud</h2>
+<div class="alert-info">
+    <p>Revisa la donación y elige si deseas aprobarla para ser ingresada al catálogo, o rechazarla/pedir más
+        información.</p>
+</div>
+<form id="form-responder-solicitud" onsubmit="enviarRespuesta(event, this)">
+    <input type="hidden" id="resp-id_donacion" name="id_donacion">
+    <label>
+        Estado de la Solicitud:
+        <select name="estado" id="resp-estado" required>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Aprobada">Aprobada</option>
+            <option value="Rechazada">Rechazada</option>
+            <option value="En proceso">En proceso</option>
+        </select>
+    </label>
+    <label>
+        Tus Comentarios o Respuesta Externa:
+        <textarea name="detalles" id="resp-detalles" rows="4"
+            placeholder="Ej: La planta ha sido verificada e ingresada al sistema. Gracias..."></textarea>
+    </label>
+    <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+        <button type="submit"><i class="fas fa-save"></i> Guardar Respuesta</button>
+        <button type="button" onclick="document.getElementById('modal-dinamico').style.display='none'"><i
+                class="fas fa-times"></i> Cancelar</button>
+    </div>
+</form>
