@@ -272,17 +272,17 @@ router.get('/administracion/plantas/:id/editar', requireAdmin, async (req, res) 
     }
 });
 
-router.put('/administracion/plantas/:id', requireAdmin, upload.fields([
+router.put('/administracion/plantas/:nombre_cientifico', requireAdmin, upload.fields([
     { name: 'imagen', maxCount: 1 },
     { name: 'galeria', maxCount: 10 }
 ]), actualizarPlanta);
 
-router.post('/administracion/plantas/:id/actualizar', requireAdmin, upload.fields([
+router.post('/administracion/plantas/:nombre_cientifico/actualizar', requireAdmin, upload.fields([
     { name: 'imagen', maxCount: 1 },
     { name: 'galeria', maxCount: 10 }
 ]), actualizarPlanta);
 
-router.delete('/administracion/plantas/:id', requireAdmin, eliminarPlanta);
+router.delete('/administracion/plantas/:nombre_cientifico', requireAdmin, eliminarPlanta);
 
 // ========== CRUD DONACIONES (antes Solicitudes) ==========
 
