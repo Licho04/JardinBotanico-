@@ -236,6 +236,18 @@ export const crearPlanta = async (req, res) => {
             });
         }
 
+        // --- VERIFICACIÓN DE DUPLICADOS ---
+        const existeNombreCientifico = await db.getAsync(
+            "SELECT nombre_cientifico FROM planta_info WHERE nombre_cientifico = ?",
+            [nombre_cientifico]
+        );
+
+        if (existeNombreCientifico) {
+            return res.status(400).json({
+                error: 'Ya existe una planta registrada con este Nombre Científico.'
+            });
+        }
+
         // Manejo de archivos (Solo Galería)
         const galeriaFotos = (req.files && req.files['galeria']) ? req.files['galeria'] : [];
 
@@ -368,52 +380,77 @@ export const actualizarPlanta = async (req, res) => {
 
         const fotosCrecimientoJSON = JSON.stringify(fotosExistentes);
 
-        // Si cambia el nombre científico, necesitamos actualizar la PK en planta_info primero?
-        // No, SQLite no soporta CASCADE UPDATE en PKs text facilmente si no está configurado.
-        // Mejor estrategia: Si cambia nombre, Crear Nuevo Info -> Mover Referencias -> Borrar Viejo.
-        // PERO simplifiquemos: Asumimos Update in Place de los campos, y si cambian el nombre,
-        // actualizamos el registro existente.
-
-        const updateInfoQuery = `
-            UPDATE planta_info SET
-                nombre_cientifico = ?,
-                descripcion = ?,
-                propiedades_curativas = ?,
-                principio_activo = ?,
-                bibliografia = ?,
-                fotos_crecimiento = ?,
-                genero = ?,
-                morfologia = ?,
-                distribucion_geografica = ?
-            WHERE nombre_cientifico = ?
-        `;
-
-        await db.runAsync(updateInfoQuery, [
-            nuevoNombreCientifico,
-            descripcion, propiedades, principio_activo,
-            bibliografia, fotosCrecimientoJSON,
-            genero || '', morfologia || '', zona_geografica || '',
-            nombreDecoded // WHERE el viejo nombre
-        ]);
-
-        // 2. Actualizar referencias en Planta Física
-        // Si tenemos ID físico, actualizamos ese específico. Si no, actualizamos todos los que tengan ese nombre.
-        if (idFisico) {
-            await db.runAsync(
-                `UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ?, nombre_cientifico = ? WHERE id_planta = ?`,
-                [nombre, fecha_sembrada, situacion, nuevoNombreCientifico, idFisico]
-            );
-        } else {
-            // Fallback: Actualizar todos (Riesgoso si hay multiples, pero coherente con cambio de especie)
-            await db.runAsync(
-                `UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ?, nombre_cientifico = ? WHERE nombre_cientifico = ?`,
-                [nombre, fecha_sembrada, situacion, nuevoNombreCientifico, nombreDecoded]
-            );
-        }
-
-        // 3. Actualizar FK en Remedios si cambió el nombre
         if (nuevoNombreCientifico !== nombreDecoded) {
+            // Estrategia Insert -> Move -> Delete debido a restricciones de Llave Foránea sin CASCADE UPDATE
+
+            // 1. Insertar nueva Info Científica con el nuevo nombre
+            const insertInfoQuery = `
+                INSERT INTO planta_info 
+                (nombre_cientifico, descripcion, propiedades_curativas, principio_activo, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica, nombres_comunes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            await db.runAsync(insertInfoQuery, [
+                nuevoNombreCientifico,
+                descripcion, propiedades, principio_activo,
+                bibliografia, fotosCrecimientoJSON,
+                genero || '', morfologia || '', zona_geografica || '',
+                nombre || ''
+            ]);
+
+            // 2. Mover Referencias de Hijos (Foreign Keys)
+            await db.runAsync('UPDATE planta_fisica SET nombre_cientifico = ? WHERE nombre_cientifico = ?', [nuevoNombreCientifico, nombreDecoded]);
             await db.runAsync('UPDATE remedios SET nombre_cientifico = ? WHERE nombre_cientifico = ?', [nuevoNombreCientifico, nombreDecoded]);
+            await db.runAsync('UPDATE distribucion SET nombre_cientifico = ? WHERE nombre_cientifico = ?', [nuevoNombreCientifico, nombreDecoded]);
+
+            // 3. Actualizar Planta Física Específica
+            if (idFisico) {
+                await db.runAsync(
+                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE id_planta = ?',
+                    [nombre, fecha_sembrada, situacion, idFisico]
+                );
+            } else {
+                await db.runAsync(
+                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE nombre_cientifico = ?',
+                    [nombre, fecha_sembrada, situacion, nuevoNombreCientifico]
+                );
+            }
+
+            // 4. Eliminar el registro viejo en Información Científica
+            await db.runAsync('DELETE FROM planta_info WHERE nombre_cientifico = ?', [nombreDecoded]);
+
+        } else {
+            // Actualización In-Place (el nombre científico No cambió)
+            const updateInfoQuery = `
+                UPDATE planta_info SET
+                    descripcion = ?,
+                    propiedades_curativas = ?,
+                    principio_activo = ?,
+                    bibliografia = ?,
+                    fotos_crecimiento = ?,
+                    genero = ?,
+                    morfologia = ?,
+                    distribucion_geografica = ?
+                WHERE nombre_cientifico = ?
+            `;
+
+            await db.runAsync(updateInfoQuery, [
+                descripcion, propiedades, principio_activo,
+                bibliografia, fotosCrecimientoJSON,
+                genero || '', morfologia || '', zona_geografica || '',
+                nombreDecoded
+            ]);
+
+            if (idFisico) {
+                await db.runAsync(
+                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE id_planta = ?',
+                    [nombre, fecha_sembrada, situacion, idFisico]
+                );
+            } else {
+                await db.runAsync(
+                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE nombre_cientifico = ?',
+                    [nombre, fecha_sembrada, situacion, nombreDecoded]
+                );
+            }
         }
 
         await db.run('COMMIT');

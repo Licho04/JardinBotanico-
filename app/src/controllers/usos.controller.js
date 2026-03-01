@@ -36,6 +36,17 @@ export const crearUso = async (req, res) => {
     }
 
     try {
+        // --- VERIFICACIÓN DE DUPLICADOS ---
+        const existeUso = await db.getAsync(
+            "SELECT id FROM usos WHERE nombre = ?",
+            [nombre]
+        );
+
+        if (existeUso) {
+            return res.status(400).json({
+                error: 'Ya existe una categoría de uso con este nombre.'
+            });
+        }
         const result = await db.runAsync(
             "INSERT INTO usos (nombre, descripcion, tipo) VALUES (?, ?, ?)",
             [nombre, descripcion, tipo]

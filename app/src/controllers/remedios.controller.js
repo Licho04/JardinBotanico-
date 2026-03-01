@@ -72,12 +72,24 @@ export const createRemedio = async (req, res) => {
 
 
 
-    if (!nombre_cientifico) {
-        console.error("❌ Falta nombre_cientifico");
-        return res.status(400).json({ error: "Nombre científico es requerido" });
+    if (!nombre_cientifico || !nombre) {
+        console.error("❌ Falta nombre_cientifico o nombre");
+        return res.status(400).json({ error: "Nombre científico y nombre de remedio son requeridos" });
     }
 
     try {
+        // --- VERIFICACIÓN DE DUPLICADOS ---
+        const existeRemedio = await db.getAsync(
+            "SELECT id FROM remedios WHERE nombre = ? AND nombre_cientifico = ?",
+            [nombre, nombre_cientifico]
+        );
+
+        if (existeRemedio) {
+            return res.status(400).json({
+                error: 'Ya existe un remedio con este nombre para la planta seleccionada.'
+            });
+        }
+
         await db.run('BEGIN TRANSACTION');
 
         // 1. Insertar Remedio
