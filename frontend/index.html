@@ -190,7 +190,7 @@
     <!-- SCRIPTS CORE -->
     <script>
         // CONFIGURACIÓN API (Relativa para funcionar en local y producción)
-        const API_URL = 'https://jardinbotanico-0qiz.onrender.com/api';
+        const API_URL = '/api';
         let usuarioActual = null;
         let listaPlantasGlobal = [];
 
@@ -276,7 +276,7 @@
                     const fotos = JSON.parse(planta.fotos_crecimiento || '[]');
                     if (fotos.length > 0) {
                         // El path de las imágenes debe apuntar al servidor backend relativo
-                        imgHtml = `<img src="https://jardinbotanico-0qiz.onrender.com/recursos/imagenes/${fotos[0]}" style="width:100%;height:100%;object-fit:cover;">`;
+                        imgHtml = `<img src="/recursos/imagenes/${fotos[0]}" style="width:100%;height:100%;object-fit:cover;">`;
                     }
                 } catch (e) { }
 
@@ -334,7 +334,7 @@
             if (fotos.length > 0) {
                 let slides = fotos.map((f, index) => `
                     <div class="carousel-slide ${index === 0 ? 'active' : ''}" 
-                        style="background-image: url('https://jardinbotanico-0qiz.onrender.com/recursos/imagenes/${f}'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
+                        style="background-image: url('/recursos/imagenes/${f}'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
                         onclick="openLightbox(${index})" title="Clic para ampliar imagen">
                         <div class="carousel-caption">
                             <p>Clic para ampliar</p>

@@ -85,7 +85,7 @@
 
     <!-- MAIN APP SCRIPT -->
     <script>
-        let API_URL = 'https://jardinbotanico-0qiz.onrender.com/api';
+        let API_URL = '/api';
 
         // --- 1. AUTENTICACIÓN ADMIN ---
         async function verificarAdmin() {
@@ -416,7 +416,7 @@
                     fotos.forEach(foto => {
                         gContainer.innerHTML += `
                             <div class="gallery-item" style="display:flex; align-items:center; gap:10px; padding:5px; border:1px solid #ccc;">
-                                <img src="https://jardinbotanico-0qiz.onrender.com/recursos/imagenes/${foto}" style="width:40px;height:40px;object-fit:cover;">
+                                <img src="/recursos/imagenes/${foto}" style="width:40px;height:40px;object-fit:cover;">
                                 <span>${foto}</span>
                                 <input type="hidden" name="imagenes_orden[]" value="${foto}">
                                 <button type="button" onclick="this.parentElement.remove()">❌</button>
