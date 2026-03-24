@@ -23,6 +23,19 @@
         <nav class="navegacion">
             <a href="/">Inicio</a>
             <a href="/historia.html">Historia</a>
+
+            <a href="/login.html" class="btn-sesion" id="link-login">Iniciar Sesión</a>
+
+            <div class="menu-hamburguesa" id="user-menu" style="display: none;">
+                <button id="btn-menu">&#9776;</button>
+                <div id="menu-opciones" style="display: none;">
+                    <a href="/perfil.html">Perfil</a>
+                    <a href="/mis-solicitudes.html" id="link-mis-solicitudes" style="display:none;">Mis Solicitudes</a>
+                    <a href="#" id="btn-solicitud-donacion" style="display:none;">Solicitar Donación</a>
+                    <a href="/admin.html" id="link-admin" style="display:none;">Administrador</a>
+                    <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+                </div>
+            </div>
         </nav>
     </header>
 
@@ -62,6 +75,62 @@
 
     <script>
         const API_URL = '/api';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarSesion();
+            configurarMenuHamburguesa();
+        });
+
+        // AUTENTICACIÓN
+        let usuarioActual = null;
+        async function verificarSesion() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const res = await fetch(`${API_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    usuarioActual = await res.json();
+                    localStorage.setItem('usuario', JSON.stringify(usuarioActual));
+                    actualizarUIUsuario(usuarioActual);
+                } else {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('usuario');
+                }
+            } catch (e) { console.error('Error:', e); }
+        }
+
+        function actualizarUIUsuario(user) {
+            document.getElementById('link-login').style.display = 'none';
+            document.getElementById('user-menu').style.display = 'block';
+            if (usuarioActual.tipo == '1' || usuarioActual.tipo === 'admin') {
+                document.getElementById('link-admin').style.display = 'block';
+            } else {
+                let btnDonacion = document.getElementById('btn-solicitud-donacion');
+                if (btnDonacion) btnDonacion.style.display = 'block';
+                let linkMisSols = document.getElementById('link-mis-solicitudes');
+                if (linkMisSols) linkMisSols.style.display = 'block';
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            window.location.reload();
+        }
+
+        function configurarMenuHamburguesa() {
+            var btnMenu = document.getElementById('btn-menu');
+            if (btnMenu) {
+                btnMenu.onclick = function () {
+                    var menu = document.getElementById('menu-opciones');
+                    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+                    if (menu.style.display === 'flex') menu.style.flexDirection = 'column';
+                };
+            }
+        }
 
         document.getElementById('registro-form').addEventListener('submit', async (e) => {
             e.preventDefault();

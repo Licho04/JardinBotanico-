@@ -8,11 +8,26 @@ const router = express.Router();
 // Obtener todos los usuarios
 router.get('/', verificarToken, verificarAdmin, async (req, res) => {
     try {
-        const usuarios = await db.allAsync('SELECT id, usuario, nombre, correo, tipo FROM usuarios ORDER BY usuario');
+        const usuarios = await db.allAsync('SELECT usuario, nombre, correo, tipo FROM usuarios ORDER BY usuario');
         res.json(usuarios || []);
     } catch (error) {
         console.error('Error al obtener usuarios:', error);
         res.status(500).json({ error: 'Error al obtener usuarios' });
+    }
+});
+
+// Obtener un usuario por nombre
+router.get('/:usuario', verificarToken, verificarAdmin, async (req, res) => {
+    try {
+        const { usuario } = req.params;
+        const user = await db.getAsync('SELECT usuario, nombre, correo as mail, tipo FROM usuarios WHERE usuario = ?', [usuario]);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        res.json(user);
+    } catch (error) {
+        console.error('Error al obtener el usuario:', error);
+        res.status(500).json({ error: 'Error al obtener el usuario' });
     }
 });
 
@@ -51,8 +66,8 @@ router.put('/:usuario', verificarToken, verificarAdmin, async (req, res) => {
             query += ', password = ?';
             params.push(passwordHash);
         }
-        query += ' WHERE usuario = ?';
-        params.push(usuario);
+        query += ' WHERE usuario = ? OR correo = ?';
+        params.push(usuario, usuario);
         await db.runAsync(query, params);
         res.json({ success: true, mensaje: 'Usuario actualizado correctamente' });
     } catch (error) {
@@ -66,7 +81,7 @@ router.delete('/:usuario', verificarToken, verificarAdmin, async (req, res) => {
     try {
         const { usuario } = req.params;
         // Dependencias asumiendo que el controlador de donaciones las maneja o las ignoramos por ahora
-        const resUser = await db.runAsync('DELETE FROM usuarios WHERE usuario = ?', [usuario]);
+        const resUser = await db.runAsync('DELETE FROM usuarios WHERE usuario = ? OR correo = ?', [usuario, usuario]);
         if (resUser.changes === 0) {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }

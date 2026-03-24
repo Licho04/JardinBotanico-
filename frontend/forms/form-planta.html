@@ -3,6 +3,7 @@
 <form id="form-planta" onsubmit="submitFormPlanta(event, this)">
     <input type="hidden" name="action_method" id="planta-action-method" value="POST"> <!-- POST=create, PUT=edit -->
     <input type="hidden" name="original_nombre_cientifico" id="planta-original-cientifico">
+    <input type="hidden" name="id_planta" id="planta-id-fisico">
 
     <label>
         Nombre común:
@@ -18,11 +19,11 @@
     </label>
     <label>
         Propiedades medicinales:
-        <textarea name="propiedades" id="planta-propiedades"></textarea>
+        <textarea name="propiedades_curativas" id="planta-propiedades"></textarea>
     </label>
     <label>
         Distribución geográfica:
-        <input type="text" name="zona_geografica" id="planta-zona" placeholder="Ej: Región tropical">
+        <input type="text" name="distribucion_geografica" id="planta-zona" placeholder="Ej: Región tropical">
     </label>
     <label>
         Género:

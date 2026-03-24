@@ -9,7 +9,7 @@ export const obtenerSolicitudes = async (req, res) => {
         // Si no es admin, solo ver sus propias solicitudes
         if (req.usuario.tipo !== 1 && req.usuario.tipo !== 'admin') {
             query = 'SELECT * FROM donaciones WHERE correo_usuario = ? ORDER BY fecha_donacion DESC';
-            params = [req.usuario.id]; // id es correo
+            params = [req.usuario.correo || req.usuario.id]; // correo is the stored key
         }
 
         const solicitudes = await db.allAsync(query, params);

@@ -215,9 +215,11 @@
                 });
                 if (res.ok) {
                     usuarioActual = await res.json();
+                    localStorage.setItem('usuario', JSON.stringify(usuarioActual)); // Sincronizar local
                     actualizarUIUsuario(usuarioActual);
                 } else {
                     localStorage.removeItem('token');
+                    localStorage.removeItem('usuario');
                 }
             } catch (e) { console.error('Error al verificar sesión:', e); }
         }
@@ -244,6 +246,7 @@
 
         function cerrarSesion() {
             localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
             window.location.reload();
         }
 
@@ -359,26 +362,25 @@
 
             // Información General
             let html = `
-                <div class="info-planta-header">
-                    ${carruselHtml}
-                    <div style="flex:1;">
-                        <h2 class="titulo-planta">${p.nombres_comunes || 'N/A'} <span class="cientifico-destacado">${p.nombre_cientifico}</span></h2>
-                        <div class="tags-planta">
-                            <span class="tag"><i class="fas fa-tag"></i> ${p.genero || 'Género Desconocido'}</span>
-                        </div>
+                <div class="info-planta-container">
+                    <div class="cientifico-destacado">
+                        <h3><i class="fas fa-microscope"></i> Información Taxonómica</h3>
                     </div>
-                </div>
+                    <h2>${p.nombres_comunes || p.nombre || 'N/A'}</h2>
 
-                <div class="info-grid">
-                    <div class="tarjeta-info">
-                        <h3><i class="fas fa-info-circle"></i> Descripción</h3>
-                        <p>${p.descripcion || 'Sin descripción.'}</p>
+                    ${carruselHtml}
+
+                    <p><strong><i class="fas fa-tag"></i> Nombre científico:</strong> <i>${p.nombre_cientifico || ''}</i></p>
+                    <p><strong><i class="fas fa-leaf"></i> Género:</strong> ${p.genero || 'No especificado'}</p>
+                    <p><strong><i class="fas fa-file-alt"></i> Descripción:</strong> ${p.descripcion || ''}</p>
+                    <p><strong><i class="fas fa-microscope"></i> Morfología:</strong> ${p.morfologia || 'No especificada'}</p>
+                    <p><strong><i class="fas fa-globe-americas"></i> Distribución geográfica:</strong> ${p.distribucion_geografica || 'No especificada'}</p>
+
+                    <div style="margin: 15px 0; padding: 15px; background: #f0f7f4; border-left: 4px solid #4b6e3c; border-radius: 4px;">
+                        <p><strong><i class="fas fa-flask"></i> Principio Activo:</strong> ${p.principio_activo || 'No especificado'}</p>
                     </div>
-                    <div class="tarjeta-info">
-                        <h3><i class="fas fa-leaf"></i> Morfología</h3>
-                        <p>${p.morfologia || 'Sin morfología.'}</p>
-                    </div>
-                </div>
+
+                    <p><strong><i class="fas fa-pills"></i> Propiedades farmacológicas:</strong> ${p.propiedades_curativas || ''}</p>
             `;
             // Remedios
             let remediosHtml = '';
@@ -472,6 +474,7 @@
                     <h4><i class="fas fa-exclamation-triangle"></i> Nota Científica</h4>
                     <p>Esta información es de carácter educativo y científico. Para uso medicinal, consulte siempre con un profesional de la salud.</p>
                 </div>
+            </div> <!-- Cierra info-planta-container -->
             `;
 
             container.innerHTML = html;

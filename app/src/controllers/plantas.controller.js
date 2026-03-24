@@ -15,8 +15,8 @@ const storage = multer.diskStorage({
             // En Producción (Render Disk)
             uploadPath = path.join(process.env.DATA_PATH, 'imagenes');
         } else {
-            // En Desarrollo
-            uploadPath = path.join(__dirname, '../../../recursos/imagenes');
+            // En Desarrollo: app/src/controllers -> ../../../frontend/recursos/imagenes
+            uploadPath = path.join(__dirname, '../../../frontend/recursos/imagenes');
         }
 
         if (!fs.existsSync(uploadPath)) {
@@ -57,22 +57,24 @@ export const obtenerPlantas = async (req, res) => {
         const query = `
             SELECT 
                 pf.id_planta as id,
-                pf.nombre_propio as nombre,
-                pf.imagen_path as imagen,
+                pf.nombres_comunes as nombre,
+                '' as imagen,
                 pf.fecha_sembrada,
                 pf.situacion,
                 pi.nombre_cientifico,
                 pi.descripcion,
                 pi.principio_activo,
-                pi.propiedades_curativas as propiedades,
-                pi.nombres_comunes,
+                pi.propiedades_curativas,
+                pi.distribucion_geografica,
+                pf.nombres_comunes as nombres_comunes,
                 pi.morfologia,
                 pi.bibliografia,
                 pi.genero,
-                pi.fotos_crecimiento
+                pi.fotos_crecimiento,
+                (SELECT COUNT(*) FROM remedios r WHERE r.nombre_cientifico = pi.nombre_cientifico) as total_remedios
             FROM planta_fisica pf
             LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
-            ORDER BY pf.nombre_propio
+            ORDER BY pf.nombres_comunes
         `;
 
         const plantas = await db.allAsync(query);
@@ -128,18 +130,20 @@ export const obtenerPlantaPorId = async (req, res) => {
         const query = `
             SELECT 
                 pf.id_planta as id,
-                pf.nombre_propio as nombre,
-                pf.imagen_path as imagen,
+                pf.nombres_comunes as nombre,
+                '' as imagen,
                 pf.fecha_sembrada,
                 pf.situacion,
                 pi.nombre_cientifico,
                 pi.descripcion,
                 pi.principio_activo,
-                pi.propiedades_curativas as propiedades,
-                pi.nombres_comunes,
+                pi.propiedades_curativas,
+                pi.distribucion_geografica,
+                pf.nombres_comunes as nombres_comunes,
                 pi.morfologia,
                 pi.bibliografia,
-                pi.genero
+                pi.genero,
+                pi.fotos_crecimiento
             FROM planta_fisica pf
             LEFT JOIN planta_info pi ON pf.nombre_cientifico = pi.nombre_cientifico
             WHERE pi.nombre_cientifico = ?
@@ -220,11 +224,11 @@ export const crearPlanta = async (req, res) => {
             nombre, // maps to nombres_comunes in planta_info AND nombre_propio in planta_fisica
             nombre_cientifico,
             descripcion,
-            propiedades,
+            propiedades_curativas,
             principio_activo,
             genero,
             morfologia,
-            zona_geografica, // maps to distribucion_geografica
+            distribucion_geografica,
             fecha_sembrada,
             situacion,
             bibliografia
@@ -264,35 +268,33 @@ export const crearPlanta = async (req, res) => {
 
         const infoQuery = `
             INSERT OR IGNORE INTO planta_info 
-            (nombre_cientifico, descripcion, principio_activo, propiedades_curativas, nombres_comunes, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (nombre_cientifico, descripcion, principio_activo, propiedades_curativas, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         await db.runAsync(infoQuery, [
             nombre_cientifico,
             descripcion || '',
             principio_activo || '',
-            propiedades || '',
-            nombre || '',
+            propiedades_curativas || '',
             bibliografia || '',
             fotosCrecimientoJSON,
             genero || '',
             morfologia || '',
-            zona_geografica || ''
+            distribucion_geografica || ''
         ]);
 
         // 5. Crear la Planta Fisica
         const fisicaQuery = `
             INSERT INTO planta_fisica
-            (nombre_propio, fecha_sembrada, situacion, imagen_path, nombre_cientifico)
-            VALUES (?, ?, ?, ?, ?)
+            (nombres_comunes, fecha_sembrada, situacion, nombre_cientifico)
+            VALUES (?, ?, ?, ?)
         `;
 
         const resultado = await db.runAsync(fisicaQuery, [
             nombre,
             fecha_sembrada || new Date().toISOString().split('T')[0],
             situacion || 'Sana',
-            '', // Imagen principal eliminada (vacía)
             nombre_cientifico
         ]);
 
@@ -349,11 +351,11 @@ export const actualizarPlanta = async (req, res) => {
             nombre,
             // nombre_cientifico (del body puede ser nuevo si lo cambiaron)
             descripcion,
-            propiedades,
+            propiedades_curativas,
             principio_activo,
             genero,
             morfologia,
-            zona_geografica,
+            distribucion_geografica,
             fecha_sembrada,
             situacion,
             bibliografia
@@ -386,15 +388,14 @@ export const actualizarPlanta = async (req, res) => {
             // 1. Insertar nueva Info Científica con el nuevo nombre
             const insertInfoQuery = `
                 INSERT INTO planta_info 
-                (nombre_cientifico, descripcion, propiedades_curativas, principio_activo, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica, nombres_comunes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (nombre_cientifico, descripcion, propiedades_curativas, principio_activo, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             await db.runAsync(insertInfoQuery, [
                 nuevoNombreCientifico,
-                descripcion, propiedades, principio_activo,
+                descripcion, propiedades_curativas, principio_activo,
                 bibliografia, fotosCrecimientoJSON,
-                genero || '', morfologia || '', zona_geografica || '',
-                nombre || ''
+                genero || '', morfologia || '', distribucion_geografica || ''
             ]);
 
             // 2. Mover Referencias de Hijos (Foreign Keys)
@@ -405,12 +406,12 @@ export const actualizarPlanta = async (req, res) => {
             // 3. Actualizar Planta Física Específica
             if (idFisico) {
                 await db.runAsync(
-                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE id_planta = ?',
+                    'UPDATE planta_fisica SET nombres_comunes = ?, fecha_sembrada = ?, situacion = ? WHERE id_planta = ?',
                     [nombre, fecha_sembrada, situacion, idFisico]
                 );
             } else {
                 await db.runAsync(
-                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE nombre_cientifico = ?',
+                    'UPDATE planta_fisica SET nombres_comunes = ?, fecha_sembrada = ?, situacion = ? WHERE nombre_cientifico = ?',
                     [nombre, fecha_sembrada, situacion, nuevoNombreCientifico]
                 );
             }
@@ -434,20 +435,20 @@ export const actualizarPlanta = async (req, res) => {
             `;
 
             await db.runAsync(updateInfoQuery, [
-                descripcion, propiedades, principio_activo,
+                descripcion, propiedades_curativas, principio_activo,
                 bibliografia, fotosCrecimientoJSON,
-                genero || '', morfologia || '', zona_geografica || '',
+                genero || '', morfologia || '', distribucion_geografica || '',
                 nombreDecoded
             ]);
 
             if (idFisico) {
                 await db.runAsync(
-                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE id_planta = ?',
+                    'UPDATE planta_fisica SET nombres_comunes = ?, fecha_sembrada = ?, situacion = ? WHERE id_planta = ?',
                     [nombre, fecha_sembrada, situacion, idFisico]
                 );
             } else {
                 await db.runAsync(
-                    'UPDATE planta_fisica SET nombre_propio = ?, fecha_sembrada = ?, situacion = ? WHERE nombre_cientifico = ?',
+                    'UPDATE planta_fisica SET nombres_comunes = ?, fecha_sembrada = ?, situacion = ? WHERE nombre_cientifico = ?',
                     [nombre, fecha_sembrada, situacion, nombreDecoded]
                 );
             }
@@ -471,17 +472,6 @@ export const eliminarPlanta = async (req, res) => {
         const nombreDecoded = decodeURIComponent(nombre_cientifico);
 
         // Eliminar Info Científica (Cascade lógico)
-        // Primero borrar físicas
-        const plantasFisicas = await db.allAsync('SELECT * FROM planta_fisica WHERE nombre_cientifico = ?', [nombreDecoded]);
-
-        for (let p of plantasFisicas) {
-            // Eliminar imagen física si existiera (legacy)
-            if (p.imagen_path) {
-                let rutaImagen = path.join(__dirname, '../../../recursos/imagenes', p.imagen_path);
-                if (process.env.DATA_PATH) rutaImagen = path.join(process.env.DATA_PATH, 'imagenes', p.imagen_path);
-                if (fs.existsSync(rutaImagen)) fs.unlinkSync(rutaImagen);
-            }
-        }
 
         await db.runAsync('DELETE FROM planta_fisica WHERE nombre_cientifico = ?', [nombreDecoded]);
         await db.runAsync('DELETE FROM planta_info WHERE nombre_cientifico = ?', [nombreDecoded]);

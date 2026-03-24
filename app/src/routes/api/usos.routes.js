@@ -1,7 +1,7 @@
 
 import { Router } from 'express';
 import db from '../../config/database.js';
-import { requireAuth, requireAdmin } from '../../middleware/auth.middleware.js';
+import { verificarToken, verificarAdmin } from '../../controllers/auth.controller.js';
 
 import { obtenerUsos, obtenerUsoPorId, crearUso, actualizarUso, eliminarUso } from '../../controllers/usos.controller.js';
 
@@ -12,8 +12,8 @@ router.get('/', obtenerUsos);
 router.get('/:id', obtenerUsoPorId);
 
 // Rutas protegidas (Admin)
-router.post('/', requireAuth, requireAdmin, crearUso);
-router.put('/:id', requireAuth, requireAdmin, actualizarUso);
-router.delete('/:id', requireAuth, requireAdmin, eliminarUso);
+router.post('/', verificarToken, verificarAdmin, crearUso);
+router.put('/:id', verificarToken, verificarAdmin, actualizarUso);
+router.delete('/:id', verificarToken, verificarAdmin, eliminarUso);
 
 export default router;

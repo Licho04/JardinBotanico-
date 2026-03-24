@@ -11,7 +11,6 @@ const initDatabase = () => {
             descripcion TEXT,
             principio_activo TEXT,
             propiedades_curativas TEXT,
-            nombres_comunes TEXT,
             morfologia TEXT,
             bibliografia TEXT,
             distribucion_geografica TEXT,
@@ -23,10 +22,9 @@ const initDatabase = () => {
     const crearTablaPlantaFisica = `
         CREATE TABLE IF NOT EXISTS planta_fisica (
             id_planta INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre_propio TEXT,
+            nombres_comunes TEXT,
             fecha_sembrada TEXT,
             situacion TEXT, -- 'Sana', 'Enferma', etc.
-            imagen_path TEXT,
             nombre_cientifico TEXT, -- FK a planta_info
             FOREIGN KEY (nombre_cientifico) REFERENCES planta_info(nombre_cientifico)
         )

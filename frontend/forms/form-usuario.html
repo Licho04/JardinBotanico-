@@ -1,0 +1,37 @@
+<h2 id="form-usuario-title">Agregar nuevo usuario</h2>
+<form id="form-usuario" onsubmit="submitFormUsuario(event, this)">
+    <input type="hidden" id="usuario-action-method" value="POST">
+    <input type="hidden" id="usuario-original" value="">
+    
+    <label>
+        Usuario:
+        <input type="text" id="usuario-username" name="usuario" required placeholder="Nombre de usuario">
+    </label>
+    <label>
+        Nombre:
+        <input type="text" id="usuario-nombre" name="nombre" required placeholder="Nombre completo">
+    </label>
+    <label>
+        Correo:
+        <input type="email" id="usuario-correo" name="mail" required placeholder="correo@ejemplo.com">
+    </label>
+    <label>
+        Contraseña:
+        <input type="password" id="usuario-password" name="password" placeholder="Dejar vacío para no cambiar">
+    </label>
+    <label>
+        Tipo:
+        <select id="usuario-tipo" name="tipo" required>
+            <option value="0">Usuario</option>
+            <option value="1">Administrador</option>
+        </select>
+    </label>
+    <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+        <button type="submit" id="btn-submit-usuario">
+            <i class="fas fa-save"></i> Guardar
+        </button>
+        <button type="button" onclick="document.getElementById('modal-dinamico').style.display='none'">
+            <i class="fas fa-times"></i> Cancelar
+        </button>
+    </div>
+</form>

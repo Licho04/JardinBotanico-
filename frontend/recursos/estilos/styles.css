@@ -614,15 +614,20 @@ body {
 }
 
 /* ===== TABLAS ADMINISTRATIVAS ===== */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--blanco);
+    border-radius: 16px;
+    box-shadow: var(--sombra-suave);
+    margin-bottom: 24px;
+}
+
 table {
     width: 100%;
     min-width: 800px;
     border-collapse: collapse;
     background: var(--blanco);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: var(--sombra-suave);
-    margin-bottom: 24px;
 }
 
 th {

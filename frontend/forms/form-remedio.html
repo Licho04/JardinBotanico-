@@ -1,0 +1,96 @@
+<h2 id="form-remedio-title">Nuevo Remedio</h2>
+
+<p style="margin-bottom: 20px; color: #555;">
+    <i class="fas fa-leaf"></i> Planta: <strong id="remedio-planta-nombre">...</strong>
+</p>
+
+    <form id="form-remedio" onsubmit="submitFormRemedio(event, this)">
+        <input type="hidden" id="remedio-action-method" value="POST">
+        <input type="hidden" id="remedio-id" value="">
+        <input type="hidden" id="remedio-nombre-cientifico" name="nombre_cientifico" value="">
+
+        <label>
+            Nombre del Remedio:
+            <input type="text" id="remedio-nombre" name="nombre" required placeholder="Ej: Té para la tos">
+        </label>
+
+        <label>
+            Descripción:
+            <textarea id="remedio-descripcion" name="descripcion" required rows="3"></textarea>
+        </label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <label>
+                Parte Utilizada:
+                <input type="text" id="remedio-parte" name="parte">
+            </label>
+            <label>
+                Formato:
+                <input type="text" id="remedio-formato" name="formato" placeholder="Ej: Infusión">
+            </label>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <label>
+                Dosis (Cantidad):
+                <input type="number" step="0.1" id="remedio-dosis-cantidad" name="dosis_cantidad">
+            </label>
+            <label>
+                Unidad:
+                <input type="text" id="remedio-dosis-unidad" name="dosis_unidad" placeholder="mg, ml, tazas">
+            </label>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <label>
+                Tiempo Efectividad:
+                <input type="text" id="remedio-tiempo" name="tiempo_efectividad">
+            </label>
+            <div style="display: flex; align-items: center; padding-top: 25px;">
+                <label style="display: flex; flex-direction: row; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="remedio-medico" name="checar_medico" checked style="width: auto;">
+                    Consultar al médico
+                </label>
+            </div>
+        </div>
+
+        <label>
+            Usos (Aplicaciones):
+            <div id="remedio-usos-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; border: 2px solid #e0e0e0; padding: 10px; border-radius: 12px; max-height: 150px; overflow-y: auto; background: #f5f5f5; margin-top: 5px;">
+                <!-- Cargados dinámicamente -->
+            </div>
+        </label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <label>
+                Contraindicaciones: <small>(Separar por comas)</small>
+                <textarea id="remedio-contraindicaciones" name="contraindicaciones"></textarea>
+            </label>
+            <label>
+                Efectos Secundarios: <small>(Separar por comas)</small>
+                <textarea id="remedio-efectos" name="efectos_secundarios"></textarea>
+            </label>
+        </div>
+
+        <div class="pasos-section" style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; color: #2e7d32; font-size: 1.1rem;">Pasos de Preparación</h3>
+                <button type="button" onclick="agregarPasoInput()" style="padding: 5px 10px; font-size: 0.9rem;">
+                    <i class="fas fa-plus"></i> Agregar
+                </button>
+            </div>
+            <div id="lista-pasos">
+                <!-- Cargados dinámicamente -->
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
+            <button type="submit">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+            <!-- OJO: volvemos a la tabla de gestionar remedios -->
+            <button type="button" onclick="gestionarRemedios()" style="background: #757575;">
+                <i class="fas fa-arrow-left"></i> Cancelar
+            </button>
+        </div>
+    </form>

@@ -16,15 +16,22 @@
     <!-- HEADER SIMPLIFICADO -->
     <header class="encabezado">
         <div class="encabezado-izquierda">
-            <img src="/recursos/imagenes/logo_transparente.png" alt="Logo" class="logo">
-            <h1 class="titulo">Panel de Administración</h1>
+            <img src="/recursos/imagenes/logo_transparente.png" alt="Logo Plantas Medicinales" class="logo">
+            <div>
+                <h1 class="titulo">Jardín de Plantas Medicinales</h1>
+            </div>
         </div>
         <nav class="navegacion">
-            <a href="/index.html">Ver Sitio</a>
+            <a href="/">Inicio</a>
             <a href="/historia.html">Historia</a>
-            <div class="menu-hamburguesa">
+
+            <a href="/login.html" class="btn-sesion" id="link-login" style="display:none;">Iniciar Sesión</a>
+
+            <div class="menu-hamburguesa" id="user-menu" style="display: flex;">
                 <button id="btn-menu">&#9776;</button>
                 <div id="menu-opciones" style="display: none;">
+                    <a href="/perfil.html">Perfil</a>
+                    <a href="/admin.html" id="link-admin">Administrador</a>
                     <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
                 </div>
             </div>
@@ -33,18 +40,20 @@
 
     <main class="admin-dashboard">
         <aside class="admin-sidebar" id="sidebar-menu">
+            <div class="admin-user-info" style="padding: 15px; margin-bottom: 15px; background: #e8f5e9; border-radius: 8px; text-align: center; border-bottom: 2px solid #c8e6c9;">
+                <i class="fas fa-user-circle" style="font-size: 2rem; color: var(--verde-oscuro); margin-bottom: 8px;"></i>
+                <p style="margin: 0; font-weight: bold; color: var(--texto-principal);" id="admin-display-name">Cargando...</p>
+                <span class="badge" style="background: #d1c4e9; color: #512da8; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; display: inline-block; margin-top: 5px;">Administrador</span>
+            </div>
+            
             <button class="sidebar-btn" data-view="usuarios"><i class="fas fa-users"></i> Administrar usuarios</button>
             <button class="sidebar-btn" data-view="plantas"><i class="fas fa-leaf"></i> Administrar plantas</button>
-            <button class="sidebar-btn" data-view="solicitudes"><i class="fas fa-seedling"></i> Solicitudes
-                donación</button>
+            <button class="sidebar-btn" data-view="solicitudes"><i class="fas fa-seedling"></i> Solicitudes de donación</button>
             <button class="sidebar-btn" data-view="usos"><i class="fas fa-tags"></i> Administrar usos</button>
             <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
-            <a href="#" class="sidebar-btn" id="btn-backup"
-                style="text-decoration: none; display: block; color: var(--texto-principal);">
+            <button class="sidebar-btn" id="btn-backup" onclick="descargarRespaldo()"
+                style="cursor:pointer; background:none; border:none; width:100%; text-align:left;">
                 <i class="fas fa-database"></i> Respaldar Base de Datos
-            </a>
-            <button class="sidebar-btn" style="background:#dc3545; color:white;" onclick="mostrarModalRestaurar()">
-                <i class="fas fa-upload"></i> Restaurar BD
             </button>
         </aside>
 
@@ -58,6 +67,11 @@
     <div id="modal-dinamico" class="modal" style="display:none;">
         <div class="modal-content" id="modal-content"></div>
     </div>
+    
+    <!-- Modal Anidado (para remedios dentro de edición de plantas) -->
+    <div id="modal-inner" class="modal" style="display:none; z-index: 1001;">
+        <div class="modal-content" id="modal-inner-content"></div>
+    </div>
 
     <!-- Modal Ver Donación -->
     <div id="modal-ver-donacion" class="modal" style="display:none;">
@@ -69,17 +83,24 @@
         </div>
     </div>
 
-    <div id="modal-restaurar" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="document.getElementById('modal-restaurar').style.display='none'">&times;</span>
-            <h2 style="color: #c0392b;"><i class="fas fa-exclamation-triangle"></i> Restaurar Base de Datos</h2>
-            <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;">Sube un archivo .sqlite para reemplazar la
-                base de datos de producción completa.</p>
-            <form id="form-restaurar" onsubmit="restaurarDB(event, this)">
-                <input type="file" name="backup_file" accept=".sqlite,.db" required>
-                <button type="submit" style="background: #c0392b; margin-top:20px;">Restaurar Datos Ahora</button>
-            </form>
-            <div id="restaurar-status" style="margin-top: 20px; font-weight: bold;"></div>
+    <!-- Modal QR Code -->
+    <div id="modal-qr" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 420px; width: 90%; text-align: center;">
+            <span class="close" onclick="document.getElementById('modal-qr').style.display='none'">&times;</span>
+            <h2 style="color: #4f46e5; margin-bottom: 10px;"><i class="fas fa-qrcode"></i> Código QR</h2>
+            <p id="qr-planta-nombre" style="color: #666; font-style: italic; margin-bottom: 15px;"></p>
+            <div id="qr-canvas-container" style="display:flex; justify-content:center; margin-bottom: 20px; min-height:260px; align-items:center;">
+                <!-- qrcode.js renders here -->
+            </div>
+            <p style="font-size:0.85rem; color:#888; margin-bottom:15px;">Escanea este código para ver la ficha de la planta.</p>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <a id="qr-download-link" href="#" download="qr_planta.png" style="background:#4f46e5; color:white; padding:10px 20px; border-radius:6px; text-decoration:none; font-size:0.9rem;">
+                    <i class="fas fa-download"></i> Descargar QR
+                </a>
+                <button onclick="document.getElementById('modal-qr').style.display='none'" style="background:#666; color:white; padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem;">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -102,14 +123,21 @@
                     alert("Acceso denegado. No eres administrador.");
                     window.location.href = '/index.html';
                 }
+                
+                // Show admin info in sidebar
+                const displayName = user.nombre || user.usuario || 'Admin';
+                document.getElementById('admin-display-name').textContent = displayName;
+                
             } catch (e) {
                 localStorage.removeItem('token');
+                localStorage.removeItem('usuario');
                 window.location.href = '/login.html';
             }
         }
 
         function cerrarSesion() {
             localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
             window.location.href = '/login.html';
         }
 
@@ -158,28 +186,45 @@
         // --- 3. RENDERIZADORES DE TABLAS ---
         function renderTablaUsos(usos) {
             let html = `
-                <div class="cabecera-seccion">
-                    <h2><i class="fas fa-tags"></i> Usos Medicinales</h2>
-                    <button class="btn-nuevo" onclick="abrirModalUso()"><i class="fas fa-plus"></i> Nuevo Uso</button>
-                </div>
-                <div class="tabla-contenedor">
-                    <table class="tabla-admin">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h2>Gestión de Catálogo de Usos</h2>
+                        <div class="header-actions">
+                            <button class="btn-main" onclick="abrirModalUso()">
+                                <i class="fas fa-plus"></i> Nuevo Uso
+                            </button>
+                        </div>
+                    </div>
+                    <table class="admin-table">
                         <thead><tr><th>Nombre</th><th>Tipo</th><th>Descripción</th><th>Acciones</th></tr></thead>
                         <tbody>
             `;
-            usos.forEach(uso => {
-                html += `
-                    <tr>
-                        <td>${uso.nombre}</td>
-                        <td><span class="badge badge-primary">${uso.tipo || 'General'}</span></td>
-                        <td title="${uso.descripcion}">${(uso.descripcion || '').substring(0, 50)}...</td>
-                        <td>
-                            <button class="btn-accion btn-editar" title="Editar Uso"><i class="fas fa-edit"></i></button>
-                            <button class="btn-accion btn-eliminar" title="Eliminar Uso" onclick="eliminarEntidad('usos', ${uso.id})"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            });
+            if (usos && usos.length > 0) {
+                usos.forEach(uso => {
+                    html += `
+                        <tr>
+                            <td>${uso.nombre}</td>
+                            <td>
+                                <span class="badge badge-${uso.tipo === 'Medicinal' ? 'success' : 'primary'}" 
+                                      style="background: ${uso.tipo === 'Medicinal' ? '#d4edda' : '#cce5ff'}; color: ${uso.tipo === 'Medicinal' ? '#155724' : '#004085'}; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem;">
+                                    ${uso.tipo || 'General'}
+                                </span>
+                            </td>
+                            <td>${(uso.descripcion || 'Sin descripción')}</td>
+                            <td class="actions-cell">
+                                <button type="button" class="btn-edit" onclick="abrirModalUso('${uso.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn-delete" onclick="eliminarEntidad('usos', ${uso.id})" title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #666;">No hay usos registrados en el catálogo.</td></tr>`;
+            }
             html += `</tbody></table></div>`;
             document.getElementById('admin-content').innerHTML = html;
         }
@@ -210,7 +255,7 @@
                                 <button class="btn-edit" onclick="editarPlanta('${p.nombre_cientifico}')" title="Modificar">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn-secondary btn-qr" onclick="alert('Generar QR //TODO')" title="QR" style="width: 35px; height: 35px; padding: 0; justify-content: center; border-radius: 8px;">
+                                <button class="btn-qr" onclick="generarQR('${p.nombre_cientifico}', '${(p.nombres_comunes || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Generar QR" style="background-color: #4f46e5; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">
                                     <i class="fas fa-qrcode"></i>
                                 </button>
                                 <button class="btn-delete" onclick="eliminarEntidad('plantas', '${p.nombre_cientifico}')" title="Eliminar">
@@ -296,7 +341,7 @@
                             <td>${new Date(solicitud.fecha_donacion || solicitud.fecha).toLocaleDateString('es-MX')}</td>
                             <td><span class="estado-badge ${estadoClass}">${solicitud.estado || 'pendiente'}</span></td>
                             <td style="text-align: center;">
-                                <button class="btn-secondary" onclick='verDetallesDonacion(${JSON.stringify(solicitud).replace(/'/g, "\\'")})' title="Ver Completo" style="width: 35px; height: 35px; padding: 0; justify-content: center; border-radius: 8px;">
+                                <button class="btn-view" onclick='verDetallesDonacion(${JSON.stringify(solicitud).replace(/'/g, "\\'")})' title="Ver Completo" style="background: #2196F3; color: white;">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </td>
@@ -325,31 +370,32 @@
         }
 
         // USOS
-        async function abrirModalUso() {
-            const html = await cargarFormulario('/forms/form-uso.html');
-            document.getElementById('modal-content').innerHTML = html;
-            document.getElementById('form-uso-title').textContent = 'Agregar Nuevo Uso';
-            document.getElementById('id_uso').value = '';
-            document.getElementById('modal-dinamico').style.display = 'flex';
-        }
-
-        async function editarUso(id) {
+        async function abrirModalUso(id) {
             try {
                 const html = await cargarFormulario('/forms/form-uso.html');
                 document.getElementById('modal-content').innerHTML = html;
 
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/usos/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                const uso = await res.json();
+                if (id) {
+                    // EDIT MODE
+                    document.getElementById('form-uso-title').textContent = 'Editar Uso';
+                    document.getElementById('id_uso').value = id;
 
-                document.getElementById('form-uso-title').textContent = 'Editar Uso';
-                document.getElementById('id_uso').value = uso.id;
-                document.getElementById('uso-nombre').value = uso.nombre || '';
-                document.getElementById('uso-tipo').value = uso.tipo || 'Medicinal';
-                document.getElementById('uso-descripcion').value = uso.descripcion || '';
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${API_URL}/usos/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if (!res.ok) throw new Error('Error obteniendo uso');
+                    const uso = await res.json();
+
+                    document.getElementById('uso-nombre').value = uso.nombre || '';
+                    document.getElementById('uso-tipo').value = uso.tipo || 'Medicinal';
+                    document.getElementById('uso-descripcion').value = uso.descripcion || '';
+                } else {
+                    // NEW MODE
+                    document.getElementById('form-uso-title').textContent = 'Agregar Nuevo Uso';
+                    document.getElementById('id_uso').value = '';
+                }
 
                 document.getElementById('modal-dinamico').style.display = 'flex';
-            } catch (e) { alert('Error cargando uso'); }
+            } catch (e) { alert('Error cargando formulario de uso: ' + e.message); }
         }
 
         async function submitFormUso(e, form) {
@@ -375,6 +421,77 @@
             } catch (err) { alert('Error de red'); }
         }
 
+        // USUARIOS
+        async function agregarUsuario() {
+            const html = await cargarFormulario('/forms/form-usuario.html');
+            document.getElementById('modal-content').innerHTML = html;
+            document.getElementById('form-usuario-title').textContent = 'Agregar Nuevo Usuario';
+            document.getElementById('usuario-action-method').value = 'POST';
+            document.getElementById('usuario-original').value = '';
+            document.getElementById('modal-dinamico').style.display = 'flex';
+        }
+
+        async function editarUsuario(username) {
+            try {
+                const html = await cargarFormulario('/forms/form-usuario.html');
+                document.getElementById('modal-content').innerHTML = html;
+
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/usuarios/${encodeURIComponent(username)}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                
+                if (!res.ok) throw new Error("Error obteniendo usuario");
+                const u = await res.json();
+
+                document.getElementById('form-usuario-title').textContent = 'Editar Usuario';
+                document.getElementById('usuario-action-method').value = 'PUT';
+                document.getElementById('usuario-original').value = u.usuario;
+
+                document.getElementById('usuario-username').value = u.usuario || '';
+                document.getElementById('usuario-username').readOnly = true;
+                document.getElementById('usuario-nombre').value = u.nombre || '';
+                document.getElementById('usuario-correo').value = u.correo || u.mail || '';
+                
+                // Set the correct option programmatically
+                const tipoSelect = document.getElementById('usuario-tipo');
+                const isAdmin = (u.tipo == 1 || u.tipo === 'admin');
+                tipoSelect.value = isAdmin ? '1' : '0';
+
+                const passwordInput = document.getElementById('usuario-password');
+                passwordInput.required = false;
+                passwordInput.placeholder = "Dejar vacío para no cambiar";
+
+                document.getElementById('modal-dinamico').style.display = 'flex';
+            } catch (e) { alert('Error cargando usuario: ' + e.message); }
+        }
+
+        async function submitFormUsuario(e, form) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            const method = document.getElementById('usuario-action-method').value;
+            const originalUser = document.getElementById('usuario-original').value;
+            const url = method === 'PUT' ? `${API_URL}/usuarios/${encodeURIComponent(originalUser)}` : `${API_URL}/usuarios`;
+
+            // Clean up password field if left empty during an edit
+            if (method === 'PUT' && !data.password) {
+                delete data.password;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (res.ok || result.success) {
+                    alert('Usuario guardado con éxito');
+                    document.getElementById('modal-dinamico').style.display = 'none';
+                    document.querySelector('.sidebar-btn[data-view="usuarios"]').click();
+                } else alert('Error: ' + (result.error || 'Error en la petición'));
+            } catch (err) { alert('Error de red al crear/editar usuario'); }
+        }
+
         // PLANTAS
         async function abrirModalPlanta() {
             const html = await cargarFormulario('/forms/form-planta.html');
@@ -395,6 +512,7 @@
                 document.getElementById('form-planta-title').textContent = 'Editar Planta';
                 document.getElementById('planta-action-method').value = 'PUT';
                 document.getElementById('planta-original-cientifico').value = p.nombre_cientifico;
+                document.getElementById('planta-id-fisico').value = p.id_planta || p.id || '';
 
                 document.getElementById('planta-nombre').value = p.nombres_comunes || '';
                 document.getElementById('planta-cientifico').value = p.nombre_cientifico || '';
@@ -413,20 +531,42 @@
                 try {
                     const fotos = JSON.parse(p.fotos_crecimiento || '[]');
                     const gContainer = document.getElementById('gallery-manager');
-                    fotos.forEach(foto => {
-                        gContainer.innerHTML += `
-                            <div class="gallery-item" style="display:flex; align-items:center; gap:10px; padding:5px; border:1px solid #ccc;">
-                                <img src="/recursos/imagenes/${foto}" style="width:40px;height:40px;object-fit:cover;">
-                                <span>${foto}</span>
-                                <input type="hidden" name="imagenes_orden[]" value="${foto}">
-                                <button type="button" onclick="this.parentElement.remove()">❌</button>
-                            </div>
+                    gContainer.innerHTML = ''; // Limpiar galería previa
+                    fotos.forEach((foto, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'gallery-item';
+                        item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #ddd; border-radius:6px; background:#fafafa; margin-bottom:6px;';
+                        item.innerHTML = `
+                            <img src="/recursos/imagenes/${foto}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;border:1px solid #ccc;" onerror="this.src='';this.style.background='#eee';">
+                            <span style="flex:1; font-size:0.85rem; color:#555; word-break:break-all;">${foto}</span>
+                            <input type="hidden" name="imagenes_orden[]" value="${foto}">
+                            <button type="button" onclick="moverFotoGaleria(this, -1)" title="Subir" style="background:#4b6e3c;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button type="button" onclick="moverFotoGaleria(this, 1)" title="Bajar" style="background:#4b6e3c;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                            <button type="button" onclick="this.closest('.gallery-item').remove()" title="Eliminar" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         `;
+                        gContainer.appendChild(item);
                     });
                 } catch (e) { }
 
                 document.getElementById('modal-dinamico').style.display = 'flex';
             } catch (e) { alert('Error cargando planta'); }
+        }
+
+        // Mueve un item de la galería hacia arriba (-1) o hacia abajo (+1)
+        function moverFotoGaleria(btn, dir) {
+            const item = btn.closest('.gallery-item');
+            const container = item.parentElement;
+            if (dir === -1 && item.previousElementSibling) {
+                container.insertBefore(item, item.previousElementSibling);
+            } else if (dir === 1 && item.nextElementSibling) {
+                container.insertBefore(item.nextElementSibling, item);
+            }
         }
 
         async function submitFormPlanta(e, form) {
@@ -456,6 +596,281 @@
             } catch (err) { alert('Error de red al crear/editar planta'); }
         }
 
+        async function gestionarRemedios() {
+            try {
+                const cientifico = document.getElementById('planta-original-cientifico').value;
+                if (!cientifico) return alert("Guarda la planta primero antes de gestionar sus remedios.");
+
+                const res = await fetch(`${API_URL}/plantas/${encodeURIComponent(cientifico)}`);
+                const planta = await res.json();
+                
+                // Get the remedies table HTML
+                // For simplicity in decoupling, I'll generate the table directly here vs fetching an external HTML template just for a dynamic table
+                const remedios = planta.remedios || [];
+                let htmlRows = '';
+                
+                if (remedios.length > 0) {
+                    remedios.forEach(r => {
+                        htmlRows += `
+                        <tr>
+                            <td>${r.nombre}</td>
+                            <td>${r.descripcion}</td>
+                            <td>${r.parte || '-'}</td>
+                            <td>${r.formato || '-'}</td>
+                            <td class="actions-cell">
+                                <button type="button" class="btn-edit" onclick="editarRemedio('${r.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                                <button type="button" class="btn-delete" onclick="eliminarRemedio('${r.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    htmlRows = `<tr><td colspan="5" style="text-align: center; padding: 20px;">No hay remedios registrados para esta planta.</td></tr>`;
+                }
+
+                const tableHtml = `
+                <div class="table-container">
+                    <div class="table-header">
+                        <h2>Remedios para: ${planta.nombre_propio || planta.nombres_comunes || planta.nombre_cientifico}</h2>
+                        <div class="header-actions">
+                            <button type="button" class="btn-main" onclick="agregarRemedio('${planta.id_planta || ''}', '${planta.nombre_cientifico}')">
+                                <i class="fas fa-plus"></i> Nuevo Remedio
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('modal-inner').style.display='none'; document.getElementById('modal-dinamico').style.display='flex'">
+                                <i class="fas fa-arrow-left"></i> Volver a Planta
+                            </button>
+                        </div>
+                    </div>
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Parte Utilizada</th>
+                                <th>Formato</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>${htmlRows}</tbody>
+                    </table>
+                </div>`;
+
+                document.getElementById('modal-inner-content').innerHTML = tableHtml;
+                document.getElementById('modal-dinamico').style.display = 'none'; // Esconder formulario de planta principal
+                document.getElementById('modal-inner').style.display = 'flex'; // Mostrar gestor de remedios
+            } catch (e) { alert("Error al abrir gestión de remedios: " + e.message); }
+        }
+
+        // REMEDIOS
+        async function agregarRemedio(idPlanta, nombrePlantaCientifico) {
+            try {
+                const html = await cargarFormulario('/forms/form-remedio.html');
+                document.getElementById('modal-inner-content').innerHTML = html;
+                
+                document.getElementById('form-remedio-title').textContent = 'Nuevo Remedio';
+                document.getElementById('remedio-action-method').value = 'POST';
+                document.getElementById('remedio-id').value = '';
+                document.getElementById('remedio-nombre-cientifico').value = nombrePlantaCientifico;
+                document.getElementById('remedio-planta-nombre').textContent = nombrePlantaCientifico;
+                
+                await poblarUsosRemedio(); // Helper to fetch and populate checkboxes
+                
+                // Set default step
+                document.getElementById('lista-pasos').innerHTML = `
+                    <div class="paso-item" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                        <span class="paso-num" style="font-weight: bold; width: 25px; text-align: center; background: #e2e8f0; border-radius: 50%; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">1</span>
+                        <input type="text" name="pasos_desc[]" style="flex: 1; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f5f5f5;" placeholder="Describe el primer paso..." required>
+                        <button type="button" onclick="eliminarPaso(this)" style="background: #dc2626; color: white; padding: 5px 10px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;" disabled><i class="fas fa-times"></i></button>
+                    </div>`;
+
+                document.getElementById('modal-inner').style.display = 'flex';
+            } catch (e) { alert('Error preparando remedio: ' + e.message); }
+        }
+
+        async function editarRemedio(idRemedio) {
+            try {
+                const html = await cargarFormulario('/forms/form-remedio.html');
+                document.getElementById('modal-inner-content').innerHTML = html;
+
+                const res = await fetch(`${API_URL}/remedios/${idRemedio}`);
+                if (!res.ok) throw new Error("Remedio no encontrado");
+                const r = await res.json();
+                
+                document.getElementById('form-remedio-title').textContent = 'Editar Remedio';
+                document.getElementById('remedio-action-method').value = 'PUT';
+                document.getElementById('remedio-id').value = r.id;
+                
+                // Set the scientific name so it can be re-queried later
+                document.getElementById('remedio-nombre-cientifico').value = r.nombre_cientifico || '';
+                document.getElementById('remedio-planta-nombre').textContent = r.nombre_cientifico || 'Planta Seleccionada';
+
+                document.getElementById('remedio-nombre').value = r.nombre || '';
+                document.getElementById('remedio-descripcion').value = r.descripcion || '';
+                document.getElementById('remedio-parte').value = r.parte || '';
+                document.getElementById('remedio-formato').value = r.formato || '';
+                document.getElementById('remedio-dosis-cantidad').value = r.dosis_cantidad || '';
+                document.getElementById('remedio-dosis-unidad').value = r.dosis_unidad || '';
+                document.getElementById('remedio-tiempo').value = r.tiempo_efectividad || '';
+                document.getElementById('remedio-medico').checked = r.checar_medico !== 0;
+
+                // Arrays handling (comma separated strings vs literal JSON)
+                const contra = Array.isArray(r.contraindicaciones) ? r.contraindicaciones.map(c => c.descripcion).join(', ') : (r.contraindicaciones || '');
+                const efectos = Array.isArray(r.efectos_secundarios) ? r.efectos_secundarios.map(e => e.descripcion).join(', ') : (r.efectos_secundarios || '');
+                document.getElementById('remedio-contraindicaciones').value = contra;
+                document.getElementById('remedio-efectos').value = efectos;
+
+                // Load usos
+                const usosIds = Array.isArray(r.usos) ? r.usos.map(u => u.id) : [];
+                await poblarUsosRemedio(usosIds);
+
+                // Load pasos
+                if (r.pasos && Array.isArray(r.pasos) && r.pasos.length > 0) {
+                    let htmlPasos = '';
+                    r.pasos.forEach((p, idx) => {
+                        htmlPasos += `
+                            <div class="paso-item" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                                <span class="paso-num" style="font-weight: bold; width: 25px; text-align: center; background: #e2e8f0; border-radius: 50%; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">${idx + 1}</span>
+                                <input type="text" name="pasos_desc[]" value="${p.descripcion}" style="flex: 1; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f5f5f5;" required>
+                                <button type="button" onclick="eliminarPaso(this)" style="background: #dc2626; color: white; padding: 5px 10px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-times"></i></button>
+                            </div>`;
+                    });
+                    document.getElementById('lista-pasos').innerHTML = htmlPasos;
+                }
+
+                document.getElementById('modal-inner').style.display = 'flex';
+            } catch (e) { alert('Error cargando remedio: ' + e.message); }
+        }
+
+        async function poblarUsosRemedio(checkedIds = []) {
+            try {
+                const res = await fetch(`${API_URL}/usos`);
+                const allUsos = await res.json();
+                let html = '';
+                allUsos.forEach(uso => {
+                    const isChecked = checkedIds.includes(uso.id) ? 'checked' : '';
+                    html += `
+                    <label style="display: flex; flex-direction: row; align-items: center; gap: 5px; font-weight: normal; font-size: 0.9rem; margin: 0;">
+                        <input type="checkbox" name="usos" value="${uso.id}" style="width: auto;" ${isChecked}>
+                        ${uso.nombre}
+                    </label>
+                    `;
+                });
+                if (allUsos.length === 0) html = '<p style="color: #666; font-style: italic;">No hay usos registrados.</p>';
+                document.getElementById('remedio-usos-container').innerHTML = html;
+            } catch (e) { console.error('Error fetching usos array', e); }
+        }
+
+        window.agregarPasoInput = function() {
+            const container = document.getElementById('lista-pasos');
+            const items = container.querySelectorAll('.paso-item');
+            const newIndex = items.length + 1;
+            
+            const div = document.createElement('div');
+            div.className = 'paso-item';
+            div.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center;';
+            div.innerHTML = `
+                <span class="paso-num" style="font-weight: bold; width: 25px; text-align: center; background: #e2e8f0; border-radius: 50%; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">${newIndex}</span>
+                <input type="text" name="pasos_desc[]" style="flex: 1; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f5f5f5;" placeholder="Describe el paso ${newIndex}..." required>
+                <button type="button" onclick="eliminarPaso(this)" style="background: #dc2626; color: white; padding: 5px 10px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            actualizarNumerosPasos();
+        };
+
+        window.eliminarPaso = function(btn) {
+            const container = document.getElementById('lista-pasos');
+            if (container.children.length <= 1) return; // No eliminar el ultimo paso
+            btn.closest('.paso-item').remove();
+            actualizarNumerosPasos();
+        };
+
+        function actualizarNumerosPasos() {
+            const items = document.querySelectorAll('#lista-pasos .paso-item');
+            items.forEach((item, index) => {
+                const numSpan = item.querySelector('.paso-num');
+                const btnEliminar = item.querySelector('button');
+                const inputDesc = item.querySelector('input[name="pasos_desc[]"]');
+                numSpan.textContent = index + 1;
+                inputDesc.placeholder = 'Describe el paso ' + (index + 1) + '...';
+                if (items.length === 1) btnEliminar.disabled = true;
+                else btnEliminar.disabled = false;
+            });
+        }
+
+        async function submitFormRemedio(e, form) {
+            e.preventDefault();
+            const method = document.getElementById('remedio-action-method').value;
+            const remedioId = document.getElementById('remedio-id').value;
+            const url = method === 'PUT' ? `${API_URL}/remedios/${remedioId}` : `${API_URL}/remedios`;
+
+            const formData = new FormData(form);
+            const obj = {
+                pasos: [],
+                usos: []
+            };
+
+            // Recolectar campos de texto simples
+            const simpleFields = [
+                'nombre', 'descripcion', 'parte', 'formato',
+                'dosis_cantidad', 'dosis_unidad', 'tiempo_efectividad',
+                'nombre_cientifico', 'contraindicaciones', 'efectos_secundarios'
+            ];
+
+            simpleFields.forEach(field => {
+                if (formData.has(field)) obj[field] = formData.get(field);
+            });
+
+            // Checkbox booleano
+            obj.checar_medico = formData.has('checar_medico');
+
+            // Checkboxes múltiples (Usos)
+            const usosChecked = form.querySelectorAll('input[name="usos"]:checked');
+            usosChecked.forEach(cb => obj.usos.push(cb.value));
+
+            // Pasos (recolectar todos los inputs 'pasos_desc[]' en orden)
+            const pasosInputs = form.querySelectorAll('input[name="pasos_desc[]"]');
+            pasosInputs.forEach((input, index) => {
+                if (input.value.trim()) {
+                    obj.pasos.push({
+                        num_paso: index + 1,
+                        descripcion: input.value.trim()
+                    });
+                }
+            });
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(obj)
+                });
+                const result = await res.json();
+                if (res.ok || result.success) {
+                    alert('Remedio guardado con éxito');
+                    // Volvemos a la tabla de remedios
+                    gestionarRemedios();
+                } else alert('Error: ' + (result.error || 'Inválido'));
+            } catch (err) { alert('Error de red al guardar remedio'); }
+        }
+
+        async function eliminarRemedio(idRemedio) {
+            if (!confirm(`¿Seguro que deseas eliminar este remedio?`)) return;
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${API_URL}/remedios/${idRemedio}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    alert('Remedio eliminado con éxito');
+                    // Volvemos a la tabla de remedios para ver el cambio
+                    gestionarRemedios();
+                } else alert('Error al eliminar');
+            } catch (e) { alert('Error de red'); }
+        }
+
         // --- 4. ACCIONES CRUD GENÉRICAS ---
         async function eliminarEntidad(endpoint, id) {
             if (!confirm(`¿Seguro que deseas eliminar este registro de ${endpoint}?`)) return;
@@ -467,7 +882,7 @@
                 });
                 if (res.ok) {
                     alert('Eliminado con éxito');
-                    document.querySelector(`button[data-view="${endpoint}"]`).click(); // Recargar
+                    document.querySelector(`.sidebar-btn[data-view="${endpoint}"]`).click(); // Recargar
                 } else {
                     const err = await res.json();
                     alert('Error: ' + err.error);
@@ -475,7 +890,64 @@
             } catch (e) { alert('Error de red'); }
         }
 
-        // --- 6. LOGICA DE SOLICITUDES Y DONACIONES ---
+        // --- 5. RESPALDO Y QR ---
+        async function descargarRespaldo() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/system/backup`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    return alert('Error al generar respaldo: ' + (err.error || res.status));
+                }
+                // Convertir a blob y forzar descarga
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const fecha = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `respaldo_jardin_${fecha}.sqlite`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) { alert('Error de red al generar respaldo'); }
+        }
+
+        window.generarQR = function(nombreCientifico, nombreComun) {
+            const plantUrl = `${window.location.protocol}//${window.location.host}/index.html?planta=${encodeURIComponent(nombreCientifico)}`;
+
+            document.getElementById('qr-planta-nombre').textContent = nombreComun || nombreCientifico;
+
+            // Limpiar contenedor previo
+            const container = document.getElementById('qr-canvas-container');
+            container.innerHTML = '';
+
+            // Generar QR usando qrcodejs (ya cargado en <head>)
+            const qrInstance = new QRCode(container, {
+                text: plantUrl,
+                width: 250,
+                height: 250,
+                colorDark: '#1a3a1a',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Configurar botón de descarga tras un breve delay (tiempo para que qrcode renderice)
+            setTimeout(() => {
+                const canvas = container.querySelector('canvas');
+                if (canvas) {
+                    const link = document.getElementById('qr-download-link');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = `QR_${nombreCientifico.replace(/\s+/g, '_')}.png`;
+                }
+            }, 200);
+
+            document.getElementById('modal-qr').style.display = 'flex';
+        };
+
+
         window.verDetallesDonacion = function (solicitud) {
             try {
                 const html = `
@@ -528,12 +1000,17 @@
             e.preventDefault();
             const data = Object.fromEntries(new FormData(form).entries());
             const id = document.getElementById('resp-id_donacion').value;
+            // Remap form field names to match backend API expectations
+            const payload = {
+                estatus: data.estado,
+                comentarios: data.detalles || ''
+            };
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/solicitudes/${id}/actualizar`, {
+                const res = await fetch(`${API_URL}/solicitudes/${id}/estatus`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
                 const resp = await res.json();
                 if (res.ok || resp.success) {
