@@ -67,7 +67,8 @@ if (process.env.DATA_PATH) {
 }
 
 // Servir archivos estáticos del Frontend
-const frontendPath = path.join(__dirname, '../../frontend');
+// FRONTEND_PATH puede definirse en .env para apuntar a cualquier ruta en el servidor
+const frontendPath = process.env.FRONTEND_PATH || path.join(__dirname, '../../frontend');
 app.use(express.static(frontendPath));
 
 // Servir la carpeta de recursos explícitamente si se usa en paths absolutos (opcional, como /recursos)

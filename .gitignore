@@ -52,3 +52,7 @@ desktop.ini
 *.swp
 *.swo
 *~
+
+# Claves SSH y secretos (nunca subir)
+*.pem
+keylicho.pem

@@ -190,7 +190,16 @@
     <!-- SCRIPTS CORE -->
     <script>
         // CONFIGURACIÓN API (Relativa para funcionar en local y producción)
-        const API_URL = '/api';
+        const API_URL = window.location.hostname === 'localhost' ? '/api' : '/plantas/api';
+        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
+        if (window.location.hostname !== 'localhost') {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('a[href^="/"]').forEach(function(a) {
+                    var h = a.getAttribute('href');
+                    if (!h.startsWith('/plantas')) a.setAttribute('href', '/plantas' + h);
+                });
+            });
+        }
         let usuarioActual = null;
         let listaPlantasGlobal = [];
 
@@ -279,7 +288,7 @@
                     const fotos = JSON.parse(planta.fotos_crecimiento || '[]');
                     if (fotos.length > 0) {
                         // El path de las imágenes debe apuntar al servidor backend relativo
-                        imgHtml = `<img src="/recursos/imagenes/${fotos[0]}" style="width:100%;height:100%;object-fit:cover;">`;
+                        imgHtml = `<img src="${BASE_PATH}/recursos/imagenes/${fotos[0]}" style="width:100%;height:100%;object-fit:cover;">`;
                     }
                 } catch (e) { }
 

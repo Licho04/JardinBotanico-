@@ -1,97 +1,182 @@
-# Jardín de Plantas Medicinales - Sistema de Gestión de Plantas Medicinales
+# Jardín de Plantas Medicinales — Sistema de Gestión
 
-## Descripción del Proyecto
-Este proyecto es una aplicación web para la gestión y visualización interactiva de un Jardín de Plantas Medicinales. Permite a los visitantes explorar un catálogo de plantas, consultar sus propiedades curativas, aprender sobre remedios naturales y solicitar donaciones. Además, cuenta con un panel de administración completo para gestionar el inventario de plantas físicas, usuarios y el sistema de donaciones.
+## Descripción del proyecto
 
-⚠️ **Nota de Arquitectura:** El proyecto ha transitado exitosamente a una **arquitectura desacoplada**. El frontend consiste en archivos estáticos puros (Vanilla HTML, CSS, JS) alojados en el directorio `/frontend`, los cuales consumen asíncronamente (AJAX/Fetch) la API REST en JSON provista por el backend Node.js. Esto permite desplegar ambas aplicaciones por separado si así se desea, mejorando la escalabilidad del sistema.
+Aplicación web para la gestión y consulta de un jardín de plantas medicinales. Los visitantes pueden explorar el catálogo, revisar propiedades curativas, consultar remedios naturales y enviar solicitudes de donación. Los administradores gestionan inventario, usuarios, remedios, usos terapéuticos y donaciones desde un panel dedicado.
+
+**Arquitectura desacoplada:** el frontend son archivos estáticos (HTML, CSS y JavaScript vanilla) en `/frontend`, que consumen la API REST JSON del backend Node.js en `/app`. Ambas capas pueden desplegarse por separado.
 
 ## Créditos
-* **Diagrama de Clases y Estructura de Tablas:** Desarrollado por el estudiante **Angel Svein Ortiz Méndez**.
-* **Desarrollo del Software (Frontend, Backend y Funcionalidad):** Desarrollado por el estudiante **Luis Enrique Madrigal Martínez**.
 
-## Stack Tecnológico Utilizado
-* **Backend:** Node.js, Express.js (actuando como API RESTful)
-* **Frontend:** Vanilla HTML5, CSS3, JavaScript puro (AJAX/Fetch) - alojado de forma independiente en el directorio `/frontend`
-* **Base de Datos:** SQLite3
-* **Seguridad y Autenticación:** JSON Web Tokens (JWT) y bcrypt (encriptación de contraseñas).
-* **Gestión de Archivos:** Multer (usado para subir galerías fotográficas de las plantas y copias de seguridad de la base de datos).
+| Rol | Responsable |
+|-----|-------------|
+| Diagrama de clases y estructura de tablas | **Angel Svein Ortiz Méndez** |
+| Desarrollo (frontend, backend y funcionalidad) | **Luis Enrique Madrigal Martínez** |
 
-## Resumen del Modelo de Datos (Plantas)
-Para mantener la información organizada, el sistema divide a las plantas en dos conceptos principales dentro de la base de datos:
+## Stack tecnológico
 
-1. **Información Científica (`planta_info`):** Guarda la teoría y botánica universal de la especie.
-   * `nombre_cientifico` *(Llave primaria)*
-   * `genero`, `morfologia`, `distribucion_geografica`
-   * `descripcion`, `principio_activo`, `propiedades_curativas`
-   * `bibliografia`, `fotos_crecimiento` *(Galería visual)*
+| Capa | Tecnología |
+|------|------------|
+| Backend | Node.js, Express.js (API REST) |
+| Frontend | HTML5, CSS3, JavaScript (Fetch API) |
+| Base de datos | SQLite3 |
+| Autenticación | JWT, `express-session`, bcrypt |
+| Archivos | Multer (imágenes y respaldos `.sqlite`) |
 
-2. **Inventario Físico (`planta_fisica`):** Representa el espécimen real sembrado en la escuela/jardín.
-   * `id_planta` *(Llave primaria)*
-   * `nombre_propio` *(El nombre común con el que la conocemos)*
-   * `fecha_sembrada`
-   * `situacion` *(Estado de salud: Sana, Enferma, etc.)*
-   * `imagen_path` *(Rutas de imágenes específicas del espécimen)*
-   * `nombre_cientifico` *(Llave foránea que la conecta con toda su teoría)*
+## Estructura del repositorio
 
-3. **Remedios Naturales (`remedios`):** Recetas y tratamientos derivados de las plantas.
-   * `id` *(Llave primaria)*
-   * `nombre`, `descripcion`
-   * `parte` *(Parte de la planta usada: hoja, raíz, etc.)*
-   * `formato` *(Infusión, pomada, etc.)*
-   * `dosis_cantidad`, `dosis_unidad`, `tiempo_efectividad`
-   * `checar_medico` *(Advertencia si requiere consulta profesional)*
-   * Relacionado a detalle mediante tablas adicionales:
-     * `pasos` *(Instrucciones paso a paso para prepararlo)*
-     * `contraindicaciones` *(Cuándo no se debe usar)*
-     * `efectos_secundarios` *(Posibles reacciones)*
+```
+JardinBotanico/
+├── app/                          # Backend API
+│   ├── src/
+│   │   ├── config/               # Conexión e inicialización de BD
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── routes/               # Rutas API (incl. api/)
+│   │   ├── scripts/              # Utilidades de mantenimiento
+│   │   └── server.js             # Punto de entrada
+│   ├── database.sqlite           # BD local (desarrollo)
+│   └── package.json
+├── frontend/                     # Sitio estático
+│   ├── index.html, login.html, admin.html, …
+│   ├── forms/                    # Fragmentos HTML para modales del admin
+│   └── recursos/
+│       ├── estilos/styles.css
+│       └── imagenes/             # Uploads en desarrollo
+├── README.md
+├── REQUERIMIENTOS_TECNICOS.md
+└── REQUERIMIENTOS_FUNCIONALES_V2.md
+```
 
-4. **Catálogo de Usos (`usos` y `remedios_usos`):**
-   * El sistema clasifica para qué sirve cada remedio (Digestivo, Piel, etc.) mediante una tabla de categorías maestras (`usos`) que se conecta con los remedios (`remedios_usos`).
+Documentación técnica detallada: [REQUERIMIENTOS_TECNICOS.md](./REQUERIMIENTOS_TECNICOS.md).
 
-5. **Usuarios (`usuarios`):**
-   * `correo` *(Llave primaria)*
-   * `usuario`, `password`, `nombre`
-   * `tipo` *(Distingue entre el "admin" del sistema y los "usuarios" normales)*
-   * `intentos_fallidos`, `bloqueado_hasta` *(Medidas de seguridad contra fuerza bruta)*
+## Modelo de datos (resumen)
 
-6. **Donaciones (`donaciones`):** Gestión de las plantas que los visitantes desean donar al jardín.
-   * `id_donacion` *(Llave primaria)*
-   * `fecha_donacion`, `fecha_aceptada`, `estado` *(En proceso, Aceptada, Rechazada)*
-   * `correo_usuario` *(Llave foránea para saber quién hizo la donación)*
-   * *Información sobre la planta a donar:* `nombre_comun`, `descripcion`, `propiedades_curativas`, `distribucion_geografica`, `detalles`, `motivo`, `motivo_donacion`.
+El esquema sigue el diagrama UML del proyecto:
 
-7. **Distribución Independiente (`distribucion`):**
-   * `id`, `distribucion`, `nombre_cientifico`. *(Tabla adicional para categorizaciones geográficas complejas)*.
+| Tabla | Propósito |
+|-------|-----------|
+| `planta_info` | Taxonomía y datos científicos (`nombre_cientifico` PK) |
+| `planta_fisica` | Espécimen en el jardín (FK → `planta_info`) |
+| `distribucion` | Distribución geográfica por especie |
+| `remedios`, `pasos`, `contraindicaciones`, `efectos_secundarios` | Recetas y detalle |
+| `usos`, `remedios_usos` | Catálogo de usos y relación M:N con remedios |
+| `usuarios` | Cuentas (`correo` PK, `tipo`: `admin` \| `usuario`) |
+| `donaciones` | Solicitudes de donación de plantas |
 
-## Guía de Instalación Local
+> La API expone donaciones bajo `/api/solicitudes` por compatibilidad con el frontend existente.
 
-Para correr este proyecto en tu propia computadora, sigue estos cortos pasos:
+## Páginas del frontend
 
-### Paso 1: Requisitos
-Asegúrate de tener instalado **Node.js** en tu computadora. Puedes descargarlo desde [nodejs.org](https://nodejs.org/) (descarga la versión LTS).
+| Archivo | Descripción |
+|---------|-------------|
+| `index.html` | Catálogo público y detalle de plantas |
+| `login.html` / `registro.html` | Autenticación |
+| `perfil.html` | Perfil del usuario |
+| `historia.html` | Historia del jardín |
+| `mis-solicitudes.html` | Donaciones del usuario |
+| `admin.html` | Panel administrativo (CRUD completo) |
 
-### Paso 2: Preparar el proyecto
-1. Descarga o clona esta carpeta en tu computadora.
-2. Abre la terminal (o consola de comandos de tu editor, como VS Code) dentro de la carpeta principal del proyecto.
-3. Muévete hacia la carpeta del servidor escribiendo:
+## Instalación local
+
+### Requisitos
+
+- [Node.js](https://nodejs.org/) 18.x LTS (o superior)
+- npm 8+
+
+### Pasos
+
+1. Clona o descarga el repositorio.
+2. En la terminal, entra a la carpeta del servidor:
+
    ```bash
    cd app
    ```
 
-### Paso 3: Instalar e Iniciar Backend Localmente
-1. Dentro de la carpeta `/app`, instala las librerías necesarias con el gestor de paquetes (solo toma unos segundos):
+3. Instala dependencias e inicia el servidor:
+
    ```bash
    npm install
-   ```
-2. ¡Inicia el servidor Backend!
-   ```bash
    npm start
    ```
-3. El servidor Express servirá la carpeta `frontend/` estáticamente de manera predeterminada. Ve a tu navegador y entra a: **[http://localhost:3000](http://localhost:3000)** para ver el sitio web consumiendo la API.
 
-*(La base de datos SQLite viene incluida y se sincronizará automáticamente la primera vez que se arranque el proyecto, así que no se necesita instalar MySQL ni Postgre).*
+4. Abre en el navegador: **http://localhost:3001**
 
-## Despliegue Actual (Producción)
-El proyecto se encuentra en línea gracias a la plataforma **Render.com**. 
-Al ser un Web Service sin almacenamiento permanente en su plan básico, se ha implementado un Disco Persistente (`/var/data`) para asegurar que la base de datos (`database.sqlite`) y las imágenes subidas no se borren cuando el servidor se reinicia con cada actualización. 
-Desde el panel de administración, el sistema cuenta con herramientas especializadas para descargar respaldos de la base de datos y subir (restaurar) un archivo `.sqlite` actualizado directamente al entorno de producción en la nube.
+   El puerto por defecto es `3001` (configurable con `PORT` en `.env`). Express sirve `frontend/` como archivos estáticos.
+
+La base de datos SQLite se crea o verifica al arrancar (`init-database.js`). No hace falta instalar MySQL ni PostgreSQL.
+
+### Variables de entorno (opcional)
+
+Crea `app/.env` si necesitas personalizar el entorno:
+
+```env
+PORT=3001
+NODE_ENV=development
+JWT_SECRET=tu_secreto_largo_y_unico
+# DB_PATH=ruta/absoluta/database.sqlite
+# FRONTEND_PATH=ruta/absoluta/frontend
+# DATA_PATH=/var/data          # Producción: datos persistentes en el servidor (EC2)
+```
+
+### Usuario administrador por defecto
+
+Si la tabla `usuarios` está vacía al primer arranque, se crea:
+
+| Campo | Valor |
+|-------|-------|
+| Usuario | `admin` |
+| Correo | `admin@jardin.com` |
+| Contraseña | `admin123` |
+
+Cámbiala en producción en cuanto despliegues el sistema.
+
+### Scripts de mantenimiento
+
+| Script | Uso |
+|--------|-----|
+| `app/src/scripts/hash-passwords.js` | Migrar contraseñas en texto plano a bcrypt |
+
+Ejecución (desde `app/`):
+
+```bash
+node src/scripts/hash-passwords.js
+```
+
+## API REST (resumen)
+
+| Prefijo | Función |
+|---------|---------|
+| `GET /api` | Información de la API |
+| `/api/auth` | Registro, login, sesión (`/me`) |
+| `/api/plantas` | CRUD de plantas (info + física) |
+| `/api/solicitudes` | Donaciones (listar, crear, cambiar estado) |
+| `/api/remedios` | CRUD de remedios |
+| `/api/usos` | Catálogo de usos terapéuticos |
+| `/api/usuarios` | Gestión de usuarios (admin) |
+| `/api/system` | Respaldo y restauración de BD (admin) |
+
+Rutas de escritura sensibles requieren JWT y rol administrador.
+
+## Despliegue en producción (AWS EC2)
+
+El sistema está alojado en una instancia **AWS EC2** (Linux/UNIX):
+
+| Dato | Valor |
+|------|-------|
+| Servidor | `3.12.148.33` (AWS EC2, Linux/UNIX) |
+| Sitio web | [http://3.12.148.33/plantas/](http://3.12.148.33/plantas/) |
+| API en producción | `http://3.12.148.33/plantas/api` *(el frontend usa el prefijo `/plantas` cuando no es `localhost`)* |
+
+En el servidor, Node.js ejecuta la API y sirve el frontend estático. Se recomienda usar `DATA_PATH` (p. ej. `/var/data`) para que `database.sqlite` e imágenes subidas persistan fuera del directorio de despliegue.
+
+Desde el panel de administración (`admin.html`) los administradores pueden:
+
+- Descargar respaldo de la base de datos (`GET /api/system/backup`)
+- Restaurar un archivo `.sqlite` (`POST /api/system/restore`)
+
+Detalles de infraestructura, variables de entorno y permisos: [REQUERIMIENTOS_TECNICOS.md](./REQUERIMIENTOS_TECNICOS.md#4-configuración-requerida).
+
+## Licencia
+
+MIT — ver `app/package.json`.

@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión</title>
-    <link rel="icon" type="image/png" href="/recursos/imagenes/logo_transparente.png">
-    <link rel="stylesheet" href="/recursos/estilos/styles.css">
+    <link rel="icon" type="image/png" href="recursos/imagenes/logo_transparente.png">
+    <link rel="stylesheet" href="recursos/estilos/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
@@ -15,7 +15,7 @@
     <!-- HEADER SIMPLIFICADO -->
     <header class="encabezado">
         <div class="encabezado-izquierda">
-            <img src="/recursos/imagenes/logo_transparente.png" alt="Logo Plantas Medicinales" class="logo">
+            <img src="recursos/imagenes/logo_transparente.png" alt="Logo Plantas Medicinales" class="logo">
             <div>
                 <h1 class="titulo">Jardín de Plantas Medicinales</h1>
             </div>
@@ -70,7 +70,17 @@
     </div>
 
     <script>
-        const API_URL = '/api';
+        const API_URL = window.location.hostname === 'localhost' ? '/api' : '/plantas/api';
+        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
+        // Parchar enlaces de navegación en producción
+        if (window.location.hostname !== 'localhost') {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('a[href^="/"]').forEach(function(a) {
+                    var h = a.getAttribute('href');
+                    if (!h.startsWith('/plantas')) a.setAttribute('href', '/plantas' + h);
+                });
+            });
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             verificarSesion();
@@ -147,7 +157,7 @@
                     // Guardar token y usuario, luego redirigir
                     localStorage.setItem('token', result.token);
                     localStorage.setItem('usuario', JSON.stringify(result.usuario));
-                    window.location.href = result.usuario.tipo == 1 || result.usuario.tipo === 'admin' ? '/admin.html' : '/index.html';
+                    window.location.href = result.usuario.tipo == 1 || result.usuario.tipo === 'admin' ? `${BASE_PATH}/admin.html` : `${BASE_PATH}/index.html`;
                 } else {
                     errMsg.textContent = result.error || 'Error al iniciar sesión';
                     errDiv.style.display = 'block';

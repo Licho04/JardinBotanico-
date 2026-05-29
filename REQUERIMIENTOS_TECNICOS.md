@@ -1,574 +1,560 @@
 # REQUERIMIENTOS TÉCNICOS DEL SISTEMA
+
 ## Sistema de Gestión del Jardín Botánico de Plantas Medicinales UJAT
 
-**Versión:** 1.0
-**Fecha:** Diciembre 2025
-**Desarrolladores:** Luis & Svein
+**Versión:** 2.0  
+**Fecha:** Mayo 2026  
+**Desarrolladores:** Luis Enrique Madrigal Martínez · Angel Svein Ortiz Méndez
 
 ---
 
 ## 1. TECNOLOGÍAS UTILIZADAS
 
 ### 1.1 Backend
-- **Lenguaje:** JavaScript (Node.js)
-- **Runtime:** Node.js 18.x LTS
-- **Framework web:** Express.js 4.18.2
-- **Gestor de paquetes:** npm 9.x
-- **Tipo de módulos:** ES Modules (`"type": "module"`)
 
-### 1.2 Base de Datos
-- **Sistema:** SQLite 3.40+
-- **Driver:** sqlite3 v5.1.7 (npm)
-- **Archivo:** `app/database.sqlite`
-- **ORM:** No se utiliza (queries nativas con promesas)
+| Componente | Detalle |
+|------------|---------|
+| Lenguaje | JavaScript (Node.js) |
+| Runtime recomendado | Node.js 18.x LTS |
+| Framework | Express.js 4.18.x |
+| Módulos | ES Modules (`"type": "module"`) |
+| Punto de entrada | `app/src/server.js` |
+| Puerto por defecto | `3001` (`PORT` en `.env`) |
 
-### 1.3 Autenticación y Seguridad
-- **Hash de contraseñas:** bcrypt v5.1.1
-- **Tokens JWT:** jsonwebtoken v9.0.2
-- **Sesiones:** express-session v1.18.1
-- **Cookies:** cookie-parser v1.4.7
-- **Validación:** express-validator v7.0.1
-- **CORS:** cors v2.8.5
+### 1.2 Base de datos
+
+| Componente | Detalle |
+|------------|---------|
+| Motor | SQLite 3.40+ |
+| Driver | `sqlite3` v5.1.7 |
+| Archivo local | `app/database.sqlite` |
+| Producción (AWS EC2) | `DATA_PATH/database.sqlite` o ruta configurada en el servidor |
+| ORM | No — consultas SQL nativas con promesas (`runAsync`, `allAsync`, `getAsync`) |
+| Inicialización | `app/src/config/init-database.js` (al arrancar) |
+| Foreign keys | `PRAGMA foreign_keys = ON` |
+
+### 1.3 Autenticación y seguridad
+
+| Paquete | Uso |
+|---------|-----|
+| `bcrypt` v5.1.1 | Hash de contraseñas (factor 10) |
+| `jsonwebtoken` v9.0.2 | Tokens JWT (24 h) |
+| `express-session` v1.18.x | Sesiones HTTP |
+| `cookie-parser` v1.4.7 | Cookies |
+| `express-validator` v7.0.1 | Validación de entradas |
+| `cors` v2.8.5 | CORS habilitado |
 
 ### 1.4 Frontend
-- **Motor de plantillas:** EJS v3.1.10 (renderizado en servidor)
-- **HTML/CSS:** HTML5, CSS3 estándar
-- **JavaScript cliente:** Vanilla JS (sin frameworks)
-- **Iconos:** Font Awesome 6.0.0 (CDN)
-- **Diseño:** Responsive con media queries CSS
 
-### 1.5 Manejo de Archivos
-- **Upload de imágenes:** Multer v1.4.5
-- **Formatos soportados:** JPEG, JPG, PNG, GIF, WEBP, AVIF
-- **Tamaño máximo:** 5 MB por archivo
-- **Almacenamiento:** Sistema de archivos local (`recursos/imagenes/`)
+| Componente | Detalle |
+|------------|---------|
+| Arquitectura | **Desacoplada** — HTML/CSS/JS estático en `/frontend` |
+| Comunicación | Fetch API → endpoints `/api/*` |
+| Motor de plantillas | **No usado en producción** (`ejs` permanece en dependencias por legado) |
+| Estilos | `frontend/recursos/estilos/styles.css` |
+| Iconos | Font Awesome 6 (CDN) |
+| Diseño | Responsive (media queries) |
 
-### 1.6 Variables de Entorno
-- **Gestor:** dotenv v16.4.7
-- **Archivo:** `app/.env`
+### 1.5 Manejo de archivos
+
+| Aspecto | Detalle |
+|---------|---------|
+| Librería | Multer v1.4.5 |
+| Imágenes de plantas | JPEG, JPG, PNG, GIF, WEBP, AVIF |
+| Tamaño máximo (plantas) | 15 MB |
+| Tamaño máximo (errores Multer en servidor) | 5 MB (mensaje API) |
+| Desarrollo | `frontend/recursos/imagenes/` |
+| Producción (`DATA_PATH`) | `{DATA_PATH}/imagenes/` servido en `/recursos/imagenes` |
+| Respaldos BD | `.sqlite` vía `/api/system/backup` y `/restore` |
+
+### 1.6 Variables de entorno
+
+| Variable | Descripción |
+|----------|-------------|
+| `PORT` | Puerto del servidor (default `3001`) |
+| `NODE_ENV` | `development` \| `production` |
+| `JWT_SECRET` | Secreto para firmar JWT |
+| `DB_PATH` | Ruta explícita a `database.sqlite` (opcional) |
+| `DATA_PATH` | Directorio persistente en el servidor (p. ej. `/var/data` en EC2) |
+| `FRONTEND_PATH` | Ruta al directorio `frontend` (opcional) |
+
+Archivo: `app/.env` (no versionado).
 
 ---
 
 ## 2. REQUERIMIENTOS DE SOFTWARE
 
-### 2.1 Sistema Operativo
-- **Linux:** Ubuntu 20.04/22.04 LTS, Debian 11+, CentOS 8+ (recomendado)
-- **Alternativa:** Windows Server 2019+, macOS (cualquier SO con soporte Node.js)
+### 2.1 Sistema operativo
 
-### 2.2 Software Requerido en el Servidor
-- **Node.js:** 16.x o superior (18.x LTS recomendado)
-- **npm:** 8.x o superior
-- **SQLite3:** 3.35+ (client CLI opcional)
-- **Servidor web (producción):** Nginx 1.18+ o Apache 2.4+
-- **Gestor de procesos (producción):** PM2 5.x (recomendado)
-- **SSL/TLS (producción):** Certbot (Let's Encrypt) o certificado institucional
+- **Linux:** Ubuntu 20.04/22.04 LTS, Debian 11+ (recomendado en servidor)
+- **Desarrollo:** Windows 10+, macOS (cualquier SO con Node.js)
+
+### 2.2 Software en el servidor
+
+| Software | Versión |
+|----------|---------|
+| Node.js | 18.x LTS (mínimo 16.x) |
+| npm | 8.x+ |
+| Proxy inverso (opcional) | Nginx 1.18+ o Apache 2.4+ |
+| Gestor de procesos (opcional) | PM2 5.x |
+| SSL (producción) | Let's Encrypt / certificado institucional |
 
 ---
 
 ## 3. DEPENDENCIAS DEL PROYECTO
 
-### 3.1 Dependencias de Producción (npm)
-Instaladas automáticamente con `npm install`:
+### 3.1 Producción (`app/package.json`)
 
 ```
-express: ^4.18.2          - Framework web
-sqlite3: ^5.1.7           - Driver SQLite
-bcrypt: ^5.1.1            - Hash de contraseñas
-jsonwebtoken: ^9.0.2      - Autenticación JWT
-cookie-parser: ^1.4.7     - Parser de cookies
-express-session: ^1.18.1  - Manejo de sesiones
-express-validator: ^7.0.1 - Validación de datos
-ejs: ^3.1.10              - Motor de plantillas
-multer: ^1.4.5            - Upload de archivos
-cors: ^2.8.5              - Cross-Origin Resource Sharing
-dotenv: ^16.4.7           - Variables de entorno
+express, sqlite3, bcrypt, jsonwebtoken, cookie-parser,
+express-session, express-validator, multer, cors, dotenv, ejs
 ```
 
-### 3.2 Dependencias de Desarrollo (opcional)
-```
-nodemon: para desarrollo local (auto-restart al guardar cambios)
-```
+### 3.2 Scripts npm
+
+| Comando | Acción |
+|---------|--------|
+| `npm start` | Inicia `src/server.js` |
+| `npm run dev` | Inicia con `node --watch` |
+
+### 3.3 Utilidades de mantenimiento
+
+| Archivo | Propósito |
+|---------|-----------|
+| `app/src/scripts/hash-passwords.js` | Hashear contraseñas en texto plano |
 
 ---
 
 ## 4. CONFIGURACIÓN REQUERIDA
 
-### 4.1 Variables de Entorno
-Archivo `app/.env` (crear manualmente):
+### 4.1 Ejemplo `app/.env` (desarrollo)
+
+```env
+NODE_ENV=development
+PORT=3001
+JWT_SECRET=generar-secreto-aleatorio-largo
+```
+
+### 4.2 Producción (AWS EC2)
+
+**Servidor actual:** instancia EC2 Linux/UNIX — IP pública `3.12.148.33`.
+
+Ejemplo `app/.env` en el servidor:
 
 ```env
 NODE_ENV=production
-PORT=3000
-USE_SQLITE=true
-JWT_SECRET=[generar-secreto-64-caracteres]
-SESSION_SECRET=[generar-secreto-diferente]
-BASE_URL=https://jardin-botanico.ujat.mx
+PORT=3001
+JWT_SECRET=[secreto-unico-64-caracteres]
+DATA_PATH=/var/data
 ```
 
-**Nota:** Los secretos deben generarse de forma única para producción.
+Acceso habitual:
 
-### 4.2 Permisos de Archivos (Linux)
+- Sitio: `http://3.12.148.33/plantas/`
+- API: `http://3.12.148.33/plantas/api`
 
-| Archivo/Directorio | Permisos | Descripción |
-|-------------------|----------|-------------|
-| `app/.env` | `600` | Solo lectura para propietario |
-| `app/database.sqlite` | `664` | Lectura/escritura para aplicación |
-| `recursos/imagenes/` | `775` | Escritura para uploads |
-| `app/` | `755` | Directorio principal |
+El frontend detecta producción por hostname distinto de `localhost` y usa `BASE_PATH=/plantas` y `API_URL=/plantas/api` (configurado en los HTML del frontend). En local sigue siendo `http://localhost:3001` con `/api` en la raíz.
 
-### 4.3 Puertos de Red
+Recomendaciones en EC2:
 
-| Puerto | Uso | Acceso |
-|--------|-----|--------|
-| 3000 | Aplicación Node.js | Interno (localhost) |
-| 80 | HTTP (Nginx/Apache) | Público |
-| 443 | HTTPS (Nginx/Apache) | Público |
+- Proceso gestionado con **PM2** o **systemd** para reinicio automático.
+- **Nginx** (u otro proxy) delante de Node para HTTPS y archivos estáticos.
+- Grupo de seguridad: abrir solo los puertos necesarios (p. ej. 80, 443, 22).
+- Respaldos periódicos de `database.sqlite` y de `{DATA_PATH}/imagenes/`.
+
+### 4.3 Permisos recomendados (Linux)
+
+| Ruta | Permisos | Notas |
+|------|----------|-------|
+| `app/.env` | `600` | Solo propietario |
+| `app/database.sqlite` | `664` | Lectura/escritura app |
+| `frontend/recursos/imagenes/` | `775` | Uploads en desarrollo |
+| `{DATA_PATH}/` | `775` | BD e imágenes en producción |
+
+### 4.4 Puertos
+
+| Puerto | Uso |
+|--------|-----|
+| 3001 (default) | Servidor Express |
+| 80 / 443 | Proxy inverso (producción) |
 
 ---
 
 ## 5. ESTRUCTURA DEL PROYECTO
 
 ```
-jardin-botanico/
+JardinBotanico/
 ├── app/
 │   ├── src/
 │   │   ├── config/
-│   │   │   ├── database.js         - Conexión SQLite
-│   │   │   └── init-database.js    - Inicialización de tablas
+│   │   │   ├── database.js
+│   │   │   └── init-database.js
 │   │   ├── controllers/
 │   │   │   ├── auth.controller.js
 │   │   │   ├── plantas.controller.js
-│   │   │   └── solicitudes.controller.js
+│   │   │   ├── solicitudes.controller.js   # Lógica sobre tabla donaciones
+│   │   │   ├── remedios.controller.js
+│   │   │   └── usos.controller.js
 │   │   ├── middleware/
 │   │   │   └── auth.middleware.js
 │   │   ├── routes/
 │   │   │   ├── auth.routes.js
 │   │   │   ├── plantas.routes.js
 │   │   │   ├── solicitudes.routes.js
-│   │   │   └── views/              - Rutas de vistas
-│   │   ├── views/                  - Plantillas EJS
-│   │   └── server.js               - Punto de entrada
+│   │   │   └── api/
+│   │   │       ├── remedios.routes.js
+│   │   │       ├── usos.routes.js
+│   │   │       ├── usuarios.routes.js
+│   │   │       └── system.routes.js
+│   │   ├── scripts/
+│   │   │   └── hash-passwords.js
+│   │   └── server.js
+│   ├── database.sqlite
 │   ├── package.json
-│   ├── package-lock.json
-│   ├── database.sqlite             - Base de datos (generado)
-│   └── .env                        - Variables de entorno (crear)
-├── recursos/
-│   ├── imagenes/                   - Imágenes de plantas (ESCRITURA)
-│   └── estilos/
-│       └── styles.css
-└── render.yaml                     - Configuración Render.com
+│   └── .env                    # Crear manualmente
+├── frontend/
+│   ├── index.html
+│   ├── login.html, registro.html
+│   ├── perfil.html, historia.html
+│   ├── mis-solicitudes.html
+│   ├── admin.html
+│   ├── forms/                  # Fragmentos para modales admin
+│   └── recursos/
+│       ├── estilos/styles.css
+│       └── imagenes/
+├── README.md
+├── REQUERIMIENTOS_TECNICOS.md
+└── REQUERIMIENTOS_FUNCIONALES_V2.md
 ```
 
 ---
 
 ## 6. ESQUEMA DE BASE DE DATOS
 
-### 6.1 Estado Actual - Tablas Implementadas ✅
+### 6.1 Tablas implementadas
 
-**usuarios**
+Definidas en `app/src/config/init-database.js`:
+
+**`planta_info`** — Información científica
+
+```sql
+CREATE TABLE planta_info (
+    nombre_cientifico TEXT PRIMARY KEY,
+    genero TEXT,
+    descripcion TEXT,
+    principio_activo TEXT,
+    propiedades_curativas TEXT,
+    morfologia TEXT,
+    bibliografia TEXT,
+    distribucion_geografica TEXT,
+    fotos_crecimiento TEXT   -- JSON array de rutas
+);
+```
+
+**`planta_fisica`** — Inventario en el jardín
+
+```sql
+CREATE TABLE planta_fisica (
+    id_planta INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombres_comunes TEXT,
+    fecha_sembrada TEXT,
+    situacion TEXT,
+    nombre_cientifico TEXT,
+    FOREIGN KEY (nombre_cientifico) REFERENCES planta_info(nombre_cientifico)
+);
+```
+
+**`distribucion`**
+
+```sql
+CREATE TABLE distribucion (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    distribucion TEXT,
+    nombre_cientifico TEXT,
+    FOREIGN KEY (nombre_cientifico) REFERENCES planta_info(nombre_cientifico)
+);
+```
+
+**`usuarios`**
+
 ```sql
 CREATE TABLE usuarios (
-    usuario TEXT PRIMARY KEY,
-    nombre TEXT NOT NULL,
-    mail TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,      -- bcrypt hash
-    tipo INTEGER DEFAULT 0       -- 0=usuario, 1=admin
+    correo TEXT PRIMARY KEY,
+    usuario TEXT UNIQUE,
+    password TEXT NOT NULL,
+    nombre TEXT,
+    tipo TEXT    -- 'admin' | 'usuario'
 );
 ```
 
-**plantas**
+**`donaciones`** (expuesta como “solicitudes” en la API)
+
 ```sql
-CREATE TABLE plantas (
+CREATE TABLE donaciones (
+    id_donacion INTEGER PRIMARY KEY AUTOINCREMENT,
+    detalles TEXT,
+    motivo TEXT,
+    fecha_donacion TEXT,
+    fecha_aceptada TEXT,
+    estado TEXT,           -- 'En proceso' | 'Aceptada' | 'Rechazada'
+    correo_usuario TEXT,
+    FOREIGN KEY (correo_usuario) REFERENCES usuarios(correo)
+);
+```
+
+**`remedios`**, **`pasos`**, **`contraindicaciones`**, **`efectos_secundarios`**
+
+```sql
+CREATE TABLE remedios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    descripcion TEXT NOT NULL,
-    imagen TEXT,
-    propiedades TEXT,
+    nombre TEXT,
+    descripcion TEXT,
+    checar_medico INTEGER DEFAULT 1,
+    tiempo_efectividad TEXT DEFAULT 'N/A',
+    parte TEXT,
+    formato TEXT,
+    dosis_cantidad REAL,
+    dosis_unidad TEXT,
     nombre_cientifico TEXT,
-    zona_geografica TEXT,
-    usos TEXT
+    FOREIGN KEY (nombre_cientifico) REFERENCES planta_info(nombre_cientifico)
 );
+-- pasos, contraindicaciones, efectos_secundarios: FK id_remedio → remedios(id) ON DELETE CASCADE
 ```
 
-**solicitudes**
+**`usos`** y **`remedios_usos`** (M:N)
+
 ```sql
-CREATE TABLE solicitudes (
+CREATE TABLE usos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    usuario TEXT NOT NULL,
-    nombre_planta TEXT NOT NULL,
-    descripcion_planta TEXT NOT NULL,
-    propiedades_medicinales TEXT,
-    ubicacion TEXT NOT NULL,
-    motivo_donacion TEXT,
-    estado TEXT DEFAULT 'pendiente',
-    fecha TEXT NOT NULL,
-    respuesta TEXT,
-    FOREIGN KEY (usuario) REFERENCES usuarios(usuario)
+    nombre TEXT,
+    descripcion TEXT,
+    tipo TEXT
+);
+
+CREATE TABLE remedios_usos (
+    id_remedio INTEGER,
+    id_uso INTEGER,
+    PRIMARY KEY (id_remedio, id_uso),
+    FOREIGN KEY (id_remedio) REFERENCES remedios(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_uso) REFERENCES usos(id) ON DELETE CASCADE
 );
 ```
 
-### 6.2 Tablas Planificadas (Pendientes de Implementación) ⏳
+### 6.2 Semilla inicial
 
-**PlantaInfo** - Información científica de especies
-```sql
-CREATE TABLE PlantaInfo (
-    NombreCientifico TEXT PRIMARY KEY,
-    Filo TEXT,
-    Clase TEXT,
-    Orden TEXT,
-    Familia TEXT,
-    Genero TEXT,
-    Descripcion TEXT
-);
-```
+Si `usuarios` está vacía al primer arranque:
 
-**PlantaFisica** - Plantas físicas individuales del jardín
-```sql
-CREATE TABLE PlantaFisica (
-    IdPlanta INTEGER PRIMARY KEY AUTOINCREMENT,
-    NombreCientifico TEXT NOT NULL,
-    NombrePropio TEXT,
-    FechaSembrada DATETIME,
-    Situacion TEXT CHECK(Situacion IN ('Sana', 'Desatendida', 'Enferma', 'Muerta')),
-    FOREIGN KEY (NombreCientifico) REFERENCES PlantaInfo(NombreCientifico)
-);
-```
+- Correo: `admin@jardin.com`
+- Usuario: `admin`
+- Contraseña: `admin123` (bcrypt)
+- Tipo: `admin`
 
-**Remedio** - Remedios medicinales
-```sql
-CREATE TABLE Remedio (
-    IdRemedio INTEGER PRIMARY KEY AUTOINCREMENT,
-    IdPlanta INTEGER NOT NULL,
-    Descripcion TEXT,
-    ChecarMedico BOOLEAN DEFAULT 1,
-    TiempoEfectividad TEXT DEFAULT 'N/A',
-    Usos TEXT,
-    FOREIGN KEY (IdPlanta) REFERENCES PlantaFisica(IdPlanta)
-);
-```
+### 6.3 Tablas del diagrama UML aún no implementadas
 
-**Paso** - Pasos de preparación de remedios
-```sql
-CREATE TABLE Paso (
-    IdRemedio INTEGER,
-    NumPaso INTEGER,
-    DescripcionPaso TEXT,
-    PRIMARY KEY (IdRemedio, NumPaso),
-    FOREIGN KEY (IdRemedio) REFERENCES Remedio(IdRemedio)
-);
-```
-
-**TipoCuidado** - Tipos de cuidados
-```sql
-CREATE TABLE TipoCuidado (
-    IdTipoCuidado INTEGER PRIMARY KEY AUTOINCREMENT,
-    Nombre TEXT NOT NULL,
-    UnidadMedida TEXT,
-    CantidadTiempo TIME
-);
-```
-
-**Cuidado** - Cuidados asignados a plantas
-```sql
-CREATE TABLE Cuidado (
-    IdCuidado INTEGER PRIMARY KEY AUTOINCREMENT,
-    IdPlanta INTEGER NOT NULL,
-    IdTipoCuidado INTEGER NOT NULL,
-    Frecuencia TIME,
-    VecesPorSemana INTEGER,
-    VecesAtendido INTEGER DEFAULT 0,
-    Estado TEXT CHECK(Estado IN ('Completado', 'Parcialmente completado', 'Incompleto')),
-    MaxNumeroHorarios INTEGER DEFAULT 20,
-    FOREIGN KEY (IdPlanta) REFERENCES PlantaFisica(IdPlanta),
-    FOREIGN KEY (IdTipoCuidado) REFERENCES TipoCuidado(IdTipoCuidado)
-);
-```
-
-**Horarios** - Horarios de cuidados programados
-```sql
-CREATE TABLE Horarios (
-    IdCuidado INTEGER,
-    HoraDeCreacion DATETIME,
-    EmpiezaHoraCreacion BOOLEAN DEFAULT 1,
-    TiempoRetraso TIME DEFAULT '00:00:00',
-    HoraDeCumplimiento DATETIME,
-    Estado TEXT CHECK(Estado IN ('Sin complementar', 'Completado', 'Completado con retraso', 'Retrasado')),
-    PRIMARY KEY (IdCuidado, HoraDeCreacion),
-    FOREIGN KEY (IdCuidado) REFERENCES Cuidado(IdCuidado)
-);
-```
-
-**Notificacion** - Notificaciones del sistema
-```sql
-CREATE TABLE Notificacion (
-    IdNotificacion INTEGER PRIMARY KEY AUTOINCREMENT,
-    IdPlanta INTEGER NOT NULL,
-    Descripcion TEXT,
-    TipoQueja TEXT,
-    HoraCreacion DATETIME,
-    HoraAceptacion DATETIME,
-    Automatica BOOLEAN DEFAULT 0,
-    Estado TEXT CHECK(Estado IN ('En espera', 'Aceptada', 'Rechazada', 'Obligatoria')),
-    FOREIGN KEY (IdPlanta) REFERENCES PlantaFisica(IdPlanta)
-);
-```
-
-**Enfermedad** - Catálogo de enfermedades
-```sql
-CREATE TABLE Enfermedad (
-    IdEnfermedad INTEGER PRIMARY KEY AUTOINCREMENT,
-    NombreEnfermedad TEXT NOT NULL,
-    TipoEnfermedad TEXT CHECK(TipoEnfermedad IN ('Parásitos', 'Hongos', 'Virus', 'Bacterias', 'Entorno'))
-);
-```
-
-**PlantaFisica_Enfermedad** - Relación plantas-enfermedades
-```sql
-CREATE TABLE PlantaFisica_Enfermedad (
-    IdPlanta INTEGER,
-    IdEnfermedad INTEGER,
-    FechaDeteccion DATETIME,
-    PRIMARY KEY (IdPlanta, IdEnfermedad),
-    FOREIGN KEY (IdPlanta) REFERENCES PlantaFisica(IdPlanta),
-    FOREIGN KEY (IdEnfermedad) REFERENCES Enfermedad(IdEnfermedad)
-);
-```
-
-**Donacion (versión extendida)** - Modelo extendido de donaciones
-```sql
-CREATE TABLE Donacion (
-    IdDonacion INTEGER PRIMARY KEY AUTOINCREMENT,
-    Correo TEXT NOT NULL,
-    IdPlanta INTEGER,
-    Detalles TEXT,
-    Motivo TEXT,
-    FechaDonacion DATETIME,
-    FechaAceptada DATETIME,
-    Estado TEXT CHECK(Estado IN ('Aceptada', 'Rechazada', 'En proceso')),
-    FOREIGN KEY (Correo) REFERENCES Usuarios(Correo),
-    FOREIGN KEY (IdPlanta) REFERENCES PlantaFisica(IdPlanta)
-);
-```
-
-### 6.3 Inicialización de Base de Datos
-- Las tablas actuales se crean automáticamente al iniciar la aplicación
-- Script: `app/src/config/init-database.js`
-- Foreign keys habilitadas: `PRAGMA foreign_keys = ON`
+| Módulo | Tablas / funcionalidad |
+|--------|------------------------|
+| Cuidados | `TipoCuidado`, `Cuidado`, `Horarios` |
+| Salud | `Enfermedad`, `PlantaFisica_Enfermedad` |
+| Notificaciones | `Notificacion` |
+| Donación extendida | Campos adicionales del modelo UML completo |
 
 ---
 
 ## 7. API ENDPOINTS
 
-### 7.1 Endpoints Implementados ✅
+Base URL: `http://localhost:3001` (desarrollo).
 
-**Autenticación**
-```
-POST /api/auth/registro       - Registrar usuario
-POST /api/auth/login          - Login (retorna JWT)
-```
+### 7.1 General
 
-**Plantas**
 ```
-GET    /api/plantas           - Listar todas (público)
-GET    /api/plantas/:id       - Detalle (público)
-POST   /api/plantas           - Crear (admin, JWT)
-PUT    /api/plantas/:id       - Actualizar (admin, JWT)
-DELETE /api/plantas/:id       - Eliminar (admin, JWT)
+GET  /api              Información y listado de módulos
 ```
 
-**Solicitudes**
+### 7.2 Autenticación — `/api/auth`
+
 ```
-GET    /api/solicitudes       - Listar (JWT, filtrado por rol)
-GET    /api/solicitudes/:id   - Detalle (JWT, permisos)
-POST   /api/solicitudes       - Crear (JWT)
-PUT    /api/solicitudes/:id/estatus  - Actualizar estado (admin, JWT)
-DELETE /api/solicitudes/:id   - Eliminar (JWT, permisos)
+POST /api/auth/registro     Registrar usuario
+POST /api/auth/login        Login (JWT + sesión)
+GET  /api/auth/me           Usuario autenticado [JWT]
 ```
 
-**Vistas (Renderizadas con EJS)**
+### 7.3 Plantas — `/api/plantas`
+
+Identificador principal: `nombre_cientifico`.
+
 ```
-GET /                         - Página principal
-GET /auth/login               - Login
-GET /auth/registro            - Registro
-GET /usuario/perfil           - Perfil (requiere auth)
-GET /usuario/historia         - Historia del jardín
-GET /usuario/mis-solicitudes  - Solicitudes del usuario (requiere auth)
-GET /administracion/admin     - Panel admin (requiere admin)
+GET    /api/plantas                              Listar (JOIN planta_fisica + planta_info)
+GET    /api/plantas/:nombre_cientifico           Detalle
+POST   /api/plantas                              Crear [Admin, JWT, multipart]
+PUT    /api/plantas/:nombre_cientifico           Actualizar [Admin]
+POST   /api/plantas/:nombre_cientifico/actualizar  Actualizar (compat. multipart) [Admin]
+DELETE /api/plantas/:nombre_cientifico           Eliminar [Admin]
 ```
 
-### 7.2 Endpoints Planificados (Pendientes) ⏳
+### 7.4 Donaciones — `/api/solicitudes`
 
-**PlantaInfo (Taxonomía)**
-```
-GET    /api/plantasInfo
-GET    /api/plantasInfo/:nombreCientifico
-POST   /api/plantasInfo                     [Admin]
-PUT    /api/plantasInfo/:nombreCientifico   [Admin]
-DELETE /api/plantasInfo/:nombreCientifico   [Admin]
-```
+Persistencia en tabla `donaciones`.
 
-**PlantaFisica**
 ```
-GET    /api/plantasFisicas
-GET    /api/plantasFisicas/:id
-POST   /api/plantasFisicas                  [Admin]
-PUT    /api/plantasFisicas/:id              [Admin]
-DELETE /api/plantasFisicas/:id              [Admin]
+GET    /api/solicitudes              Listar (admin: todas; usuario: propias) [JWT]
+GET    /api/solicitudes/:id          Detalle [JWT]
+POST   /api/solicitudes              Crear donación [JWT]
+PUT    /api/solicitudes/:id/estatus  Cambiar estado [Admin]
+DELETE /api/solicitudes/:id          Eliminar [JWT, permisos]
 ```
 
-**Remedios**
+### 7.5 Remedios — `/api/remedios`
+
 ```
-GET    /api/remedios
-GET    /api/remedios/:id
-POST   /api/remedios                        [Admin]
-PUT    /api/remedios/:id                    [Admin]
-DELETE /api/remedios/:id                    [Admin]
+GET    /api/remedios                 Listar (?nombre_cientifico=...)
+GET    /api/remedios/:id             Detalle
+POST   /api/remedios                 Crear [Admin]
+PUT    /api/remedios/:id             Actualizar [Admin]
+DELETE /api/remedios/:id             Eliminar [Admin]
 ```
 
-**Pasos de Remedios**
+### 7.6 Usos — `/api/usos`
+
 ```
-GET    /api/remedios/:id/pasos
-POST   /api/remedios/:id/pasos              [Admin]
-PUT    /api/remedios/:id/pasos/:numPaso     [Admin]
-DELETE /api/remedios/:id/pasos/:numPaso     [Admin]
+GET    /api/usos                     Listar
+GET    /api/usos/:id                 Detalle
+POST   /api/usos                     Crear [Admin]
+PUT    /api/usos/:id                 Actualizar [Admin]
+DELETE /api/usos/:id                 Eliminar [Admin]
 ```
 
-**Cuidados y Horarios**
+### 7.7 Usuarios — `/api/usuarios`
+
 ```
-GET    /api/plantasFisicas/:id/cuidados
-POST   /api/plantasFisicas/:id/cuidados     [Admin]
-GET    /api/horarios/pendientes
-POST   /api/cuidados/:id/horarios/:fecha/completar  [Admin]
+GET    /api/usuarios                 Listar [Admin]
+GET    /api/usuarios/:usuario        Detalle [Admin]
+POST   /api/usuarios                 Crear [Admin]
+PUT    /api/usuarios/:usuario        Actualizar [Admin]
+DELETE /api/usuarios/:usuario        Eliminar [Admin]
 ```
 
-**Notificaciones**
+### 7.8 Sistema — `/api/system`
+
 ```
-GET    /api/notificaciones
-GET    /api/notificaciones/pendientes
-POST   /api/notificaciones                  [Admin]
-PUT    /api/notificaciones/:id/aceptar      [Admin]
+GET  /api/system/backup              Descargar .sqlite [Admin]
+POST /api/system/restore             Restaurar .sqlite [Admin, multipart]
 ```
 
-**Enfermedades**
-```
-GET    /api/enfermedades
-POST   /api/enfermedades                    [Admin]
-GET    /api/plantasFisicas/:id/enfermedades
-POST   /api/plantasFisicas/:id/enfermedades [Admin]
-```
+### 7.9 Frontend estático
+
+Express sirve `frontend/` en la raíz. Rutas no encontradas devuelven `index.html` (fallback SPA ligero). Páginas principales:
+
+| Ruta (archivo) | Acceso |
+|----------------|--------|
+| `/index.html` | Público |
+| `/login.html`, `/registro.html` | Público |
+| `/perfil.html`, `/mis-solicitudes.html` | Usuario autenticado (validación en cliente) |
+| `/admin.html` | Administrador |
+| `/historia.html` | Público |
 
 ---
 
 ## 8. SEGURIDAD
 
-### 8.1 Medidas Implementadas
-- ✅ Contraseñas hasheadas con bcrypt (factor 10)
-- ✅ Tokens JWT con expiración de 24 horas
-- ✅ Sesiones HTTP-only con cookies seguras
-- ✅ Validación de inputs con express-validator
-- ✅ Validación de tipos MIME en uploads
-- ✅ Límite de tamaño en archivos (5MB)
-- ✅ CORS configurado
-- ✅ Foreign keys en base de datos habilitadas
+### 8.1 Medidas implementadas
 
-### 8.2 Archivos Sensibles
-**NO versionar en Git:**
+- Contraseñas con bcrypt (factor 10)
+- JWT con expiración de 24 horas
+- Sesiones con cookies `httpOnly`; `secure` en producción
+- Validación de entradas (`express-validator` donde aplica)
+- Validación MIME en uploads de imágenes
+- Límites de tamaño en Multer
+- CORS habilitado
+- Foreign keys en SQLite
+- `trust proxy` habilitado para despliegue detrás de proxy inverso (Nginx en EC2)
+
+### 8.2 Archivos que no deben versionarse
+
 - `app/.env`
-- `app/database.sqlite`
 - `app/node_modules/`
-- `recursos/imagenes/*` (uploads)
+- `respaldo_*.sqlite`, `database_restore.sqlite`, `*.bak`
+- Uploads masivos en `frontend/recursos/imagenes/` (según política del equipo)
+
+> `app/database.sqlite` puede incluirse para despliegue inicial según `.gitignore` del repositorio.
 
 ---
 
 ## 9. COMPATIBILIDAD
 
-### 9.1 Navegadores Soportados
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-- Opera 76+
+### 9.1 Navegadores
+
+Chrome 90+, Firefox 88+, Safari 14+, Edge 90+, Opera 76+.
 
 ### 9.2 Dispositivos
-- Desktop (Windows, macOS, Linux)
-- Tablet (iOS, Android)
-- Móvil (iOS, Android) - diseño responsive
 
-### 9.3 Resoluciones de Pantalla
-- Mínima: 320px (móviles)
-- Óptima: 1366px+ (desktop)
-- Implementación: Media queries CSS
+Desktop, tablet y móvil (diseño responsive; mínimo ~320px).
 
 ---
 
 ## 10. RENDIMIENTO Y CAPACIDAD
 
-### 10.1 Optimizaciones Implementadas
-- Compresión gzip (configurado en Nginx)
-- Cache de archivos estáticos (30 días)
-- Conexión keep-alive
-- Interacciones AJAX sin recarga de página
+| Métrica | Estimación |
+|---------|------------|
+| Usuarios concurrentes | 100–500 (entorno educativo) |
+| Escrituras SQLite | ~50 TPS (orden de magnitud) |
+| Imágenes | Miles de archivos en disco persistente |
 
-### 10.2 Capacidad Estimada
-- **Usuarios concurrentes:** 100-500
-- **Transacciones/segundo:** ~50 (SQLite)
-- **Almacenamiento de imágenes:** ~1000 imágenes (5GB aprox.)
+Optimizaciones típicas en producción: gzip en proxy, cache de estáticos.
 
 ---
 
 ## 11. LIMITACIONES Y CONSIDERACIONES
 
-### 11.1 Limitaciones Técnicas
-- SQLite no es óptimo para más de 1000 usuarios concurrentes
-- Sin soporte para escrituras concurrentes masivas
-- Almacenamiento de imágenes local (no usa CDN)
+### 11.1 Técnicas
 
-### 11.2 Funcionalidades No Incluidas
-- Sistema de notificaciones push en tiempo real
-- Búsqueda avanzada con filtros múltiples
-- Chat en tiempo real
+- SQLite no escala a miles de escrituras concurrentes
+- Sin CDN para imágenes (almacenamiento local en el volumen EC2)
+- Sin WebSockets ni notificaciones push
+
+### 11.2 No incluido en esta versión
+
+- Cuidados programados y horarios
+- Catálogo de enfermedades
+- Notificaciones automáticas
+- Búsqueda full-text avanzada
 - Integración con APIs externas
-- Sistema de geolocalización
-- Compatibilidad con dispositivos periféricos especializados
-
-### 11.3 Infraestructura
-- No requiere hardware especializado
-- No requiere conexión a dispositivos externos
-- No requiere sensores o periféricos sofisticados
-- Sistema completamente basado en software
 
 ---
 
 ## 12. ESTADO DEL PROYECTO
 
-### 12.1 Implementado ✅
-- Sistema de autenticación (JWT + Sessions)
-- CRUD de usuarios
-- CRUD de plantas (catálogo simplificado)
-- Sistema de solicitudes/donaciones
-- Panel administrativo básico
-- API REST funcional
-- Interfaz web responsive
+### 12.1 Implementado
 
-### 12.2 Planificado pero Pendiente ⏳
-- Separación PlantaInfo (taxonomía científica) y PlantaFisica (instancias)
-- Sistema de remedios medicinales con pasos
-- Sistema de cuidados programados
-- Sistema de horarios automáticos
-- Notificaciones automáticas
-- Catálogo de enfermedades
-- Relación plantas-enfermedades
+- Arquitectura desacoplada (frontend estático + API REST)
+- Autenticación JWT y sesiones
+- Esquema dual `planta_info` / `planta_fisica`
+- CRUD de plantas con subida de imágenes
+- Remedios (pasos, contraindicaciones, efectos secundarios, usos M:N)
+- Catálogo de usos terapéuticos
+- Donaciones (`donaciones` vía `/api/solicitudes`)
+- CRUD de usuarios (admin)
+- Respaldo y restauración de base de datos
+- Panel `admin.html` y vistas de usuario
+- Despliegue en AWS EC2 (`3.12.148.33`) con almacenamiento persistente (`DATA_PATH`)
+
+### 12.2 Pendiente (diagrama UML extendido)
+
+- Sistema de cuidados (`TipoCuidado`, `Cuidado`, `Horarios`)
+- Enfermedades y relación con plantas físicas
+- Notificaciones del jardín
+- Modelo de donación con vínculo a `planta_fisica`
 
 ---
 
 ## 13. CONTACTO
 
-**Proyecto:** Sistema de Gestión del Jardín Botánico de Plantas Medicinales
-**Universidad:** Universidad Juárez Autónoma de Tabasco (UJAT)
-**Desarrolladores:** Luis & Svein
-**Repositorio:** https://github.com/Licho04/JardinBotanico-
-**Versión:** 1.0
-**Fecha:** Diciembre 2025
+| Campo | Valor |
+|-------|-------|
+| Proyecto | Sistema de Gestión del Jardín Botánico de Plantas Medicinales |
+| Institución | Universidad Juárez Autónoma de Tabasco (UJAT) |
+| Repositorio | https://github.com/Licho04/JardinBotanico- |
+| Versión documento | 2.0 |
+| Fecha | Mayo 2026 |
 
 ---
 
