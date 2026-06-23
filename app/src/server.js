@@ -114,12 +114,12 @@ app.use((req, res) => {
 
 // Middleware de manejo de errores global
 app.use((err, req, res, next) => {
-    console.error('🔥 Error no manejado:', err);
+    console.error('Error no manejado:', err);
 
     // Errores de Multer (subida de archivos)
     if (err.name === 'MulterError') {
         if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'El archivo es demasiado grande (Máx 5MB)' });
+            return res.status(400).json({ error: 'El archivo es demasiado grande (Máx 25MB)' });
         }
         return res.status(400).json({ error: 'Error al subir archivo: ' + err.message });
     }
@@ -140,10 +140,9 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar servidor
-// Escuchar explícitamente en 0.0.0.0 para asegurar accesibilidad en contenedores (Render)
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`🌐 Accesible en http://0.0.0.0:${PORT}`);
+    console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`Accesible en http://0.0.0.0:${PORT}`);
 });
 
 export default app;
