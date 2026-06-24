@@ -6,7 +6,6 @@
 !/app/
 !/recursos/
 !/frontend/
-!/render.yaml
 !/README.md
 !/REQUERIMIENTOS_TECNICOS.md
 !/REQUERIMIENTOS_FUNCIONALES_V2.md
@@ -25,9 +24,9 @@ app/*.db
 
 # Base de datos SQLite
 api/database.sqlite
-# *.sqlite (Comentado para permitir subida de la DB principal)
 
 # Respaldos y Temporales
+respaldo_*.zip
 respaldo_*.sqlite
 database_restore.sqlite
 *.bak

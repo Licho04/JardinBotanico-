@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 
 let DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../database.sqlite');
 
-// Auto-migración para Render Disk
+// Auto-migración: si DATA_PATH está definido, copia la BD local al disco persistente
 if (process.env.DATA_PATH) {
     const targetPath = path.join(process.env.DATA_PATH, 'database.sqlite');
     const sourcePath = path.join(__dirname, '../../database.sqlite'); // Archivo local en root/app/database.sqlite

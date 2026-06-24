@@ -26,8 +26,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const BASE_PATH = process.env.BASE_PATH || '';
 
-// Render está detrás de un proxy (Load Balancer)
-// Necesario para que las cookies secure funcionen
+// Necesario para que las cookies secure funcionen detrás de proxy inverso (Apache)
 app.set('trust proxy', 1);
 
 // Para obtener __dirname en ES modules
