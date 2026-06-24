@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="recursos/imagenes/logo_transparente.png">
     <link rel="stylesheet" href="recursos/estilos/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="config.js"></script>
 </head>
 
 <body>
@@ -189,14 +190,14 @@
 
     <!-- SCRIPTS CORE -->
     <script>
-        // CONFIGURACIÓN API (Relativa para funcionar en local y producción)
-        const API_URL = window.location.hostname === 'localhost' ? '/api' : '/plantas/api';
-        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
-        if (window.location.hostname !== 'localhost') {
+        // CONFIGURACIÓN API — leída desde /config.js (generado por el servidor)
+        const BASE_PATH = window.APP_CONFIG ? window.APP_CONFIG.BASE_PATH : '';
+        const API_URL = window.APP_CONFIG ? window.APP_CONFIG.API_URL : '/api';
+        if (BASE_PATH) {
             document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('a[href^="/"]').forEach(function(a) {
                     var h = a.getAttribute('href');
-                    if (!h.startsWith('/plantas')) a.setAttribute('href', '/plantas' + h);
+                    if (!h.startsWith(BASE_PATH)) a.setAttribute('href', BASE_PATH + h);
                 });
             });
         }
@@ -340,13 +341,17 @@
 
             // Carrusel
             let fotos = [];
-            try { fotos = JSON.parse(p.fotos_crecimiento || '[]'); } catch (e) { }
+            if (Array.isArray(p.galeria) && p.galeria.length > 0) {
+                fotos = p.galeria;
+            } else {
+                try { fotos = JSON.parse(p.fotos_crecimiento || '[]'); } catch (e) { }
+            }
 
             let carruselHtml = '';
             if (fotos.length > 0) {
                 let slides = fotos.map((f, index) => `
-                    <div class="carousel-slide ${index === 0 ? 'active' : ''}" 
-                        style="background-image: url('/recursos/imagenes/${f}'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
+                    <div class="carousel-slide ${index === 0 ? 'active' : ''}"
+                        style="background-image: url('${BASE_PATH}/recursos/imagenes/${f}'); background-color: #f0f0f0; min-height: 300px; cursor: zoom-in;"
                         onclick="openLightbox(${index})" title="Clic para ampliar imagen">
                         <div class="carousel-caption">
                             <p>Clic para ampliar</p>

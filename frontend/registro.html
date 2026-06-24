@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="recursos/imagenes/logo_transparente.png">
     <link rel="stylesheet" href="recursos/estilos/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="config.js"></script>
 </head>
 
 <body class="body-registro">
@@ -74,13 +75,14 @@
     </div>
 
     <script>
-        const API_URL = window.location.hostname === 'localhost' ? '/api' : '/plantas/api';
-        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
-        if (window.location.hostname !== 'localhost') {
+        // CONFIGURACIÓN API — leída desde /config.js (generado por el servidor)
+        const BASE_PATH = window.APP_CONFIG ? window.APP_CONFIG.BASE_PATH : '';
+        const API_URL = window.APP_CONFIG ? window.APP_CONFIG.API_URL : '/api';
+        if (BASE_PATH) {
             document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('a[href^="/"]').forEach(function(a) {
                     var h = a.getAttribute('href');
-                    if (!h.startsWith('/plantas')) a.setAttribute('href', '/plantas' + h);
+                    if (!h.startsWith(BASE_PATH)) a.setAttribute('href', BASE_PATH + h);
                 });
             });
         }

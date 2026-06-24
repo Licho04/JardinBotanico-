@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="recursos/estilos/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="config.js"></script>
 </head>
 
 <body>
@@ -106,13 +107,14 @@
 
     <!-- MAIN APP SCRIPT -->
     <script>
-        let API_URL = window.location.hostname === 'localhost' ? '/api' : '/plantas/api';
-        const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
-        if (window.location.hostname !== 'localhost') {
+        // CONFIGURACIÓN API — leída desde /config.js (generado por el servidor)
+        let BASE_PATH = window.APP_CONFIG ? window.APP_CONFIG.BASE_PATH : '';
+        let API_URL = window.APP_CONFIG ? window.APP_CONFIG.API_URL : '/api';
+        if (BASE_PATH) {
             document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('a[href^="/"]').forEach(function(a) {
                     var h = a.getAttribute('href');
-                    if (!h.startsWith('/plantas')) a.setAttribute('href', '/plantas' + h);
+                    if (!h.startsWith(BASE_PATH)) a.setAttribute('href', BASE_PATH + h);
                 });
             });
         }
@@ -546,7 +548,7 @@
                         item.className = 'gallery-item';
                         item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #ddd; border-radius:6px; background:#fafafa; margin-bottom:6px;';
                         item.innerHTML = `
-                            <img src="/recursos/imagenes/${foto}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;border:1px solid #ccc;" onerror="this.src='';this.style.background='#eee';">
+                            <img src="${BASE_PATH}/recursos/imagenes/${foto}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;border:1px solid #ccc;" onerror="this.src='';this.style.background='#eee';">
                             <span style="flex:1; font-size:0.85rem; color:#555; word-break:break-all;">${foto}</span>
                             <input type="hidden" name="imagenes_orden[]" value="${foto}">
                             <button type="button" onclick="moverFotoGaleria(this, -1)" title="Subir" style="background:#4b6e3c;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">
@@ -916,7 +918,7 @@
                 const a = document.createElement('a');
                 const fecha = new Date().toISOString().slice(0, 10);
                 a.href = url;
-                a.download = `respaldo_jardin_${fecha}.sqlite`;
+                a.download = `respaldo_jardin_${fecha}.zip`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();

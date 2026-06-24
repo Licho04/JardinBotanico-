@@ -2,8 +2,8 @@
 
 ## Sistema de Gestión del Jardín Botánico de Plantas Medicinales UJAT
 
-**Versión:** 2.0  
-**Fecha:** Mayo 2026  
+**Versión:** 2.1  
+**Fecha:** Junio 2026  
 **Desarrolladores:** Luis Enrique Madrigal Martínez · Angel Svein Ortiz Méndez
 
 ---
@@ -61,11 +61,12 @@
 |---------|---------|
 | Librería | Multer v1.4.5 |
 | Imágenes de plantas | JPEG, JPG, PNG, GIF, WEBP, AVIF |
-| Tamaño máximo (plantas) | 15 MB |
-| Tamaño máximo (errores Multer en servidor) | 5 MB (mensaje API) |
+| Tamaño máximo (plantas) | 25 MB (antes de compresión) |
+| Compresión automática | `sharp@0.33.5` — max 1920px ancho, calidad JPEG 80 |
 | Desarrollo | `frontend/recursos/imagenes/` |
-| Producción (`DATA_PATH`) | `{DATA_PATH}/imagenes/` servido en `/recursos/imagenes` |
-| Respaldos BD | `.sqlite` vía `/api/system/backup` y `/restore` |
+| Producción (`IMAGES_PATH`) | `IMAGES_PATH` servido en `/recursos/imagenes` |
+| Respaldos | ZIP con `database.sqlite` + carpeta `imagenes/` vía `/api/system/backup` |
+| Restauración BD | `.sqlite` vía `/api/system/restore` |
 
 ### 1.6 Variables de entorno
 
@@ -74,9 +75,13 @@
 | `PORT` | Puerto del servidor (default `3001`) |
 | `NODE_ENV` | `development` \| `production` |
 | `JWT_SECRET` | Secreto para firmar JWT |
+| `BASE_PATH` | Subruta bajo la que vive el sitio (ej. `/plantas`, `/jardin`). Vacío si va en la raíz. |
 | `DB_PATH` | Ruta explícita a `database.sqlite` (opcional) |
-| `DATA_PATH` | Directorio persistente en el servidor (p. ej. `/var/data` en EC2) |
-| `FRONTEND_PATH` | Ruta al directorio `frontend` (opcional) |
+| `FRONTEND_PATH` | Ruta al directorio `frontend` servido como estático (opcional) |
+| `IMAGES_PATH` | Ruta donde Multer guarda y Express sirve las imágenes (opcional) |
+| `DATA_PATH` | Alternativa legacy: si `IMAGES_PATH` no está definida, las imágenes van a `DATA_PATH/imagenes` |
+
+Prioridad de ruta de imágenes: `IMAGES_PATH` → `DATA_PATH/imagenes` → `frontend/recursos/imagenes` (desarrollo).
 
 Archivo: `app/.env` (no versionado).
 
@@ -107,8 +112,14 @@ Archivo: `app/.env` (no versionado).
 
 ```
 express, sqlite3, bcrypt, jsonwebtoken, cookie-parser,
-express-session, express-validator, multer, cors, dotenv, ejs
+express-session, express-validator, multer, cors, dotenv, ejs,
+sharp, archiver
 ```
+
+| Paquete | Versión | Uso |
+|---------|---------|-----|
+| `sharp` | 0.33.5 | Compresión de imágenes al subir (max 1920px, calidad 80) |
+| `archiver` | 6.x | Generación de ZIP en el endpoint de respaldo |
 
 ### 3.2 Scripts npm
 
@@ -133,33 +144,40 @@ express-session, express-validator, multer, cors, dotenv, ejs
 NODE_ENV=development
 PORT=3001
 JWT_SECRET=generar-secreto-aleatorio-largo
+BASE_PATH=
 ```
 
 ### 4.2 Producción (AWS EC2)
 
 **Servidor actual:** instancia EC2 Linux/UNIX — IP pública `3.12.148.33`.
 
-Ejemplo `app/.env` en el servidor:
+`app/.env` actual en el servidor:
 
 ```env
 NODE_ENV=production
 PORT=3001
 JWT_SECRET=[secreto-unico-64-caracteres]
-DATA_PATH=/var/data
+BASE_PATH=/plantas
+FRONTEND_PATH=/srv/www/testJardin.com/public_html
+DB_PATH=/srv/www/opt/app/database.sqlite
+IMAGES_PATH=/srv/www/opt/frontend/recursos/imagenes
 ```
 
 Acceso habitual:
 
 - Sitio: `http://3.12.148.33/plantas/`
 - API: `http://3.12.148.33/plantas/api`
+- Redirect automático: `http://3.12.148.33/` → `http://3.12.148.33/plantas/`
 
-El frontend detecta producción por hostname distinto de `localhost` y usa `BASE_PATH=/plantas` y `API_URL=/plantas/api` (configurado en los HTML del frontend). En local sigue siendo `http://localhost:3001` con `/api` en la raíz.
+**Proxy inverso (Apache2):** Las rutas `/plantas/*` se redirigen a `localhost:3001/` mediante `ProxyPass`. Apache strips el prefijo `/plantas/` antes de llegar a Express — por eso Express solo maneja rutas desde `/`.
+
+**Configuración dinámica de frontend:** Express expone `GET /config.js` que inyecta `window.APP_CONFIG = { BASE_PATH, API_URL }`. Todos los HTML cargan ese script — no hay detección por hostname. En local (`BASE_PATH` vacío) las rutas son `/api`; en producción (`BASE_PATH=/plantas`) son `/plantas/api`.
 
 Recomendaciones en EC2:
 
-- Proceso gestionado con **PM2** o **systemd** para reinicio automático.
-- **Nginx** (u otro proxy) delante de Node para HTTPS y archivos estáticos.
-- Grupo de seguridad: abrir solo los puertos necesarios (p. ej. 80, 443, 22).
+- Proceso gestionado con **PM2** para reinicio automático.
+- **Apache2** como proxy inverso (actualmente instalado y configurado).
+- Grupo de seguridad: abrir solo los puertos necesarios (80, 443, 22).
 - Respaldos periódicos de `database.sqlite` y de `{DATA_PATH}/imagenes/`.
 
 ### 4.3 Permisos recomendados (Linux)
@@ -436,8 +454,8 @@ DELETE /api/usuarios/:usuario        Eliminar [Admin]
 ### 7.8 Sistema — `/api/system`
 
 ```
-GET  /api/system/backup              Descargar .sqlite [Admin]
-POST /api/system/restore             Restaurar .sqlite [Admin, multipart]
+GET  /api/system/backup              Descargar ZIP (database.sqlite + imagenes/) [Admin]
+POST /api/system/restore             Restaurar base de datos desde .sqlite [Admin, multipart]
 ```
 
 ### 7.9 Frontend estático
@@ -472,7 +490,7 @@ Express sirve `frontend/` en la raíz. Rutas no encontradas devuelven `index.htm
 
 - `app/.env`
 - `app/node_modules/`
-- `respaldo_*.sqlite`, `database_restore.sqlite`, `*.bak`
+- `respaldo_*.zip`, `respaldo_*.sqlite`, `database_restore.sqlite`, `*.bak`
 - Uploads masivos en `frontend/recursos/imagenes/` (según política del equipo)
 
 > `app/database.sqlite` puede incluirse para despliegue inicial según `.gitignore` del repositorio.
@@ -533,9 +551,11 @@ Optimizaciones típicas en producción: gzip en proxy, cache de estáticos.
 - Catálogo de usos terapéuticos
 - Donaciones (`donaciones` vía `/api/solicitudes`)
 - CRUD de usuarios (admin)
-- Respaldo y restauración de base de datos
+- Respaldo completo en ZIP (base de datos + imágenes) y restauración de base de datos
+- Compresión automática de imágenes al subir (sharp — max 1920px, calidad 80)
+- Configuración dinámica de rutas via `BASE_PATH` (escalable a cualquier subpath)
 - Panel `admin.html` y vistas de usuario
-- Despliegue en AWS EC2 (`3.12.148.33`) con almacenamiento persistente (`DATA_PATH`)
+- Despliegue en AWS EC2 (`3.12.148.33`) con Apache2 como proxy inverso y PM2
 
 ### 12.2 Pendiente (diagrama UML extendido)
 
@@ -553,8 +573,8 @@ Optimizaciones típicas en producción: gzip en proxy, cache de estáticos.
 | Proyecto | Sistema de Gestión del Jardín Botánico de Plantas Medicinales |
 | Institución | Universidad Juárez Autónoma de Tabasco (UJAT) |
 | Repositorio | https://github.com/Licho04/JardinBotanico- |
-| Versión documento | 2.0 |
-| Fecha | Mayo 2026 |
+| Versión documento | 2.1 |
+| Fecha | Junio 2026 |
 
 ---
 

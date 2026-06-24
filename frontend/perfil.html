@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="recursos/imagenes/logo_transparente.png">
     <link rel="stylesheet" href="recursos/estilos/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="config.js"></script>
     <style>
         .construccion-container {
             display: flex;
@@ -307,7 +308,7 @@
                 const token = localStorage.getItem('token');
 
                 if (!token || !userObj) {
-                    const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
+                    const BASE_PATH = window.APP_CONFIG ? window.APP_CONFIG.BASE_PATH : '';
                     window.location.href = `${BASE_PATH}/login.html`;
                     return;
                 }
@@ -326,7 +327,7 @@
 
             } catch (e) {
                 console.error('Error verificando sesión:', e);
-                const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
+                const BASE_PATH = window.APP_CONFIG ? window.APP_CONFIG.BASE_PATH : '';
                 window.location.href = `${BASE_PATH}/login.html`;
             }
         }
@@ -334,8 +335,8 @@
         function cerrarSesion() {
             localStorage.removeItem('token');
             localStorage.removeItem('usuario');
-            const BASE_PATH = window.location.hostname === 'localhost' ? '' : '/plantas';
-            window.location.href = `${BASE_PATH}/login.html`;
+            const bp = window.APP_CONFIG ? window.APP_CONFIG.BASE_PATH : '';
+            window.location.href = `${bp}/login.html`;
         }
 
         document.addEventListener('DOMContentLoaded', () => {

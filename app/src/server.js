@@ -24,6 +24,7 @@ import './config/init-database.js';
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
+const BASE_PATH = process.env.BASE_PATH || '';
 
 // Render está detrás de un proxy (Load Balancer)
 // Necesario para que las cookies secure funcionen
@@ -60,23 +61,22 @@ app.use(session({
 }));
 
 // Servir archivos estáticos
-// Si estamos en Render con Disco, las imágenes vienen del disco persistente
-if (process.env.DATA_PATH) {
-    // Servir imágenes desde el disco persistente
-    app.use('/recursos/imagenes', express.static(path.join(process.env.DATA_PATH, 'imagenes')));
-}
+// Prioridad: IMAGES_PATH > DATA_PATH/imagenes > frontend/recursos/imagenes
+const imagesPath = process.env.IMAGES_PATH ||
+    (process.env.DATA_PATH ? path.join(process.env.DATA_PATH, 'imagenes') : null) ||
+    path.join(__dirname, '../../../frontend/recursos/imagenes');
+app.use('/recursos/imagenes', express.static(imagesPath));
 
 // Servir archivos estáticos del Frontend
 // FRONTEND_PATH puede definirse en .env para apuntar a cualquier ruta en el servidor
 const frontendPath = process.env.FRONTEND_PATH || path.join(__dirname, '../../frontend');
+
 app.use(express.static(frontendPath));
 
-// Servir la carpeta de recursos explícitamente si se usa en paths absolutos (opcional, como /recursos)
+// Servir la carpeta de recursos explícitamente
 app.use('/recursos', express.static(path.join(frontendPath, 'recursos')));
 
-// Rutas de vistas EJS eliminadas
-
-// Rutas API (mantener compatibilidad con frontend)
+// Rutas API
 app.use('/api/auth', authRoutes);
 app.use('/api/plantas', plantasRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
@@ -84,6 +84,14 @@ app.use('/api/remedios', remediosRoutes);
 app.use('/api/usos', usosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/system', systemRoutes);
+
+// Configuración dinámica para el frontend
+// Apache proxea /plantas/config.js → localhost:3001/config.js, solo necesitamos /config.js
+const configScript = `window.APP_CONFIG = { BASE_PATH: '${BASE_PATH}', API_URL: '${BASE_PATH}/api' };`;
+app.get('/config.js', (req, res) => {
+    res.type('application/javascript');
+    res.send(configScript);
+});
 
 // Ruta raíz de API (para verificar que la API funciona)
 app.get('/api', (req, res) => {
@@ -109,7 +117,7 @@ app.use('/api/*', (req, res) => {
 // Manejo de errores 404 para vistas del Frontend (Redirigir a index o custom 404 HTML)
 app.use((req, res) => {
     // Si la ruta no fue encontrada y no es API, enviamos el index.html (SPA Fallback)
-    res.status(404).sendFile(path.join(__dirname, '../../frontend/index.html'));
+    res.status(404).sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Middleware de manejo de errores global

@@ -17,11 +17,14 @@ Aplicación web para la gestión y consulta de un jardín de plantas medicinales
 
 | Capa | Tecnología |
 |------|------------|
-| Backend | Node.js, Express.js (API REST) |
+| Backend | Node.js 18.x, Express.js (API REST) |
 | Frontend | HTML5, CSS3, JavaScript (Fetch API) |
 | Base de datos | SQLite3 |
 | Autenticación | JWT, `express-session`, bcrypt |
-| Archivos | Multer (imágenes y respaldos `.sqlite`) |
+| Archivos | Multer (subida), `sharp` (compresión automática) |
+| Respaldos | `archiver` — ZIP con base de datos + imágenes |
+| Proxy inverso | Apache2 (producción) |
+| Gestor de procesos | PM2 (producción) |
 
 ## Estructura del repositorio
 
@@ -100,9 +103,9 @@ El esquema sigue el diagrama UML del proyecto:
    npm start
    ```
 
-4. Abre en el navegador: **http://localhost:3001**
+4. Abre en el navegador: **http://localhost:3000**
 
-   El puerto por defecto es `3001` (configurable con `PORT` en `.env`). Express sirve `frontend/` como archivos estáticos.
+   El puerto por defecto es `3000` (configurable con `PORT` en `.env`). Express sirve `frontend/` como archivos estáticos.
 
 La base de datos SQLite se crea o verifica al arrancar (`init-database.js`). No hace falta instalar MySQL ni PostgreSQL.
 
@@ -111,12 +114,14 @@ La base de datos SQLite se crea o verifica al arrancar (`init-database.js`). No 
 Crea `app/.env` si necesitas personalizar el entorno:
 
 ```env
-PORT=3001
+PORT=3000
 NODE_ENV=development
 JWT_SECRET=tu_secreto_largo_y_unico
+BASE_PATH=                        # Vacío en local; /plantas en producción
 # DB_PATH=ruta/absoluta/database.sqlite
 # FRONTEND_PATH=ruta/absoluta/frontend
-# DATA_PATH=/var/data          # Producción: datos persistentes en el servidor (EC2)
+# IMAGES_PATH=ruta/absoluta/imagenes   # Producción: carpeta de imágenes persistente
+# DATA_PATH=/var/data                   # Alternativa legacy a IMAGES_PATH
 ```
 
 ### Usuario administrador por defecto
@@ -154,26 +159,30 @@ node src/scripts/hash-passwords.js
 | `/api/remedios` | CRUD de remedios |
 | `/api/usos` | Catálogo de usos terapéuticos |
 | `/api/usuarios` | Gestión de usuarios (admin) |
-| `/api/system` | Respaldo y restauración de BD (admin) |
+| `/api/system` | Respaldo ZIP y restauración de BD (admin) |
 
 Rutas de escritura sensibles requieren JWT y rol administrador.
 
 ## Despliegue en producción (AWS EC2)
 
-El sistema está alojado en una instancia **AWS EC2** (Linux/UNIX):
+El sistema está alojado en una instancia **AWS EC2** (Linux/UNIX) con **Apache2** como proxy inverso y **PM2** como gestor de procesos:
 
 | Dato | Valor |
 |------|-------|
 | Servidor | `3.12.148.33` (AWS EC2, Linux/UNIX) |
 | Sitio web | [http://3.12.148.33/plantas/](http://3.12.148.33/plantas/) |
-| API en producción | `http://3.12.148.33/plantas/api` *(el frontend usa el prefijo `/plantas` cuando no es `localhost`)* |
+| API en producción | `http://3.12.148.33/plantas/api` |
 
-En el servidor, Node.js ejecuta la API y sirve el frontend estático. Se recomienda usar `DATA_PATH` (p. ej. `/var/data`) para que `database.sqlite` e imágenes subidas persistan fuera del directorio de despliegue.
+Apache redirige `http://3.12.148.33/` → `/plantas/` automáticamente. Las rutas `/plantas/*` se proxean a `localhost:3001/` (Express), que recibe las rutas sin el prefijo.
+
+La variable `BASE_PATH=/plantas` en el `.env` del servidor permite que Express genere el endpoint `GET /config.js`, que inyecta `window.APP_CONFIG = { BASE_PATH, API_URL }` en el frontend. Así el mismo código sirve tanto en local como bajo cualquier subpath sin cambios en los HTML.
+
+Las imágenes subidas se guardan en `IMAGES_PATH` (ruta persistente fuera del directorio de despliegue) y se sirven en `/recursos/imagenes`. Las imágenes se comprimen automáticamente al subir (máx. 1920px, calidad 80 JPEG).
 
 Desde el panel de administración (`admin.html`) los administradores pueden:
 
-- Descargar respaldo de la base de datos (`GET /api/system/backup`)
-- Restaurar un archivo `.sqlite` (`POST /api/system/restore`)
+- Descargar respaldo completo en ZIP (`database.sqlite` + carpeta `imagenes/`) — `GET /api/system/backup`
+- Restaurar un archivo `.sqlite` — `POST /api/system/restore`
 
 Detalles de infraestructura, variables de entorno y permisos: [REQUERIMIENTOS_TECNICOS.md](./REQUERIMIENTOS_TECNICOS.md#4-configuración-requerida).
 

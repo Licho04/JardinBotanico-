@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import sharp from 'sharp';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,14 +11,9 @@ const __dirname = path.dirname(__filename);
 // Configurar multer para subida de imágenes
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        let uploadPath;
-        if (process.env.DATA_PATH) {
-            // En Producción (Render Disk)
-            uploadPath = path.join(process.env.DATA_PATH, 'imagenes');
-        } else {
-            // En Desarrollo: app/src/controllers -> ../../../frontend/recursos/imagenes
-            uploadPath = path.join(__dirname, '../../../frontend/recursos/imagenes');
-        }
+        const uploadPath = process.env.IMAGES_PATH ||
+            (process.env.DATA_PATH ? path.join(process.env.DATA_PATH, 'imagenes') : null) ||
+            path.join(__dirname, '../../../frontend/recursos/imagenes');
 
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
@@ -50,6 +46,16 @@ export const upload = multer({
  * --- REFACTORIZACIÓN FASE 4: ESQUEMA DUAL ---
  * Ahora leemos de 'planta_fisica' unida con 'planta_info'
  */
+
+// Comprime una imagen en su misma ruta (reemplaza el original)
+async function comprimirImagen(filePath) {
+    const tmpPath = filePath + '.tmp';
+    await sharp(filePath)
+        .resize({ width: 1920, withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toFile(tmpPath);
+    fs.renameSync(tmpPath, filePath);
+}
 
 // Obtener todas las plantas (JOIN planta_fisica + planta_info)
 export const obtenerPlantas = async (req, res) => {
@@ -262,12 +268,16 @@ export const crearPlanta = async (req, res) => {
 
         if (galeriaFotos.length > 0) {
             fotosCrecimiento = galeriaFotos.map(f => f.filename).filter(f => f && f.trim().length > 0);
+            // Comprimir cada imagen subida
+            for (const f of galeriaFotos) {
+                try { await comprimirImagen(f.path); } catch (e) { console.error('Error comprimiendo:', f.filename, e.message); }
+            }
         }
 
         const fotosCrecimientoJSON = JSON.stringify(fotosCrecimiento);
 
         const infoQuery = `
-            INSERT OR IGNORE INTO planta_info 
+            INSERT OR IGNORE INTO planta_info
             (nombre_cientifico, descripcion, principio_activo, propiedades_curativas, bibliografia, fotos_crecimiento, genero, morfologia, distribucion_geografica)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
@@ -363,6 +373,14 @@ export const actualizarPlanta = async (req, res) => {
 
         const nuevoNombreCientifico = req.body.nombre_cientifico || nombreDecoded;
 
+        // Leer fotos actuales antes de modificar para saber cuáles eliminar del disco
+        const infoActual = await db.getAsync(
+            'SELECT fotos_crecimiento FROM planta_info WHERE nombre_cientifico = ?',
+            [nombreDecoded]
+        );
+        let fotosAnteriores = [];
+        try { fotosAnteriores = JSON.parse(infoActual?.fotos_crecimiento || '[]'); } catch (e) { }
+
         await db.run('BEGIN TRANSACTION');
 
         // 1. Actualizar Info Científica
@@ -376,8 +394,24 @@ export const actualizarPlanta = async (req, res) => {
         }
 
         if (req.files && req.files['galeria']) {
-            const nuevasFotos = req.files['galeria'].map(f => f.filename);
-            fotosExistentes = [...fotosExistentes, ...nuevasFotos];
+            const nuevasFotos = req.files['galeria'];
+            // Comprimir cada imagen nueva antes de registrarla
+            for (const f of nuevasFotos) {
+                try { await comprimirImagen(f.path); } catch (e) { console.error('Error comprimiendo:', f.filename, e.message); }
+            }
+            fotosExistentes = [...fotosExistentes, ...nuevasFotos.map(f => f.filename)];
+        }
+
+        // Borrar del disco las fotos que ya no están en la galería
+        const fotosFinales = new Set(fotosExistentes);
+        const imagesDir = process.env.IMAGES_PATH ||
+            (process.env.DATA_PATH ? path.join(process.env.DATA_PATH, 'imagenes') : null) ||
+            path.join(__dirname, '../../../frontend/recursos/imagenes');
+        for (const foto of fotosAnteriores) {
+            if (!fotosFinales.has(foto)) {
+                const filePath = path.join(imagesDir, foto);
+                fs.unlink(filePath, () => {}); // silencioso si ya no existe
+            }
         }
 
         const fotosCrecimientoJSON = JSON.stringify(fotosExistentes);
@@ -471,11 +505,26 @@ export const eliminarPlanta = async (req, res) => {
         const { nombre_cientifico } = req.params;
         const nombreDecoded = decodeURIComponent(nombre_cientifico);
 
-        // Eliminar Info Científica (Cascade lógico)
+        // Borrar imágenes del disco antes de eliminar el registro
+        const infoParaBorrar = await db.getAsync(
+            'SELECT fotos_crecimiento FROM planta_info WHERE nombre_cientifico = ?',
+            [nombreDecoded]
+        );
+        if (infoParaBorrar?.fotos_crecimiento) {
+            const imagesDir = process.env.IMAGES_PATH ||
+                (process.env.DATA_PATH ? path.join(process.env.DATA_PATH, 'imagenes') : null) ||
+                path.join(__dirname, '../../../frontend/recursos/imagenes');
+            try {
+                const fotos = JSON.parse(infoParaBorrar.fotos_crecimiento);
+                for (const foto of fotos) {
+                    fs.unlink(path.join(imagesDir, foto), () => {});
+                }
+            } catch (e) { }
+        }
 
+        // Eliminar Info Científica (Cascade lógico)
         await db.runAsync('DELETE FROM planta_fisica WHERE nombre_cientifico = ?', [nombreDecoded]);
         await db.runAsync('DELETE FROM planta_info WHERE nombre_cientifico = ?', [nombreDecoded]);
-        // Remedios también deberían borrarse o quedar huérfanos? Mejor borrarlos.
         await db.runAsync('DELETE FROM remedios WHERE nombre_cientifico = ?', [nombreDecoded]);
 
         res.json({ success: true, mensaje: 'Planta y toda su información eliminada correctamente' });

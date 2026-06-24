@@ -4,18 +4,25 @@ import { verificarToken, verificarAdmin } from '../../controllers/auth.controlle
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
+
+// Ruta de imágenes (misma lógica que server.js y plantas.controller.js)
+const imagesPath = process.env.IMAGES_PATH ||
+    (process.env.DATA_PATH ? path.join(process.env.DATA_PATH, 'imagenes') : null) ||
+    path.join(__dirname, '../../../../frontend/recursos/imagenes');
 
 // Configuración de Multer para subir base de datos
 const storageDB = multer.diskStorage({
     destination: (req, file, cb) => {
-        // Usar la misma ubicación que la base de datos actual
         const dbDir = path.dirname(db.filename);
         cb(null, dbDir);
     },
     filename: (req, file, cb) => {
-        // Nombre temporal
         cb(null, 'database_restore.sqlite');
     }
 });
@@ -33,20 +40,37 @@ const uploadDB = multer({
 
 /**
  * GET /api/system/backup
- * Descargar respaldo de base de datos
+ * Descargar respaldo completo: base de datos + imágenes en un ZIP
  */
-router.get('/backup', verificarToken, verificarAdmin, (req, res) => {
+router.get('/backup', verificarToken, verificarAdmin, async (req, res) => {
     try {
+        const { default: archiver } = await import('archiver');
         const dbPath = db.filename;
         const date = new Date().toISOString().slice(0, 10);
-        res.download(dbPath, `respaldo_jardin_${date}.sqlite`, (err) => {
-            if (err) {
-                console.error('Error al descargar base de datos:', err);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'Error al generar respaldo' });
-                }
+        const filename = `respaldo_jardin_${date}.zip`;
+
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        const archive = archiver('zip', { zlib: { level: 6 } });
+
+        archive.on('error', (err) => {
+            console.error('Error al generar ZIP de respaldo:', err);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Error al generar respaldo' });
             }
         });
+
+        archive.pipe(res);
+
+        archive.file(dbPath, { name: 'database.sqlite' });
+
+        if (fs.existsSync(imagesPath)) {
+            archive.directory(imagesPath, 'imagenes');
+        }
+
+        archive.finalize();
+
     } catch (error) {
         console.error('Error en ruta de respaldo:', error);
         res.status(500).json({ error: 'Error interno' });
@@ -55,7 +79,7 @@ router.get('/backup', verificarToken, verificarAdmin, (req, res) => {
 
 /**
  * POST /api/system/restore
- * Restaurar base de datos
+ * Restaurar base de datos desde archivo .sqlite
  */
 router.post('/restore', verificarToken, verificarAdmin, uploadDB.single('backup_file'), async (req, res) => {
     try {
@@ -68,20 +92,15 @@ router.post('/restore', verificarToken, verificarAdmin, uploadDB.single('backup_
         const backupPath = currentDBPath + '.bak';
 
         try {
-            // Backup actual
             if (fs.existsSync(currentDBPath)) {
                 fs.copyFileSync(currentDBPath, backupPath);
             }
 
-            // Sobrescribir
             fs.copyFileSync(newDBPath, currentDBPath);
-
-            // Borrar temporal
             fs.unlinkSync(newDBPath);
 
-            res.json({ success: true, mensaje: 'Restauración Exitosa. El servidor aplicará los cambios internamente.' });
+            res.json({ success: true, mensaje: 'Restauración exitosa. El servidor aplicará los cambios internamente.' });
 
-            // Forzar reinicio para liberar handlers de SQLite
             setTimeout(() => {
                 process.exit(0);
             }, 1000);
